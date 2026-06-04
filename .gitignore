@@ -1,0 +1,25 @@
+# dependencies
+**/node_modules
+
+# builds
+**/dist
+**/build
+
+# env
+**/.env
+**/*.local
+
+# logs
+**/*.log
+
+# uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# secrets
+**/firebase-service-account.json
+**/*.keystore
+!**/debug.keystore
+
+# os
+.DS_Store

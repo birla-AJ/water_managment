@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Override React Native's default Metro dev-server port (8081 -> 9090).
+         Read by AndroidInfoHelpers.getDefaultDevServerPort() in debug builds. -->
+    <integer name="react_native_dev_server_port">9090</integer>
+</resources>

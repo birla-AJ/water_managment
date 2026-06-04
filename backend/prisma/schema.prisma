@@ -1,0 +1,431 @@
+// WaterFlow ERP — Prisma schema
+// Water Distribution Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum CustomerType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum OrderType {
+  REGULAR
+  EXTRA
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PROCESSING
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  CANCELLED
+}
+
+enum InventoryAction {
+  STOCK_IN
+  FILLED
+  EMPTIED
+  ALLOCATED
+  RETURNED
+  DAMAGED
+  LOST
+  ADJUSTMENT
+}
+
+enum InvoiceStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  CASH
+  UPI
+  CARD
+  ADJUSTMENT
+}
+
+enum NotificationAudience {
+  ADMIN
+  CUSTOMER
+}
+
+enum NotificationType {
+  ORDER_ACCEPTED
+  ORDER_DELIVERED
+  BILL_GENERATED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PAYMENT_DUE_REMINDER
+  NEW_CUSTOMER
+  NEW_ORDER_REQUEST
+  PAYMENT_RECEIVED
+  INVENTORY_LOW
+  GENERAL
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model Admin {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(ADMIN)
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+
+  refreshTokens RefreshToken[]
+  inventoryLogs InventoryLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@map("admins")
+}
+
+model Customer {
+  id              String         @id @default(uuid())
+  name            String
+  mobile          String         @unique
+  altMobile       String?
+  email           String?
+  address         String?
+  area            String?
+  landmark        String?
+  customerType    CustomerType   @default(DAILY)
+  status          CustomerStatus @default(ACTIVE)
+  securityDeposit Decimal        @default(0) @db.Decimal(10, 2)
+  ratePerCamper   Decimal        @default(0) @db.Decimal(10, 2)
+  allocatedCampers Int           @default(0)
+  notes           String?
+  fcmToken        String?
+  // Pause feature
+  isPaused        Boolean        @default(false)
+  pausedFrom      DateTime?
+  pausedTo        DateTime?
+
+  schedules     CustomerSchedule[]
+  orders        Order[]
+  deliveries    Delivery[]
+  invoices      Invoice[]
+  payments      Payment[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+  deliverySkips DeliverySkip[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([area])
+  @@index([customerType])
+  @@map("customers")
+}
+
+// Specific dates a customer marked as unavailable to receive water.
+// The regular-order generator skips a customer on any date listed here.
+model DeliverySkip {
+  id         String   @id @default(uuid())
+  customerId String
+  date       DateTime @db.Date
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, date])
+  @@index([date])
+  @@map("delivery_skips")
+}
+
+model CustomerSchedule {
+  id         String   @id @default(uuid())
+  customerId String
+  weekday    Weekday
+  enabled    Boolean  @default(true)
+  quantity   Int      @default(1)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerId, weekday])
+  @@map("customer_schedules")
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+  customerId  String
+  type        OrderType   @default(REGULAR)
+  status      OrderStatus @default(PENDING)
+  quantity    Int         @default(1)
+  orderDate   DateTime    @db.Date
+  remarks     String?
+
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+  delivery   Delivery?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([orderDate])
+  @@index([type])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  name      String  @default("Water Camper (20L)")
+  quantity  Int     @default(1)
+  rate      Decimal @default(0) @db.Decimal(10, 2)
+  amount    Decimal @default(0) @db.Decimal(10, 2)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Delivery {
+  id                String         @id @default(uuid())
+  orderId           String         @unique
+  customerId        String
+  status            DeliveryStatus @default(PENDING)
+  deliveryDate      DateTime?      @db.Date
+  quantityDelivered Int            @default(0)
+  emptyCollected    Int            @default(0)
+  remarks           String?
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([deliveryDate])
+  @@map("deliveries")
+}
+
+// Single-row inventory snapshot (id = "default")
+model Inventory {
+  id              String @id @default("default")
+  totalCampers    Int    @default(0)
+  filledCampers   Int    @default(0)
+  emptyCampers    Int    @default(0)
+  damagedCampers  Int    @default(0)
+  lostCampers     Int    @default(0)
+  returnedCampers Int    @default(0)
+  allocatedCampers Int   @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("inventory")
+}
+
+model InventoryLog {
+  id       String          @id @default(uuid())
+  action   InventoryAction
+  quantity Int
+  remarks  String?
+  adminId  String?
+
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+  @@map("inventory_logs")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  customerId    String
+  periodStart   DateTime      @db.Date
+  periodEnd     DateTime      @db.Date
+  quantity      Int           @default(0)
+  rate          Decimal       @default(0) @db.Decimal(10, 2)
+  subTotal      Decimal       @default(0) @db.Decimal(10, 2)
+  taxAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount   Decimal       @default(0) @db.Decimal(10, 2)
+  paidAmount    Decimal       @default(0) @db.Decimal(10, 2)
+  dueAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  status        InvoiceStatus @default(PENDING)
+  dueDate       DateTime?     @db.Date
+  pdfUrl        String?
+  notes         String?
+
+  customer Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items    InvoiceItem[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Int     @default(1)
+  rate        Decimal @default(0) @db.Decimal(10, 2)
+  amount      Decimal @default(0) @db.Decimal(10, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  customerId        String
+  invoiceId         String?
+  amount            Decimal       @db.Decimal(10, 2)
+  method            PaymentMethod @default(RAZORPAY)
+  status            PaymentStatus @default(PENDING)
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  refundId          String?
+  notes             String?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoice  Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Notification {
+  id         String               @id @default(uuid())
+  audience   NotificationAudience
+  type       NotificationType     @default(GENERAL)
+  title      String
+  body       String
+  data       Json?
+  customerId String?
+  isRead     Boolean              @default(false)
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([audience])
+  @@index([customerId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  adminId    String?
+  customerId String?
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+
+  admin    Admin?    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([customerId])
+  @@map("refresh_tokens")
+}
+
+// OTP store for customer login
+model OtpCode {
+  id        String   @id @default(uuid())
+  mobile    String
+  code      String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  attempts  Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([mobile])
+  @@map("otp_codes")
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}

@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+*.log
+uploads/*
+!uploads/.gitkeep
+firebase-service-account.json
+waterflowcustomer-firebase-adminsdk.json
+*-firebase-adminsdk*.json
+coverage
