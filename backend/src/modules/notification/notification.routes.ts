@@ -28,6 +28,18 @@ router.get('/', authenticate('admin'), ctrl.listAdminNotifications);
  */
 router.get('/me', authenticate('customer'), ctrl.listMyNotifications);
 
+/**
+ * @openapi
+ * /notifications/driver:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: List notifications for the current driver
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.get('/driver', authenticate('driver'), ctrl.listDriverNotifications);
+
 router.get('/unread-count', authenticate(), ctrl.unreadCount);
 router.patch('/:id/read', authenticate(), ctrl.markRead);
 router.patch('/read-all', authenticate(), ctrl.markAllRead);

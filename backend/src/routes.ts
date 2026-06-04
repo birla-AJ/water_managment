@@ -13,6 +13,9 @@ import notificationRoutes from './modules/notification/notification.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import reportRoutes from './modules/report/report.routes';
 import settingsRoutes from './modules/settings/settings.routes';
+import vehicleRoutes from './modules/vehicle/vehicle.routes';
+import driverRoutes from './modules/driver/driver.routes';
+import driverMeRoutes from './modules/driver/driver.me.routes';
 
 export const apiRouter = Router();
 
@@ -30,6 +33,8 @@ apiRouter.use('/deliveries', deliveryRouter);
 apiRouter.use('/dashboard', dashboardRoutes);
 apiRouter.use('/reports', reportRoutes);
 apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/vehicles', vehicleRoutes);
+apiRouter.use('/drivers', driverRoutes);
 
 // ---- Customer-facing (mobile app) ----
 apiRouter.use('/me', customerMeRoutes);
@@ -37,3 +42,6 @@ apiRouter.use('/me/orders', orderMeRoutes);
 apiRouter.use('/me/billing', billingMeRouter);
 apiRouter.use('/me/payments', paymentMeRouter);
 apiRouter.use('/me/deliveries', deliveryMeRouter);
+
+// ---- Driver-facing (mobile app) ----
+apiRouter.use('/driver', driverMeRoutes);

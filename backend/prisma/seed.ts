@@ -107,10 +107,33 @@ async function main() {
     }
   }
 
+  // ---- Sample vehicle + driver ----
+  const vehicle = await prisma.vehicle.upsert({
+    where: { number: 'MH12 AB 1234' },
+    update: {},
+    create: { number: 'MH12 AB 1234', type: 'Tempo', capacity: 100 },
+  });
+
+  const driver = await prisma.driver.upsert({
+    where: { mobile: '9800000001' },
+    update: {},
+    create: {
+      name: 'Suresh Driver',
+      mobile: '9800000001',
+      licenseNumber: 'MH-1420200012345',
+      zone: 'Kothrud',
+      vehicleId: vehicle.id,
+    },
+  });
+
+  // Assign the Kothrud sample customer to this driver.
+  await prisma.customer.updateMany({ where: { area: 'Kothrud' }, data: { driverId: driver.id } });
+
   console.log('✅ Seed complete.');
   console.log('   Super Admin: superadmin@waterflow.com / Admin@123');
   console.log('   Admin:       admin@waterflow.com / Admin@123');
   console.log('   Customers:   9812345670, 9812345671, 9812345672 (OTP: 123456)');
+  console.log('   Driver:      9800000001 (OTP: 123456) — zone Kothrud, vehicle MH12 AB 1234');
 }
 
 main()

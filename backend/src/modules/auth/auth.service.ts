@@ -23,14 +23,39 @@ class AuthService {
     const refreshToken = signRefreshToken(payload);
     const expiresAt = dayjs().add(30, 'day').toDate();
 
+    const owner =
+      principal === 'admin'
+        ? { adminId: payload.sub }
+        : principal === 'driver'
+          ? { driverId: payload.sub }
+          : { customerId: payload.sub };
+
     await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        expiresAt,
-        ...(principal === 'admin' ? { adminId: payload.sub } : { customerId: payload.sub }),
-      },
+      data: { token: refreshToken, expiresAt, ...owner },
     });
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * If the given mobile belongs to a registered (active) driver, log them in as
+   * a driver and return the login payload; otherwise return null so the caller
+   * falls back to the customer flow. This is what makes one OTP screen route to
+   * either the driver or the customer dashboard automatically.
+   */
+  private async loginAsDriverIfRegistered(mobile: string, fcmToken?: string) {
+    const driver = await prisma.driver.findUnique({ where: { mobile } });
+    if (!driver || driver.status !== 'ACTIVE') return null;
+
+    if (fcmToken && fcmToken !== driver.fcmToken) {
+      await prisma.driver.update({ where: { id: driver.id }, data: { fcmToken } });
+    }
+
+    const tokens = await this.issueTokens({ sub: driver.id, principal: 'driver' }, 'driver');
+    return {
+      ...tokens,
+      isNew: false,
+      user: { id: driver.id, name: driver.name, mobile: driver.mobile, role: 'DRIVER' as const },
+    };
   }
 
   // ---------------- ADMIN ----------------
@@ -89,6 +114,10 @@ class AuthService {
 
     await prisma.otpCode.update({ where: { id: otp.id }, data: { consumed: true } });
 
+    // Registered driver numbers log in as drivers (no customer record created).
+    const asDriver = await this.loginAsDriverIfRegistered(dto.mobile, dto.fcmToken);
+    if (asDriver) return asDriver;
+
     let customer = await prisma.customer.findUnique({ where: { mobile: dto.mobile } });
     let isNew = false;
     if (!customer) {
@@ -108,7 +137,7 @@ class AuthService {
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
-    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status } };
+    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const } };
   }
 
   // ---------------- FIREBASE PHONE AUTH ----------------
@@ -129,6 +158,10 @@ class AuthService {
     const mobile = decoded.phone_number.replace(/\D/g, '').slice(-10);
     if (!/^[6-9]\d{9}$/.test(mobile)) throw ApiError.badRequest('Unsupported phone number');
 
+    // Registered driver numbers log in as drivers (no customer record created).
+    const asDriver = await this.loginAsDriverIfRegistered(mobile, dto.fcmToken);
+    if (asDriver) return asDriver;
+
     let customer = await prisma.customer.findUnique({ where: { mobile } });
     let isNew = false;
     if (!customer) {
@@ -148,7 +181,7 @@ class AuthService {
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
-    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status } };
+    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const } };
   }
 
   // ---------------- REFRESH / LOGOUT ----------------
@@ -191,12 +224,28 @@ class AuthService {
       if (!admin) throw ApiError.notFound('Admin not found');
       return { principal: 'admin', ...admin };
     }
+    if (payload.principal === 'driver') {
+      const driver = await prisma.driver.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          name: true,
+          mobile: true,
+          email: true,
+          zone: true,
+          status: true,
+          vehicle: { select: { id: true, number: true, type: true, capacity: true } },
+        },
+      });
+      if (!driver) throw ApiError.notFound('Driver not found');
+      return { principal: 'driver', role: 'DRIVER', ...driver };
+    }
     const customer = await prisma.customer.findUnique({
       where: { id: payload.sub },
       select: { id: true, name: true, mobile: true, email: true, area: true, address: true, status: true, customerType: true },
     });
     if (!customer) throw ApiError.notFound('Customer not found');
-    return { principal: 'customer', ...customer };
+    return { principal: 'customer', role: 'CUSTOMER', ...customer };
   }
 }
 

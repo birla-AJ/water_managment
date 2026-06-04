@@ -1,6 +1,7 @@
-import { Prisma, Weekday } from '@prisma/client';
+import { Prisma, Weekday, NotificationAudience, NotificationType } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/apiError';
+import { notificationService } from '../notification/notification.service';
 import { customerRepository } from './customer.repository';
 import { CreateCustomerDto, UpdateCustomerDto } from './customer.dto';
 
@@ -126,9 +127,28 @@ class CustomerService {
     return this.getSchedules(id);
   }
 
+  /** Notify the customer's assigned driver that the customer won't be receiving water. */
+  private async notifyAssignedDriverOfSkip(customerId: string, detail: string) {
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { name: true, area: true, driverId: true },
+    });
+    if (!customer?.driverId) return;
+    await notificationService.notify({
+      audience: NotificationAudience.DRIVER,
+      type: NotificationType.CUSTOMER_SKIPPED,
+      driverId: customer.driverId,
+      title: 'Customer skipped delivery',
+      body: `${customer.name}${customer.area ? ` (${customer.area})` : ''} ${detail}. Skip this stop.`,
+      data: { customerId },
+    });
+  }
+
   async pause(id: string, pausedFrom?: Date, pausedTo?: Date) {
     await this.getById(id);
-    return customerRepository.update(id, { isPaused: true, pausedFrom, pausedTo });
+    const updated = await customerRepository.update(id, { isPaused: true, pausedFrom, pausedTo });
+    await this.notifyAssignedDriverOfSkip(id, 'paused their deliveries');
+    return updated;
   }
 
   async resume(id: string) {
@@ -166,6 +186,11 @@ class CustomerService {
         ? [prisma.deliverySkip.createMany({ data: wanted.map((key) => ({ customerId: id, date: utcDate(key) })) })]
         : []),
     ]);
+
+    // If today is among the newly-skipped dates, let the assigned driver know.
+    if (wanted.includes(new Date().toISOString().slice(0, 10))) {
+      await this.notifyAssignedDriverOfSkip(id, 'marked today as unavailable');
+    }
 
     return this.getSkipDates(id);
   }

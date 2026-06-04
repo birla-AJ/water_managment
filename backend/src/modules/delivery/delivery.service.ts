@@ -38,7 +38,11 @@ class DeliveryService {
     return d;
   }
 
-  async mark(orderId: string, status: DeliveryStatus, payload: { quantityDelivered?: number; emptyCollected?: number; remarks?: string }) {
+  async mark(
+    orderId: string,
+    status: DeliveryStatus,
+    payload: { quantityDelivered?: number; emptyCollected?: number; remarks?: string; driverId?: string }
+  ) {
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw ApiError.notFound('Order not found');
 
@@ -50,6 +54,7 @@ class DeliveryService {
         quantityDelivered: payload.quantityDelivered ?? order.quantity,
         emptyCollected: payload.emptyCollected ?? 0,
         remarks: payload.remarks,
+        ...(payload.driverId ? { driverId: payload.driverId } : {}),
       },
       create: {
         orderId,
@@ -59,6 +64,7 @@ class DeliveryService {
         quantityDelivered: payload.quantityDelivered ?? order.quantity,
         emptyCollected: payload.emptyCollected ?? 0,
         remarks: payload.remarks,
+        ...(payload.driverId ? { driverId: payload.driverId } : {}),
       },
     });
 

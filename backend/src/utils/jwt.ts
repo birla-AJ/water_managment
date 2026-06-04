@@ -1,7 +1,7 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
 
-export type Principal = 'admin' | 'customer';
+export type Principal = 'admin' | 'customer' | 'driver';
 
 export interface JwtPayload {
   sub: string; // user id

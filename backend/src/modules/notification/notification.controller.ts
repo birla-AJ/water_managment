@@ -24,11 +24,32 @@ export const listMyNotifications = asyncHandler(async (req: Request, res: Respon
   ok(res, items, 'Notifications', buildMeta(total, page, limit));
 });
 
+/** Driver: list their notifications. */
+export const listDriverNotifications = asyncHandler(async (req: Request, res: Response) => {
+  const { page, limit, skip } = getPagination(req.query);
+  const { items, total } = await notificationService.list({
+    audience: NotificationAudience.DRIVER,
+    driverId: req.user!.sub,
+    skip,
+    take: limit,
+  });
+  ok(res, items, 'Notifications', buildMeta(total, page, limit));
+});
+
+/** Resolve the audience filter for the currently authenticated principal. */
+function scopeFor(req: Request) {
+  switch (req.user!.principal) {
+    case 'admin':
+      return { audience: NotificationAudience.ADMIN };
+    case 'driver':
+      return { audience: NotificationAudience.DRIVER, driverId: req.user!.sub };
+    default:
+      return { audience: NotificationAudience.CUSTOMER, customerId: req.user!.sub };
+  }
+}
+
 export const unreadCount = asyncHandler(async (req: Request, res: Response) => {
-  const isAdmin = req.user!.principal === 'admin';
-  const count = await notificationService.unreadCount(
-    isAdmin ? { audience: NotificationAudience.ADMIN } : { audience: NotificationAudience.CUSTOMER, customerId: req.user!.sub }
-  );
+  const count = await notificationService.unreadCount(scopeFor(req));
   ok(res, { count });
 });
 
@@ -38,10 +59,6 @@ export const markRead = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const markAllRead = asyncHandler(async (req: Request, res: Response) => {
-  const isAdmin = req.user!.principal === 'admin';
-  await notificationService.markAllRead(
-    isAdmin ? undefined : req.user!.sub,
-    isAdmin ? NotificationAudience.ADMIN : NotificationAudience.CUSTOMER
-  );
+  await notificationService.markAllRead(scopeFor(req));
   ok(res, null, 'All marked read');
 });

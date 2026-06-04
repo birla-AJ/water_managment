@@ -9,6 +9,7 @@ interface NotifyInput {
   title: string;
   body: string;
   customerId?: string;
+  driverId?: string;
   data?: Record<string, string>;
 }
 
@@ -22,6 +23,7 @@ class NotificationService {
         title: input.title,
         body: input.body,
         customerId: input.customerId,
+        driverId: input.driverId,
         data: input.data ?? undefined,
       },
     });
@@ -31,6 +33,14 @@ class NotificationService {
       const customer = await prisma.customer.findUnique({ where: { id: input.customerId } });
       if (customer?.fcmToken) {
         await this.push(customer.fcmToken, input.title, input.body, input.data);
+      }
+    }
+
+    // Push to driver device when applicable.
+    if (input.audience === NotificationAudience.DRIVER && input.driverId) {
+      const driver = await prisma.driver.findUnique({ where: { id: input.driverId } });
+      if (driver?.fcmToken) {
+        await this.push(driver.fcmToken, input.title, input.body, input.data);
       }
     }
     return notification;
@@ -54,10 +64,11 @@ class NotificationService {
     }
   }
 
-  async list(params: { audience?: NotificationAudience; customerId?: string; skip: number; take: number }) {
+  async list(params: { audience?: NotificationAudience; customerId?: string; driverId?: string; skip: number; take: number }) {
     const where = {
       ...(params.audience ? { audience: params.audience } : {}),
       ...(params.customerId ? { customerId: params.customerId } : {}),
+      ...(params.driverId ? { driverId: params.driverId } : {}),
     };
     const [items, total] = await Promise.all([
       prisma.notification.findMany({ where, orderBy: { createdAt: 'desc' }, skip: params.skip, take: params.take }),
@@ -70,16 +81,26 @@ class NotificationService {
     return prisma.notification.update({ where: { id }, data: { isRead: true } });
   }
 
-  async markAllRead(customerId?: string, audience?: NotificationAudience) {
+  async markAllRead(opts: { customerId?: string; driverId?: string; audience?: NotificationAudience }) {
     return prisma.notification.updateMany({
-      where: { ...(customerId ? { customerId } : {}), ...(audience ? { audience } : {}), isRead: false },
+      where: {
+        ...(opts.customerId ? { customerId: opts.customerId } : {}),
+        ...(opts.driverId ? { driverId: opts.driverId } : {}),
+        ...(opts.audience ? { audience: opts.audience } : {}),
+        isRead: false,
+      },
       data: { isRead: true },
     });
   }
 
-  async unreadCount(params: { audience?: NotificationAudience; customerId?: string }) {
+  async unreadCount(params: { audience?: NotificationAudience; customerId?: string; driverId?: string }) {
     return prisma.notification.count({
-      where: { isRead: false, ...(params.audience ? { audience: params.audience } : {}), ...(params.customerId ? { customerId: params.customerId } : {}) },
+      where: {
+        isRead: false,
+        ...(params.audience ? { audience: params.audience } : {}),
+        ...(params.customerId ? { customerId: params.customerId } : {}),
+        ...(params.driverId ? { driverId: params.driverId } : {}),
+      },
     });
   }
 }
