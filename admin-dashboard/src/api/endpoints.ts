@@ -4,10 +4,12 @@ import type {
   Customer,
   CustomerSchedule,
   DashboardOverview,
+  Driver,
   Inventory,
   Invoice,
   Order,
   Payment,
+  Vehicle,
 } from '../types';
 
 // ---- Auth ----
@@ -39,6 +41,32 @@ export const customerApi = {
   skipDates: (id: string) => api.get<ApiResponse<string[]>>(`/customers/${id}/skip-dates`).then((r) => r.data.data),
   setSkipDates: (id: string, dates: string[]) =>
     api.put<ApiResponse<string[]>>(`/customers/${id}/skip-dates`, { dates }).then((r) => r.data.data),
+};
+
+// ---- Vehicles ----
+export const vehicleApi = {
+  list: (params: Record<string, unknown>) => api.get<ApiResponse<Vehicle[]>>('/vehicles', { params }).then((r) => r.data),
+  available: () => api.get<ApiResponse<Vehicle[]>>('/vehicles/available').then((r) => r.data.data),
+  get: (id: string) => api.get<ApiResponse<Vehicle>>(`/vehicles/${id}`).then((r) => r.data.data),
+  create: (body: Partial<Vehicle>) => api.post('/vehicles', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<Vehicle>) => api.put(`/vehicles/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/vehicles/${id}`),
+};
+
+// ---- Drivers ----
+export const driverApi = {
+  list: (params: Record<string, unknown>) => api.get<ApiResponse<Driver[]>>('/drivers', { params }).then((r) => r.data),
+  get: (id: string) => api.get<ApiResponse<Driver>>(`/drivers/${id}`).then((r) => r.data.data),
+  create: (body: Partial<Driver>) => api.post('/drivers', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<Driver>) => api.put(`/drivers/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/drivers/${id}`),
+  assignVehicle: (id: string, vehicleId: string | null) =>
+    api.post(`/drivers/${id}/assign-vehicle`, { vehicleId }).then((r) => r.data.data),
+  assignCustomers: (id: string, customerIds: string[]) =>
+    api.post(`/drivers/${id}/assign-customers`, { customerIds }).then((r) => r.data.data),
+  unassignCustomer: (id: string, customerId: string) => api.delete(`/drivers/${id}/customers/${customerId}`),
+  notify: (id: string, title: string, body: string) =>
+    api.post(`/drivers/${id}/notify`, { title, body }).then((r) => r.data.data),
 };
 
 // ---- Orders ----

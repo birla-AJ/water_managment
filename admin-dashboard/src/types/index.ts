@@ -45,6 +45,36 @@ export interface CustomerSchedule {
   quantity: number;
 }
 
+export type DriverStatus = 'ACTIVE' | 'INACTIVE';
+
+export interface Vehicle {
+  id: string;
+  number: string;
+  type?: string;
+  capacity?: number;
+  isActive: boolean;
+  notes?: string;
+  driver?: { id: string; name: string; mobile: string } | null;
+  createdAt?: string;
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  mobile: string;
+  altMobile?: string;
+  email?: string;
+  licenseNumber?: string;
+  address?: string;
+  zone?: string;
+  status: DriverStatus;
+  vehicleId?: string | null;
+  vehicle?: { id: string; number: string; type?: string; capacity?: number } | null;
+  customers?: Array<{ id: string; name: string; mobile: string; area?: string; status: CustomerStatus; isPaused: boolean }>;
+  _count?: { customers: number };
+  createdAt?: string;
+}
+
 export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'PROCESSING' | 'DELIVERED' | 'CANCELLED';
 
 export interface Order {

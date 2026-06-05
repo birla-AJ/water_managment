@@ -12,6 +12,8 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import PaymentsIcon from '@mui/icons-material/Payments';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -32,6 +34,8 @@ const DRAWER_WIDTH = 260;
 const NAV = [
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
   { label: 'Customers', path: '/customers', icon: <PeopleIcon /> },
+  { label: 'Drivers', path: '/drivers', icon: <LocalShippingIcon /> },
+  { label: 'Vehicles', path: '/vehicles', icon: <DirectionsCarIcon /> },
   { label: 'Orders', path: '/orders', icon: <ShoppingCartIcon /> },
   { label: 'Inventory', path: '/inventory', icon: <Inventory2Icon /> },
   { label: 'Billing', path: '/billing', icon: <ReceiptIcon /> },
