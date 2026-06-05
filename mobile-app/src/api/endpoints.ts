@@ -47,3 +47,20 @@ export const notificationApi = {
   list: () => api.get('/notifications/me').then((r) => r.data.data),
   markAllRead: () => api.patch('/notifications/read-all', {}),
 };
+
+// ---- Driver (mobile app) ----
+export const driverApi = {
+  profile: () => api.get('/driver/me').then((r) => r.data.data),
+  customers: () => api.get('/driver/customers').then((r) => r.data.data),
+  // Today's delivery worklist (assigned customers + skip flags). Optional date = YYYY-MM-DD.
+  deliveries: (date?: string) => api.get('/driver/deliveries', { params: date ? { date } : {} }).then((r) => r.data.data),
+  markDelivered: (body: {
+    orderId: string;
+    status?: 'DELIVERED' | 'CANCELLED';
+    quantityDelivered?: number;
+    emptyCollected?: number;
+    remarks?: string;
+  }) => api.post('/driver/deliveries/mark', body).then((r) => r.data.data),
+  updateFcm: (fcmToken: string) => api.patch('/driver/fcm-token', { fcmToken }),
+  notifications: () => api.get('/notifications/driver').then((r) => r.data.data),
+};

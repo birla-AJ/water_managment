@@ -20,6 +20,8 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SupportScreen from '../screens/SupportScreen';
 import SkipDeliveriesScreen from '../screens/SkipDeliveriesScreen';
+import DriverNavigator from './DriverNavigator';
+import DriverNotificationsScreen from '../screens/driver/DriverNotificationsScreen';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -82,7 +84,8 @@ function MainTabs() {
 
 export default function RootNavigator() {
   const { colors } = useTheme();
-  const { accessToken, bootstrapped, profileComplete } = useAppSelector((s) => s.auth);
+  const { accessToken, bootstrapped, profileComplete, user } = useAppSelector((s) => s.auth);
+  const isDriver = user?.role === 'DRIVER';
 
   return (
     <Stack.Navigator
@@ -99,6 +102,11 @@ export default function RootNavigator() {
         <>
           <Stack.Screen name="OtpLogin" component={OtpLoginScreen} options={{ headerShown: false }} />
           <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: 'Verify OTP' }} />
+        </>
+      ) : isDriver ? (
+        <>
+          <Stack.Screen name="DriverMain" component={DriverNavigator} options={{ headerShown: false }} />
+          <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} options={{ title: 'Notifications' }} />
         </>
       ) : !profileComplete ? (
         <Stack.Screen

@@ -1,7 +1,8 @@
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
-import { authApi } from '../api/endpoints';
+import { authApi, driverApi } from '../api/endpoints';
+import type { UserRole } from '../store/slices/authSlice';
 
 const CHANNEL_ID = 'default';
 
@@ -37,7 +38,7 @@ export async function displayNotification(title?: string, body?: string, data?: 
  *   • background / quit → shown by the OS (notification payload) or the
  *     background handler in index.js (data-only payload)
  */
-export async function setupNotifications(): Promise<void> {
+export async function setupNotifications(role: UserRole = 'CUSTOMER'): Promise<void> {
   try {
     if (Platform.OS === 'android' && Platform.Version >= 33) {
       await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -51,9 +52,11 @@ export async function setupNotifications(): Promise<void> {
 
     await ensureChannel();
 
+    // Register the FCM token against the correct account type.
+    const updateFcm = role === 'DRIVER' ? driverApi.updateFcm : authApi.updateFcm;
     const token = await messaging().getToken();
-    if (token) await authApi.updateFcm(token).catch(() => undefined);
-    messaging().onTokenRefresh((t) => authApi.updateFcm(t).catch(() => undefined));
+    if (token) await updateFcm(token).catch(() => undefined);
+    messaging().onTokenRefresh((t) => updateFcm(t).catch(() => undefined));
 
     // Foreground messages: FCM does not display these, so we show them ourselves.
     messaging().onMessage(async (msg) => {

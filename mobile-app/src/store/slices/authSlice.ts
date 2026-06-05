@@ -1,9 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export type UserRole = 'CUSTOMER' | 'DRIVER';
+
 interface User {
   id: string;
   name: string;
   mobile: string;
+  role?: UserRole;
 }
 
 interface AuthState {

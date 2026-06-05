@@ -39,6 +39,15 @@ export default function OtpVerifyScreen({ route }: Props) {
       const res = await authApi.firebaseLogin(firebaseToken);
       await AsyncStorage.setItem('wf_tokens', JSON.stringify({ accessToken: res.accessToken, refreshToken: res.refreshToken }));
 
+      // Drivers skip the customer onboarding entirely and go straight to the
+      // driver dashboard. The backend decides the role from the phone number.
+      if (res.user.role === 'DRIVER') {
+        dispatch(setProfileComplete(true));
+        dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));
+        setupNotifications('DRIVER');
+        return;
+      }
+
       // Decide up-front whether to force the onboarding screen, so the navigator
       // never flashes the main tabs first. New signups always onboard; returning
       // users only if their profile is still incomplete.
@@ -53,7 +62,7 @@ export default function OtpVerifyScreen({ route }: Props) {
       }
       dispatch(setProfileComplete(complete));
       dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));
-      setupNotifications();
+      setupNotifications('CUSTOMER');
     } catch (e) {
       Alert.alert('Error', errorMessage(e));
     } finally {

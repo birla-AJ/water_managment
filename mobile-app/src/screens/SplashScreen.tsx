@@ -41,13 +41,19 @@ export default function SplashScreen() {
           const tokens = JSON.parse(raw);
           dispatch(setCredentials({ user: { id: '', name: '', mobile: '' }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
           const me = await authApi.me();
-          dispatch(setCredentials({ user: { id: me.id, name: me.name, mobile: me.mobile }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
-          try {
-            dispatch(setProfileComplete(isProfileComplete(await meApi.profile())));
-          } catch {
+          const role = me.role === 'DRIVER' ? 'DRIVER' : 'CUSTOMER';
+          dispatch(setCredentials({ user: { id: me.id, name: me.name, mobile: me.mobile, role }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
+          if (role === 'DRIVER') {
+            // Drivers have no customer onboarding step.
             dispatch(setProfileComplete(true));
+          } else {
+            try {
+              dispatch(setProfileComplete(isProfileComplete(await meApi.profile())));
+            } catch {
+              dispatch(setProfileComplete(true));
+            }
           }
-          setupNotifications();
+          setupNotifications(role);
         }
       } catch {
         await AsyncStorage.removeItem('wf_tokens');
