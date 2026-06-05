@@ -96,7 +96,7 @@ export default function Billing() {
         <DialogTitle>Generate Invoice</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Customer ID" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })} helperText="Paste a customer UUID (from Customers page)" />
+            <TextField label="Customer ID" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })} helperText="Paste a customerfor tedt adddd  UUID (from Customers page)" />
             <TextField label="Period Start" type="date" value={form.periodStart} onChange={(e) => setForm({ ...form, periodStart: e.target.value })} InputLabelProps={{ shrink: true }} />
             <TextField label="Period End" type="date" value={form.periodEnd} onChange={(e) => setForm({ ...form, periodEnd: e.target.value })} InputLabelProps={{ shrink: true }} />
           </Stack>
