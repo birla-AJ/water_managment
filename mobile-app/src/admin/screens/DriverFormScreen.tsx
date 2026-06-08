@@ -8,6 +8,7 @@ import { errorMessage } from '../../api/client';
 import { adminDriverApi, adminVehicleApi } from '../api';
 import type { DriverStatus, Vehicle } from '../types';
 import { PageHeader, FormInput, Segmented, FilterChips, FieldLabel, Loader } from '../components/ui';
+import { isMobile, isEmail, sanitizeMobile } from '../validation';
 import type { AdminStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'DriverForm'>;
@@ -26,7 +27,18 @@ export default function DriverFormScreen() {
     name: '', mobile: '', altMobile: '', email: '', licenseNumber: '', zone: '', address: '',
     status: 'ACTIVE' as DriverStatus, vehicleId: '',
   });
-  const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof typeof f) => (v: string) => { setF((p) => ({ ...p, [k]: v })); setErrors((e) => ({ ...e, [k]: '' })); };
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!f.name.trim()) e.name = 'Name is required';
+    if (!isMobile(f.mobile)) e.mobile = 'Enter a valid 10-digit mobile (starts 6–9)';
+    if (f.altMobile && !isMobile(f.altMobile)) e.altMobile = 'Enter a valid 10-digit mobile';
+    if (f.email && !isEmail(f.email)) e.email = 'Enter a valid email';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
   useEffect(() => {
     (async () => {
@@ -52,7 +64,7 @@ export default function DriverFormScreen() {
   }, [id, isEdit]);
 
   const submit = async () => {
-    if (!f.name.trim() || !f.mobile.trim()) { Alert.alert('Required', 'Name and mobile are required.'); return; }
+    if (!validate()) return;
     setSaving(true);
     const payload = {
       name: f.name, mobile: f.mobile, altMobile: f.altMobile || undefined, email: f.email || undefined,
@@ -71,10 +83,10 @@ export default function DriverFormScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <PageHeader title={isEdit ? 'Edit Driver' : 'Add Driver'} subtitle="Driver logs in with this mobile + OTP" />
-      <FormInput label="Name *" value={f.name} onChangeText={set('name')} autoCapitalize="words" />
-      <FormInput label="Mobile (login number) *" value={f.mobile} onChangeText={set('mobile')} keyboardType="phone-pad" />
-      <FormInput label="Alternate Mobile" value={f.altMobile} onChangeText={set('altMobile')} keyboardType="phone-pad" />
-      <FormInput label="Email" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" />
+      <FormInput label="Name *" value={f.name} onChangeText={set('name')} autoCapitalize="words" error={errors.name} />
+      <FormInput label="Mobile (login number) *" value={f.mobile} onChangeText={(v) => set('mobile')(sanitizeMobile(v))} keyboardType="phone-pad" prefix="+91" error={errors.mobile} />
+      <FormInput label="Alternate Mobile" value={f.altMobile} onChangeText={(v) => set('altMobile')(sanitizeMobile(v))} keyboardType="phone-pad" prefix="+91" error={errors.altMobile} />
+      <FormInput label="Email" value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" error={errors.email} />
       <FormInput label="License Number" value={f.licenseNumber} onChangeText={set('licenseNumber')} />
       <FormInput label="Zone" value={f.zone} onChangeText={set('zone')} placeholder="e.g. Kothrud" />
       <FormInput label="Address" value={f.address} onChangeText={set('address')} multiline />

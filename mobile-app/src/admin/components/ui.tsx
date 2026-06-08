@@ -142,9 +142,12 @@ export function Field({ label, value }: { label: string; value?: string | number
   );
 }
 
-/** Labeled text input for forms. */
+/**
+ * Labeled text input for forms. Pass `error` to turn the border red and show a
+ * message underneath, and `prefix` (e.g. "+91") for a fixed leading adornment.
+ */
 export function FormInput({
-  label, value, onChangeText, placeholder, keyboardType, multiline, autoCapitalize,
+  label, value, onChangeText, placeholder, keyboardType, multiline, autoCapitalize, error, prefix,
 }: {
   label: string;
   value: string;
@@ -153,22 +156,29 @@ export function FormInput({
   keyboardType?: KeyboardTypeOptions;
   multiline?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  error?: string;
+  prefix?: string;
 }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
+  const borderColor = error ? colors.error : colors.cardBorder;
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        autoCapitalize={autoCapitalize}
-        style={[s.input, multiline && { height: 90, textAlignVertical: 'top' }]}
-      />
+      <View style={[s.inputWrap, { borderColor }, multiline && { height: 90, alignItems: 'flex-start' }]}>
+        {!!prefix && <Text style={s.prefix}>{prefix}</Text>}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          keyboardType={keyboardType}
+          multiline={multiline}
+          autoCapitalize={autoCapitalize}
+          style={[s.inputField, multiline && { height: 84, textAlignVertical: 'top' }]}
+        />
+      </View>
+      {!!error && <Text style={s.errorText}>{error}</Text>}
     </View>
   );
 }
@@ -272,10 +282,14 @@ const makeStyles = (colors: AppColors) =>
     fieldLabel: { fontSize: 13, color: colors.textMuted, fontWeight: '700' },
     fieldValue: { fontSize: 14, color: colors.text, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
 
-    input: {
+    inputWrap: {
+      flexDirection: 'row', alignItems: 'center',
       backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.cardBorder,
-      paddingHorizontal: 14, paddingVertical: 12, color: colors.text, fontSize: 15, marginTop: 6,
+      paddingHorizontal: 14, marginTop: 6,
     },
+    prefix: { color: colors.textMuted, fontSize: 15, fontWeight: '700', marginRight: 6 },
+    inputField: { flex: 1, paddingVertical: 12, color: colors.text, fontSize: 15 },
+    errorText: { color: colors.error, fontSize: 12, fontWeight: '600', marginTop: 4 },
 
     segment: {
       flexDirection: 'row', backgroundColor: colors.card, borderRadius: 12, borderWidth: 1,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Card, Dialog, DialogActions, DialogContent, DialogTitle,
-  Grid, IconButton, MenuItem, Stack, TextField, Tooltip, InputAdornment, Link,
+  Grid, IconButton, MenuItem, Stack, TextField, Tooltip, InputAdornment, Link, Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -40,7 +40,8 @@ export default function Admins() {
   const [editId, setEditId] = useState<string | null>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>();
 
-  const { data, isLoading } = useQuery({ queryKey: ['admins'], queryFn: () => adminApi.list({ limit: 100 }) });
+  // Super admins manage regular admins — the list shows only ADMIN accounts (super admins are hidden).
+  const { data, isLoading } = useQuery({ queryKey: ['admins', 'ADMIN'], queryFn: () => adminApi.list({ limit: 100, role: 'ADMIN' }) });
 
   const openCreate = () => {
     setEditId(null);
@@ -57,7 +58,7 @@ export default function Admins() {
     mutationFn: (v: FormValues) => {
       const base = {
         name: v.name,
-        role: v.role,
+        role: 'ADMIN' as const, // super admins create regular admins only
         phone: v.phone || undefined,
         mobile: v.mobile || undefined,
         isActive: v.isActive === 'true',
@@ -93,7 +94,7 @@ export default function Admins() {
     },
     { field: 'email', headerName: 'Email', flex: 1, minWidth: 200 },
     { field: 'mobile', headerName: 'Mobile', width: 130, valueFormatter: (v) => v ?? '—' },
-    { field: 'role', headerName: 'Role', width: 140, renderCell: (p) => <StatusChip status={p.value === 'SUPER_ADMIN' ? 'PROCESSING' : 'ACTIVE'} /> },
+    { field: 'role', headerName: 'Role', width: 150, renderCell: (p) => <Chip size="small" color={p.value === 'SUPER_ADMIN' ? 'secondary' : 'default'} label={p.value === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'} /> },
     { field: 'isActive', headerName: 'Active', width: 110, renderCell: (p) => <StatusChip status={p.value === false ? 'INACTIVE' : 'ACTIVE'} /> },
     {
       field: 'customers', headerName: 'Customers', width: 120, sortable: false,
@@ -180,12 +181,6 @@ export default function Admins() {
                 />
               </Grid>
               <Grid item xs={12} sm={6}><TextField label="Phone" fullWidth {...register('phone')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select label="Role" fullWidth defaultValue="ADMIN" {...register('role')} InputLabelProps={{ shrink: true }}>
-                  <MenuItem value="ADMIN">Admin</MenuItem>
-                  <MenuItem value="SUPER_ADMIN">Super Admin</MenuItem>
-                </TextField>
-              </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Active" fullWidth defaultValue="true" {...register('isActive')} InputLabelProps={{ shrink: true }}>
                   <MenuItem value="true">Yes</MenuItem>

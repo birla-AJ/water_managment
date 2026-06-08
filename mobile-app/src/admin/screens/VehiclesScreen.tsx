@@ -21,7 +21,8 @@ export default function VehiclesScreen() {
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [f, setF] = useState({ number: '', type: '', capacity: '', isActive: 'true', notes: '' });
-  const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const [numberError, setNumberError] = useState('');
+  const set = (k: keyof typeof f) => (v: string) => { setF((p) => ({ ...p, [k]: v })); if (k === 'number') setNumberError(''); };
 
   const load = useCallback(async () => {
     try { const r = await adminVehicleApi.list({ page: 1, limit: 100 }); setItems(r.data ?? []); }
@@ -38,7 +39,7 @@ export default function VehiclesScreen() {
   };
 
   const save = async () => {
-    if (!f.number.trim()) { Alert.alert('Required', 'Vehicle number is required.'); return; }
+    if (!f.number.trim()) { setNumberError('Vehicle number is required'); return; }
     setSaving(true);
     const payload = { number: f.number, type: f.type || undefined, capacity: f.capacity ? Number(f.capacity) : undefined, isActive: f.isActive === 'true', notes: f.notes || undefined };
     try {
@@ -89,7 +90,7 @@ export default function VehiclesScreen() {
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
             <Text style={styles.title}>{editId ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
-            <FormInput label="Vehicle Number *" value={f.number} onChangeText={set('number')} autoCapitalize="characters" />
+            <FormInput label="Vehicle Number *" value={f.number} onChangeText={set('number')} autoCapitalize="characters" error={numberError} />
             <FormInput label="Type" value={f.type} onChangeText={set('type')} placeholder="Tempo, Van…" />
             <FormInput label="Capacity (campers)" value={f.capacity} onChangeText={set('capacity')} keyboardType="numeric" />
             <Segmented label="Active" options={[{ label: 'Yes', value: 'true' }, { label: 'No', value: 'false' }]} value={f.isActive} onChange={(v) => setF((p) => ({ ...p, isActive: v }))} />
