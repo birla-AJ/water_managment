@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { store } from '../app/store';
 import { setCredentials, logout } from '../features/auth/authSlice';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://13.235.27.138:4000/api/v1';
 
 export const api = axios.create({ baseURL: API_URL });
 

@@ -138,7 +138,7 @@ export const notificationApi = {
 export const reportApi = {
   get: (type: string, params: Record<string, unknown>) => api.get(`/reports/${type}`, { params }).then((r) => r.data.data),
   exportUrl: (type: string, format: string) => {
-    const base = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1';
+    const base = import.meta.env.VITE_API_URL ?? 'http://13.235.27.138:4000/api/v1';
     return `${base}/reports/${type}/export?format=${format}`;
   },
 };

@@ -15,7 +15,7 @@ import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1').replace('/api/v1', '');
+const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://13.235.27.138:4000/api/v1').replace('/api/v1', '');
 
 export default function Billing() {
   const qc = useQueryClient();

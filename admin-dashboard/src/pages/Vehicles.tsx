@@ -25,7 +25,7 @@ export default function Vehicles() {
   const [pageSize, setPageSize] = useState(20);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const { register, handleSubmit, reset } = useForm<FormValues>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>();
 
   const { data, isLoading } = useQuery({
     queryKey: ['vehicles', page, pageSize],
@@ -101,7 +101,10 @@ export default function Vehicles() {
         <form onSubmit={handleSubmit((v) => save.mutate(v))}>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 0 }}>
-              <Grid item xs={12} sm={6}><TextField label="Vehicle Number" fullWidth required {...register('number')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Vehicle Number" fullWidth {...register('number', { required: 'Vehicle number is required' })}
+                  error={!!errors.number} helperText={errors.number?.message} InputLabelProps={{ shrink: true }} />
+              </Grid>
               <Grid item xs={12} sm={6}><TextField label="Type (Tempo, Van…)" fullWidth {...register('type')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}><TextField label="Capacity (campers)" type="number" fullWidth {...register('capacity')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}>

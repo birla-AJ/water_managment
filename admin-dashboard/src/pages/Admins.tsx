@@ -1,12 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Card, Dialog, DialogActions, DialogContent, DialogTitle,
-  Grid, IconButton, MenuItem, Stack, TextField, Tooltip,
-  List, ListItem, ListItemText, Chip, CircularProgress, Typography, Link,
+  Grid, IconButton, MenuItem, Stack, TextField, Tooltip, InputAdornment, Link,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import PeopleIcon from '@mui/icons-material/People';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useForm } from 'react-hook-form';
@@ -32,21 +33,14 @@ interface FormValues {
 
 export default function Admins() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const me = useAppSelector((s) => s.auth.user);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const { register, handleSubmit, reset } = useForm<FormValues>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>();
 
   const { data, isLoading } = useQuery({ queryKey: ['admins'], queryFn: () => adminApi.list({ limit: 100 }) });
-
-  // "View customers" dialog — the customers each admin created/manages.
-  const [viewAdmin, setViewAdmin] = useState<Admin | null>(null);
-  const { data: adminCustomers, isLoading: custLoading } = useQuery({
-    queryKey: ['admin-customers', viewAdmin?.id],
-    queryFn: () => adminApi.customers(viewAdmin!.id),
-    enabled: !!viewAdmin,
-  });
 
   const openCreate = () => {
     setEditId(null);
@@ -89,7 +83,14 @@ export default function Admins() {
   });
 
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 150 },
+    {
+      field: 'name', headerName: 'Name', flex: 1, minWidth: 150,
+      renderCell: (p) => (
+        <Link component="button" underline="hover" onClick={() => navigate(`/admins/${p.row.id}`)} sx={{ fontWeight: 700 }}>
+          {p.value}
+        </Link>
+      ),
+    },
     { field: 'email', headerName: 'Email', flex: 1, minWidth: 200 },
     { field: 'mobile', headerName: 'Mobile', width: 130, valueFormatter: (v) => v ?? '—' },
     { field: 'role', headerName: 'Role', width: 140, renderCell: (p) => <StatusChip status={p.value === 'SUPER_ADMIN' ? 'PROCESSING' : 'ACTIVE'} /> },
@@ -97,16 +98,19 @@ export default function Admins() {
     {
       field: 'customers', headerName: 'Customers', width: 120, sortable: false,
       renderCell: (p) => (
-        <Link component="button" underline="hover" onClick={() => setViewAdmin(p.row)} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
+        <Link component="button" underline="hover" onClick={() => navigate(`/admins/${p.row.id}`)} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
           <PeopleIcon fontSize="small" /> {p.row._count?.customers ?? 0}
         </Link>
       ),
     },
     { field: 'lastLoginAt', headerName: 'Last Login', width: 160, valueFormatter: (v) => (v ? dayjs(v).format('DD MMM YYYY HH:mm') : 'Never') },
     {
-      field: 'actions', headerName: 'Actions', width: 110, sortable: false,
+      field: 'actions', headerName: 'Actions', width: 140, sortable: false,
       renderCell: (p) => (
         <>
+          <Tooltip title="View details">
+            <IconButton size="small" onClick={() => navigate(`/admins/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton>
+          </Tooltip>
           <IconButton size="small" onClick={() => openEdit(p.row)}><EditIcon fontSize="small" /></IconButton>
           <Tooltip title={p.row.id === me?.id ? 'You cannot delete yourself' : 'Delete'}>
             <span>
@@ -142,12 +146,39 @@ export default function Admins() {
         <form onSubmit={handleSubmit((v) => save.mutate(v))}>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 0 }}>
-              <Grid item xs={12} sm={6}><TextField label="Name" fullWidth required {...register('name')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Email" type="email" fullWidth required disabled={!!editId} {...register('email')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label={editId ? 'New Password (optional)' : 'Password'} type="password" fullWidth required={!editId} {...register('password')} InputLabelProps={{ shrink: true }} />
+                <TextField
+                  label="Name" fullWidth {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+                  error={!!errors.name} helperText={errors.name?.message} InputLabelProps={{ shrink: true }}
+                />
               </Grid>
-              <Grid item xs={12} sm={6}><TextField label="Mobile (for OTP login)" fullWidth {...register('mobile')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Email" type="email" fullWidth disabled={!!editId}
+                  {...register('email', editId ? {} : { required: 'Email is required', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email' } })}
+                  error={!!errors.email} helperText={errors.email?.message} InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label={editId ? 'New Password (optional)' : 'Password'} type="password" fullWidth
+                  {...register('password', {
+                    ...(editId ? {} : { required: 'Password is required' }),
+                    validate: (v) => (!v || v.length >= 6 ? true : 'At least 6 characters'),
+                  })}
+                  error={!!errors.password} helperText={errors.password?.message} InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Mobile (for OTP login)" fullWidth
+                  {...register('mobile', { pattern: { value: /^[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile' } })}
+                  error={!!errors.mobile} helperText={errors.mobile?.message}
+                  InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
+                  inputProps={{ maxLength: 10, inputMode: 'numeric' }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
               <Grid item xs={12} sm={6}><TextField label="Phone" fullWidth {...register('phone')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Role" fullWidth defaultValue="ADMIN" {...register('role')} InputLabelProps={{ shrink: true }}>
@@ -168,38 +199,6 @@ export default function Admins() {
             <Stack><Button type="submit" variant="contained" disabled={save.isPending}>{editId ? 'Update' : 'Create'}</Button></Stack>
           </DialogActions>
         </form>
-      </Dialog>
-
-      {/* View an admin's customers */}
-      <Dialog open={!!viewAdmin} onClose={() => setViewAdmin(null)} fullWidth maxWidth="sm">
-        <DialogTitle>Customers of {viewAdmin?.name}</DialogTitle>
-        <DialogContent>
-          {custLoading ? (
-            <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}><CircularProgress /></Box>
-          ) : (adminCustomers ?? []).length === 0 ? (
-            <Typography color="text.secondary" sx={{ py: 3 }}>This admin hasn't created any customers yet.</Typography>
-          ) : (
-            <List dense sx={{ maxHeight: 420, overflow: 'auto' }}>
-              {(adminCustomers ?? []).map((c) => (
-                <ListItem key={c.id} divider secondaryAction={<StatusChip status={c.status} />}>
-                  <ListItemText
-                    primary={
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <span>{c.name}</span>
-                        <Chip size="small" label={c.customerType} />
-                        {c.isPaused && <Chip size="small" color="warning" label="Paused" />}
-                      </Stack>
-                    }
-                    secondary={`${c.mobile}${c.area ? ` · ${c.area}` : ''} · ${c.allocatedCampers} campers`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewAdmin(null)}>Close</Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );

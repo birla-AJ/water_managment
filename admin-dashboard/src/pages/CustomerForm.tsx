@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Card, CardContent, Grid, TextField, MenuItem, Button, Stack } from '@mui/material';
+import { Box, Card, CardContent, Grid, TextField, MenuItem, Button, Stack, InputAdornment } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
@@ -17,7 +17,7 @@ export default function CustomerForm() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
-  const { register, handleSubmit, reset } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     defaultValues: { customerType: 'DAILY', status: 'ACTIVE', securityDeposit: 0, ratePerCamper: 30, allocatedCampers: 1 },
   });
 
@@ -49,10 +49,29 @@ export default function CustomerForm() {
         <CardContent>
           <form onSubmit={handleSubmit((v) => mutation.mutate(v))}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField label="Name" fullWidth required {...register('name')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Mobile" fullWidth required disabled={isEdit} {...register('mobile')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Alternate Mobile" fullWidth {...register('altMobile')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Email" fullWidth {...register('email')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Name" fullWidth {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+                  error={!!errors.name} helperText={errors.name?.message} InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Mobile" fullWidth disabled={isEdit}
+                  {...register('mobile', isEdit ? {} : { required: 'Mobile is required', pattern: { value: /^[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile' } })}
+                  error={!!errors.mobile} helperText={errors.mobile?.message}
+                  InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
+                  inputProps={{ maxLength: 10, inputMode: 'numeric' }} InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Alternate Mobile" fullWidth
+                  {...register('altMobile', { pattern: { value: /^[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile' } })}
+                  error={!!errors.altMobile} helperText={errors.altMobile?.message}
+                  InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
+                  inputProps={{ maxLength: 10, inputMode: 'numeric' }} InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Email" fullWidth
+                  {...register('email', { pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email' } })}
+                  error={!!errors.email} helperText={errors.email?.message} InputLabelProps={{ shrink: true }} />
+              </Grid>
               <Grid item xs={12} sm={8}><TextField label="Address" fullWidth {...register('address')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Area" fullWidth {...register('area')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}><TextField label="Landmark" fullWidth {...register('landmark')} InputLabelProps={{ shrink: true }} /></Grid>

@@ -54,9 +54,9 @@ export default function Layout() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-  // Admin management is a super-admin-only section.
+  // Super admins only manage admins; regular admins get the operational nav.
   const nav = isSuperAdmin
-    ? [...NAV, { label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> }]
+    ? [{ label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> }]
     : NAV;
   const theme = useTheme();
   const { mode, toggle } = useColorMode();
@@ -67,6 +67,7 @@ export default function Layout() {
     queryKey: ['unread'],
     queryFn: notificationApi.unreadCount,
     refetchInterval: 30_000,
+    enabled: !isSuperAdmin, // super admins don't use notifications
   });
 
   const activeLabel = nav.find((n) => location.pathname.startsWith(n.path))?.label ?? 'Dashboard';
@@ -194,13 +195,15 @@ export default function Layout() {
               {isDark ? <LightModeIcon /> : <DarkModeIcon />}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Notifications">
-            <IconButton onClick={() => navigate('/notifications')} sx={{ mr: 0.5 }}>
-              <Badge color="error" badgeContent={unread ?? 0}>
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          {!isSuperAdmin && (
+            <Tooltip title="Notifications">
+              <IconButton onClick={() => navigate('/notifications')} sx={{ mr: 0.5 }}>
+                <Badge color="error" badgeContent={unread ?? 0}>
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          )}
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
             <Avatar sx={{ background: BRAND_GRADIENT, color: '#04201C', width: 38, height: 38, fontWeight: 800 }}>
               {user?.name?.[0]?.toUpperCase() ?? 'A'}
