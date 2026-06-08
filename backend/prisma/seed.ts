@@ -21,25 +21,27 @@ async function main() {
 
   await prisma.admin.upsert({
     where: { email: 'superadmin@waterflow.com' },
-    update: {},
+    update: { mobile: '9000000001' },
     create: {
       name: 'Super Admin',
       email: 'superadmin@waterflow.com',
       passwordHash,
       role: AdminRole.SUPER_ADMIN,
       phone: '9000000001',
+      mobile: '9000000001',
     },
   });
 
   await prisma.admin.upsert({
     where: { email: 'admin@waterflow.com' },
-    update: {},
+    update: { mobile: '9000000002' },
     create: {
       name: 'Operations Admin',
       email: 'admin@waterflow.com',
       passwordHash,
       role: AdminRole.ADMIN,
       phone: '9000000002',
+      mobile: '9000000002',
     },
   });
 

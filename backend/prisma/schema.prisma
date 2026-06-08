@@ -132,12 +132,16 @@ model Admin {
   passwordHash String
   role         AdminRole @default(ADMIN)
   phone        String?
+  // Optional mobile number for OTP login from the mobile app. Unique so a number
+  // resolves to exactly one admin during /auth/otp/verify.
+  mobile       String?   @unique
   avatarUrl    String?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
 
   refreshTokens RefreshToken[]
   inventoryLogs InventoryLog[]
+  customers     Customer[]     @relation("AdminCustomers")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -215,8 +219,11 @@ model Customer {
   pausedTo        DateTime?
   // Driver responsible for delivering to this customer (assigned by admin).
   driverId        String?
+  // Admin who created / manages this customer (null for self-signups via OTP).
+  createdById     String?
 
   driver        Driver?            @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  createdBy     Admin?             @relation("AdminCustomers", fields: [createdById], references: [id], onDelete: SetNull)
   schedules     CustomerSchedule[]
   orders        Order[]
   deliveries    Delivery[]
@@ -233,6 +240,7 @@ model Customer {
   @@index([area])
   @@index([customerType])
   @@index([driverId])
+  @@index([createdById])
   @@map("customers")
 }
 
