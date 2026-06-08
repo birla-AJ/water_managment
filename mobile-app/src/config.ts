@@ -4,5 +4,7 @@ const SERVER_HOST = 'http://13.235.27.138:4000';
 
 export const config = {
   apiUrl: `${SERVER_HOST}/api/v1`,
-  razorpayKeyId: 'rzp_test_xxxxxxxx',
+  // Public Razorpay test key id (used as a fallback; the backend also returns
+  // keyId with each created order). The secret lives only on the server.
+  razorpayKeyId: 'rzp_test_Sz8gbOvNtgLNDm',
 };

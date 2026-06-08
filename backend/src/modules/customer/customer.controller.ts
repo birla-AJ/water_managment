@@ -15,7 +15,8 @@ export const getOne = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
-  created(res, await customerService.create(req.body), 'Customer created');
+  // Tag the customer with the admin who created it (for super-admin grouping).
+  created(res, await customerService.create(req.body, req.user?.sub), 'Customer created');
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {

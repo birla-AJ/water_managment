@@ -48,6 +48,13 @@ export default function OtpVerifyScreen({ route }: Props) {
         return;
       }
 
+      // Admins go straight to the admin dashboard — no customer onboarding/profile.
+      if (res.user.role === 'ADMIN' || res.user.role === 'SUPER_ADMIN') {
+        dispatch(setProfileComplete(true));
+        dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));
+        return;
+      }
+
       // Decide up-front whether to force the onboarding screen, so the navigator
       // never flashes the main tabs first. New signups always onboard; returning
       // users only if their profile is still incomplete.

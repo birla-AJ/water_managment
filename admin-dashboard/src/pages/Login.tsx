@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Card, CardContent, TextField, Button, Typography, Stack, InputAdornment } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Typography, Stack, InputAdornment, Tabs, Tab } from '@mui/material';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import PasswordIcon from '@mui/icons-material/Password';
 import { useSnackbar } from 'notistack';
 import { authApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
@@ -11,9 +13,15 @@ import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { setCredentials } from '../features/auth/authSlice';
 import { BRAND_GRADIENT } from '../theme/theme';
 
+type Mode = 'email' | 'otp';
+
 export default function Login() {
+  const [mode, setMode] = useState<Mode>('email');
   const [email, setEmail] = useState('admin@waterflow.com');
   const [password, setPassword] = useState('Admin@123');
+  const [mobile, setMobile] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -21,14 +29,50 @@ export default function Login() {
   const token = useAppSelector((s) => s.auth.accessToken);
   if (token) navigate('/dashboard');
 
+  const finishLogin = (res: { accessToken: string; refreshToken: string; user: { role?: string } }) => {
+    // Only admins may use this dashboard — reject customer/driver tokens.
+    if (res.user?.role !== 'ADMIN' && res.user?.role !== 'SUPER_ADMIN') {
+      enqueueSnackbar('This number is not registered as an admin.', { variant: 'error' });
+      return;
+    }
+    dispatch(setCredentials({ accessToken: res.accessToken, refreshToken: res.refreshToken, user: res.user as never }));
+    enqueueSnackbar('Welcome back!', { variant: 'success' });
+    navigate('/dashboard');
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       const res = await authApi.login(email, password);
-      dispatch(setCredentials({ accessToken: res.accessToken, refreshToken: res.refreshToken, user: res.user }));
-      enqueueSnackbar('Welcome back!', { variant: 'success' });
-      navigate('/dashboard');
+      finishLogin(res);
+    } catch (err) {
+      enqueueSnackbar(apiErrorMessage(err), { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await authApi.requestOtp(mobile);
+      setOtpSent(true);
+      enqueueSnackbar(res?.devOtp ? `OTP: ${res.devOtp} (dev mode)` : 'OTP sent', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(apiErrorMessage(err), { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await authApi.verifyOtp(mobile, otp);
+      finishLogin(res);
     } catch (err) {
       enqueueSnackbar(apiErrorMessage(err), { variant: 'error' });
     } finally {
@@ -73,34 +117,82 @@ export default function Login() {
             <Typography variant="body2" color="text.secondary">Sign in to your admin dashboard</Typography>
           </Stack>
 
-          <form onSubmit={submit}>
-            <Stack spacing={2.25}>
-              <TextField
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" /></InputAdornment> }}
-              />
-              <TextField
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" /></InputAdornment> }}
-              />
-              <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ py: 1.3, mt: 0.5 }}>
-                {loading ? 'Signing in…' : 'Sign In'}
-              </Button>
-            </Stack>
-          </form>
+          <Tabs
+            value={mode}
+            onChange={(_, v: Mode) => { setMode(v); setOtpSent(false); }}
+            variant="fullWidth"
+            sx={{ mb: 3 }}
+          >
+            <Tab value="email" icon={<PasswordIcon fontSize="small" />} iconPosition="start" label="Email & Password" />
+            <Tab value="otp" icon={<PhoneIphoneIcon fontSize="small" />} iconPosition="start" label="Mobile OTP" />
+          </Tabs>
+
+          {mode === 'email' ? (
+            <form onSubmit={submit}>
+              <Stack spacing={2.25}>
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  fullWidth
+                  required
+                  InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" /></InputAdornment> }}
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                  required
+                  InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" /></InputAdornment> }}
+                />
+                <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ py: 1.3, mt: 0.5 }}>
+                  {loading ? 'Signing in…' : 'Sign In'}
+                </Button>
+              </Stack>
+            </form>
+          ) : (
+            <form onSubmit={otpSent ? verifyOtp : sendOtp}>
+              <Stack spacing={2.25}>
+                <TextField
+                  label="Mobile Number"
+                  type="tel"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  fullWidth
+                  required
+                  disabled={otpSent}
+                  placeholder="10-digit mobile"
+                  InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIphoneIcon fontSize="small" /></InputAdornment> }}
+                />
+                {otpSent && (
+                  <TextField
+                    label="OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    fullWidth
+                    required
+                    autoFocus
+                    placeholder="Enter the code"
+                    InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" /></InputAdornment> }}
+                  />
+                )}
+                <Button type="submit" variant="contained" size="large" disabled={loading || mobile.length !== 10} sx={{ py: 1.3, mt: 0.5 }}>
+                  {loading ? 'Please wait…' : otpSent ? 'Verify & Sign In' : 'Send OTP'}
+                </Button>
+                {otpSent && (
+                  <Button variant="text" size="small" onClick={() => setOtpSent(false)} disabled={loading}>
+                    Change number
+                  </Button>
+                )}
+              </Stack>
+            </form>
+          )}
 
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2.5, textAlign: 'center' }}>
-            Demo: admin@waterflow.com / Admin@123
+            Demo: admin@waterflow.com / Admin@123 · OTP: 9000000002
           </Typography>
         </CardContent>
       </Card>

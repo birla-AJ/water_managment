@@ -54,7 +54,7 @@ class CustomerService {
     return customer;
   }
 
-  async create(dto: CreateCustomerDto) {
+  async create(dto: CreateCustomerDto, createdById?: string) {
     const existing = await customerRepository.findByMobile(dto.mobile);
     if (existing) throw ApiError.conflict('A customer with this mobile already exists');
 
@@ -62,6 +62,7 @@ class CustomerService {
       ...dto,
       securityDeposit: new Prisma.Decimal(dto.securityDeposit),
       ratePerCamper: new Prisma.Decimal(dto.ratePerCamper),
+      ...(createdById ? { createdBy: { connect: { id: createdById } } } : {}),
     });
 
     // Seed a default schedule (weekdays on, Sunday off).

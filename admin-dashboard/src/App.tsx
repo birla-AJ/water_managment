@@ -18,10 +18,17 @@ import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import Admins from './pages/Admins';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = useAppSelector((s) => s.auth.accessToken);
   return token ? children : <Navigate to="/login" replace />;
+}
+
+// Super-admin-only routes (e.g. admin management) redirect everyone else.
+function RequireSuperAdmin({ children }: { children: JSX.Element }) {
+  const role = useAppSelector((s) => s.auth.user?.role);
+  return role === 'SUPER_ADMIN' ? children : <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
@@ -54,6 +61,7 @@ export default function App() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="admins" element={<RequireSuperAdmin><Admins /></RequireSuperAdmin>} />
         <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

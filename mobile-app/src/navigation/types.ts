@@ -14,4 +14,6 @@ export type RootStackParamList = {
   // Driver area
   DriverMain: undefined;
   DriverNotifications: undefined;
+  // Admin area
+  AdminMain: undefined;
 };

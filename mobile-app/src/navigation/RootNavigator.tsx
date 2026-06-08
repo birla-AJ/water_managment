@@ -21,6 +21,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import SupportScreen from '../screens/SupportScreen';
 import SkipDeliveriesScreen from '../screens/SkipDeliveriesScreen';
 import DriverNavigator from './DriverNavigator';
+import AdminNavigator from '../admin/navigation/AdminNavigator';
 import DriverNotificationsScreen from '../screens/driver/DriverNotificationsScreen';
 import { RootStackParamList } from './types';
 
@@ -86,6 +87,7 @@ export default function RootNavigator() {
   const { colors } = useTheme();
   const { accessToken, bootstrapped, profileComplete, user } = useAppSelector((s) => s.auth);
   const isDriver = user?.role === 'DRIVER';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
   return (
     <Stack.Navigator
@@ -103,6 +105,8 @@ export default function RootNavigator() {
           <Stack.Screen name="OtpLogin" component={OtpLoginScreen} options={{ headerShown: false }} />
           <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: 'Verify OTP' }} />
         </>
+      ) : isAdmin ? (
+        <Stack.Screen name="AdminMain" component={AdminNavigator} options={{ headerShown: false }} />
       ) : isDriver ? (
         <>
           <Stack.Screen name="DriverMain" component={DriverNavigator} options={{ headerShown: false }} />

@@ -58,6 +58,28 @@ class AuthService {
     };
   }
 
+  /**
+   * If the given mobile belongs to an active admin, log them in as an admin and
+   * return the login payload; otherwise null so the caller falls back to the
+   * customer flow. Lets one OTP screen route admins to the admin dashboard too.
+   */
+  private async loginAsAdminIfRegistered(mobile: string) {
+    const admin = await prisma.admin.findUnique({ where: { mobile } });
+    if (!admin || !admin.isActive) return null;
+
+    await prisma.admin.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } });
+
+    const tokens = await this.issueTokens(
+      { sub: admin.id, principal: 'admin', role: admin.role },
+      'admin'
+    );
+    return {
+      ...tokens,
+      isNew: false,
+      user: { id: admin.id, name: admin.name, email: admin.email, mobile: admin.mobile, role: admin.role, avatarUrl: admin.avatarUrl },
+    };
+  }
+
   // ---------------- ADMIN ----------------
   async adminLogin(dto: AdminLoginDto) {
     const admin = await prisma.admin.findUnique({ where: { email: dto.email.toLowerCase() } });
@@ -118,6 +140,10 @@ class AuthService {
     const asDriver = await this.loginAsDriverIfRegistered(dto.mobile, dto.fcmToken);
     if (asDriver) return asDriver;
 
+    // Registered admin numbers log in as admins (no customer record created).
+    const asAdmin = await this.loginAsAdminIfRegistered(dto.mobile);
+    if (asAdmin) return asAdmin;
+
     let customer = await prisma.customer.findUnique({ where: { mobile: dto.mobile } });
     let isNew = false;
     if (!customer) {
@@ -161,6 +187,10 @@ class AuthService {
     // Registered driver numbers log in as drivers (no customer record created).
     const asDriver = await this.loginAsDriverIfRegistered(mobile, dto.fcmToken);
     if (asDriver) return asDriver;
+
+    // Registered admin numbers log in as admins (no customer record created).
+    const asAdmin = await this.loginAsAdminIfRegistered(mobile);
+    if (asAdmin) return asAdmin;
 
     let customer = await prisma.customer.findUnique({ where: { mobile } });
     let isNew = false;
@@ -219,7 +249,7 @@ class AuthService {
     if (payload.principal === 'admin') {
       const admin = await prisma.admin.findUnique({
         where: { id: payload.sub },
-        select: { id: true, name: true, email: true, role: true, phone: true, avatarUrl: true, lastLoginAt: true },
+        select: { id: true, name: true, email: true, role: true, phone: true, mobile: true, avatarUrl: true, lastLoginAt: true },
       });
       if (!admin) throw ApiError.notFound('Admin not found');
       return { principal: 'admin', ...admin };

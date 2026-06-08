@@ -16,6 +16,7 @@ import settingsRoutes from './modules/settings/settings.routes';
 import vehicleRoutes from './modules/vehicle/vehicle.routes';
 import driverRoutes from './modules/driver/driver.routes';
 import driverMeRoutes from './modules/driver/driver.me.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 export const apiRouter = Router();
 
@@ -35,6 +36,7 @@ apiRouter.use('/reports', reportRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/vehicles', vehicleRoutes);
 apiRouter.use('/drivers', driverRoutes);
+apiRouter.use('/admins', adminRoutes);
 
 // ---- Customer-facing (mobile app) ----
 apiRouter.use('/me', customerMeRoutes);

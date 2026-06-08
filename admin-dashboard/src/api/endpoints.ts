@@ -1,5 +1,6 @@
 import { api } from './client';
 import type {
+  Admin,
   ApiResponse,
   Customer,
   CustomerSchedule,
@@ -16,6 +17,11 @@ import type {
 export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/admin/login', { email, password }).then((r) => r.data.data),
+  // Mobile-number + OTP login. The same OTP endpoints the apps use; an admin
+  // number resolves to an ADMIN token on /auth/otp/verify.
+  requestOtp: (mobile: string) => api.post('/auth/otp/request', { mobile }).then((r) => r.data.data),
+  verifyOtp: (mobile: string, otp: string) =>
+    api.post('/auth/otp/verify', { mobile, otp }).then((r) => r.data.data),
   me: () => api.get('/auth/me').then((r) => r.data.data),
   logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
 };
@@ -24,6 +30,16 @@ export const authApi = {
 export const dashboardApi = {
   overview: () => api.get<ApiResponse<DashboardOverview>>('/dashboard/overview').then((r) => r.data.data),
   charts: () => api.get('/dashboard/charts').then((r) => r.data.data),
+};
+
+// ---- Admins (super admin only) ----
+export const adminApi = {
+  list: (params: Record<string, unknown>) => api.get<ApiResponse<Admin[]>>('/admins', { params }).then((r) => r.data),
+  get: (id: string) => api.get<ApiResponse<Admin>>(`/admins/${id}`).then((r) => r.data.data),
+  create: (body: Record<string, unknown>) => api.post('/admins', body).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>) => api.put(`/admins/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/admins/${id}`),
+  customers: (id: string) => api.get<ApiResponse<Customer[]>>(`/admins/${id}/customers`).then((r) => r.data.data),
 };
 
 // ---- Customers ----

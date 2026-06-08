@@ -17,6 +17,7 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
@@ -52,6 +53,11 @@ export default function Layout() {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  // Admin management is a super-admin-only section.
+  const nav = isSuperAdmin
+    ? [...NAV, { label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> }]
+    : NAV;
   const theme = useTheme();
   const { mode, toggle } = useColorMode();
   const isDark = mode === 'dark';
@@ -63,7 +69,7 @@ export default function Layout() {
     refetchInterval: 30_000,
   });
 
-  const activeLabel = NAV.find((n) => location.pathname.startsWith(n.path))?.label ?? 'Dashboard';
+  const activeLabel = nav.find((n) => location.pathname.startsWith(n.path))?.label ?? 'Dashboard';
   const drawerBg = isDark ? '#0A1714' : '#FFFFFF';
 
   const drawer = (
@@ -94,7 +100,7 @@ export default function Layout() {
       </Toolbar>
 
       <List sx={{ px: 1.5, flexGrow: 1 }}>
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active = location.pathname.startsWith(item.path);
           return (
             <ListItemButton

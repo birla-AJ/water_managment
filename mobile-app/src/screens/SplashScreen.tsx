@@ -41,10 +41,15 @@ export default function SplashScreen() {
           const tokens = JSON.parse(raw);
           dispatch(setCredentials({ user: { id: '', name: '', mobile: '' }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
           const me = await authApi.me();
-          const role = me.role === 'DRIVER' ? 'DRIVER' : 'CUSTOMER';
-          dispatch(setCredentials({ user: { id: me.id, name: me.name, mobile: me.mobile, role }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
+          const isAdmin = me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
+          const role = me.role === 'DRIVER' ? 'DRIVER' : isAdmin ? me.role : 'CUSTOMER';
+          dispatch(setCredentials({ user: { id: me.id, name: me.name, mobile: me.mobile, role, email: me.email }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
           if (role === 'DRIVER') {
             // Drivers have no customer onboarding step.
+            dispatch(setProfileComplete(true));
+            setupNotifications('DRIVER');
+          } else if (isAdmin) {
+            // Admins go straight to the admin dashboard; no onboarding / push setup.
             dispatch(setProfileComplete(true));
           } else {
             try {
@@ -52,8 +57,8 @@ export default function SplashScreen() {
             } catch {
               dispatch(setProfileComplete(true));
             }
+            setupNotifications('CUSTOMER');
           }
-          setupNotifications(role);
         }
       } catch {
         await AsyncStorage.removeItem('wf_tokens');

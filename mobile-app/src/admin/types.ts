@@ -1,3 +1,6 @@
+// Entity shapes for the admin section — ported from the web admin app
+// (admin-dashboard/src/types/index.ts) so both clients share one contract.
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -9,22 +12,6 @@ export type CustomerType = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 export type CustomerStatus = 'ACTIVE' | 'INACTIVE';
 export type Weekday =
   | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
-
-export type AdminRole = 'SUPER_ADMIN' | 'ADMIN';
-
-export interface Admin {
-  id: string;
-  name: string;
-  email: string;
-  role: AdminRole;
-  avatarUrl?: string;
-  phone?: string;
-  mobile?: string | null;
-  isActive?: boolean;
-  lastLoginAt?: string | null;
-  createdAt?: string;
-  _count?: { customers: number };
-}
 
 export interface Customer {
   id: string;
@@ -131,12 +118,19 @@ export interface Payment {
   invoice?: { invoiceNumber: string };
 }
 
+export interface AdminNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface DashboardOverview {
   customers: { total: number; active: number; inactive: number };
   orders: { total: number; today: number; delivered: number; pending: number; cancelled: number };
   revenue: { total: number; monthly: number };
   payments: { pending: number; paid: number };
-  // NOTE: the /dashboard/overview endpoint returns short field names
-  // (distinct from the /inventory endpoint's `...Campers` shape above).
   inventory: { total: number; filled: number; empty: number; damaged: number; lost: number; returned: number; allocated: number };
 }
