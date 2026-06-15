@@ -21,19 +21,22 @@ export function FadeSlideIn({
   );
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /** Pressable that springs down slightly on touch for tactile feedback. */
 export function PressableScale({
   children, onPress, style,
 }: { children: React.ReactNode; onPress?: () => void; style?: ViewStyle }) {
   const scale = useRef(new Animated.Value(1)).current;
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       onPressIn={() => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true }).start()}
       onPressOut={() => Animated.spring(scale, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }).start()}
+      style={[style, { transform: [{ scale }] }]}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressable>
   );
 }
 

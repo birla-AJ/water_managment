@@ -19,6 +19,7 @@ import { apiErrorMessage } from '../api/client';
 import { useAppSelector } from '../app/hooks';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
+import PasswordField from '../components/PasswordField';
 import type { Admin } from '../types';
 
 interface FormValues {
@@ -161,8 +162,8 @@ export default function Admins() {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  label={editId ? 'New Password (optional)' : 'Password'} type="password" fullWidth
+                <PasswordField
+                  label={editId ? 'New Password (optional)' : 'Password'} fullWidth
                   {...register('password', {
                     ...(editId ? {} : { required: 'Password is required' }),
                     validate: (v) => (!v || v.length >= 6 ? true : 'At least 6 characters'),

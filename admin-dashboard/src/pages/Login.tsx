@@ -11,6 +11,7 @@ import { apiErrorMessage } from '../api/client';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { setCredentials } from '../features/auth/authSlice';
 import { BRAND_GRADIENT } from '../theme/theme';
+import PasswordField from '../components/PasswordField';
 
 type Mode = 'email' | 'otp';
 
@@ -131,9 +132,8 @@ export default function Login() {
                     autoFocus
                     InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" /></InputAdornment> }}
                   />
-                  <TextField
+                  <PasswordField
                     label="Password"
-                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     fullWidth
