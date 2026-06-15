@@ -3,6 +3,6 @@
     <!-- Allow plain HTTP only to the WaterFlow EC2 backend; everything else stays HTTPS-only.
          Must match SERVER_HOST in src/config.ts. -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">13.232.98.53</domain>
+        <domain includeSubdomains="false">13.235.27.138</domain>
     </domain-config>
 </network-security-config>

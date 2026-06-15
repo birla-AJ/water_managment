@@ -40,6 +40,11 @@ const L = 50;
 const R = 545;
 const CONTENT_W = R - L; // 495
 
+// Brand logo (shown in the header). Resolved from the backend cwd so it works
+// in both dev (ts-node) and prod (node dist). Falls back to initials if missing.
+const LOGO_PATH = path.resolve(process.cwd(), 'assets', 'waterflow-logo.png');
+const hasLogo = fs.existsSync(LOGO_PATH);
+
 const money = (n: number) =>
   `Rs. ${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -66,15 +71,24 @@ export function generateInvoicePdf(data: InvoicePdfData): Promise<string> {
     doc.rect(0, 0, PAGE_W, BAND).fill(BRAND);
     doc.rect(0, BAND, PAGE_W, 4).fill(ACCENT);
 
-    // Logo circle (initials)
-    doc.circle(80, 58, 28).fill('#E6FFFB');
-    bold(18, BRAND).text(initialsOf(data.business.name), 52, 49, { width: 56, align: 'center' });
+    // Brand logo on a white rounded card so the artwork (droplet + dark
+    // wordmark) stays legible against the teal band. Falls back to an initials
+    // circle if the logo asset is unavailable.
+    const cardX = L, cardY = 28, cardW = 92, cardH = 94;
+    const textX = cardX + cardW + 18;
+    if (hasLogo) {
+      doc.roundedRect(cardX, cardY, cardW, cardH, 14).fill('#FFFFFF');
+      doc.image(LOGO_PATH, cardX + 8, cardY + 8, { fit: [cardW - 16, cardH - 16], align: 'center', valign: 'center' });
+    } else {
+      doc.circle(cardX + 30, 58, 28).fill('#E6FFFB');
+      bold(18, BRAND).text(initialsOf(data.business.name), cardX + 2, 49, { width: 56, align: 'center' });
+    }
 
     // Business name + contact under it
-    bold(20, '#FFFFFF').text(data.business.name, 122, 40, { width: 280 });
+    bold(20, '#FFFFFF').text(data.business.name, textX, 40, { width: PAGE_W - textX - 30 });
     reg(9, BRAND_LIGHT);
     let hy = 68;
-    const hline = (t?: string) => { if (t) { doc.text(t, 122, hy, { width: 280 }); hy += 13; } };
+    const hline = (t?: string) => { if (t) { doc.text(t, textX, hy, { width: 250 }); hy += 13; } };
     hline(data.business.address);
     hline(data.business.phone ? `Phone: ${data.business.phone}` : undefined);
     hline(data.business.email ? `Email: ${data.business.email}` : undefined);

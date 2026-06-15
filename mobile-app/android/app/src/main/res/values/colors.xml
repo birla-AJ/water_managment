@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fallback behind the splash image (matches the splash artwork). -->
+    <color name="splash_background">#04201C</color>
+</resources>
