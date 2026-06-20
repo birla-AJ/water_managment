@@ -39,11 +39,14 @@ class OrderService {
     customerId?: string;
     from?: Date;
     to?: Date;
+    distributorId?: string;
   }) {
     const where: Prisma.OrderWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.type ? { type: query.type } : {}),
       ...(query.customerId ? { customerId: query.customerId } : {}),
+      // Per-distributor scoping: only orders from this distributor's customers.
+      ...(query.distributorId ? { customer: { distributorId: query.distributorId } } : {}),
       ...(query.from || query.to
         ? { orderDate: { ...(query.from ? { gte: query.from } : {}), ...(query.to ? { lte: query.to } : {}) } }
         : {}),

@@ -92,10 +92,10 @@ export default function AdminDetails() {
         {/* Stats + growth */}
         <Grid item xs={12} md={7}>
           <Grid container spacing={2}>
-            <Grid item xs={6} sm={3}><StatCard title="Total Customers" value={stats.total} icon={<PeopleIcon />} color="#2DD4BF" /></Grid>
-            <Grid item xs={6} sm={3}><StatCard title="Active" value={stats.active} icon={<CheckCircleIcon />} color="#34D399" /></Grid>
-            <Grid item xs={6} sm={3}><StatCard title="Inactive" value={stats.inactive} color="#94A3B8" /></Grid>
-            <Grid item xs={6} sm={3}><StatCard title="Paused" value={stats.paused} icon={<PauseCircleIcon />} color="#F59E0B" /></Grid>
+            <Grid item xs={6} sm={3}><StatCard title="Total Customers" value={stats.total} icon={<PeopleIcon />} color="#055152" /></Grid>
+            <Grid item xs={6} sm={3}><StatCard title="Active" value={stats.active} icon={<CheckCircleIcon />} color="#179A33" /></Grid>
+            <Grid item xs={6} sm={3}><StatCard title="Inactive" value={stats.inactive} color="#7C9A91" /></Grid>
+            <Grid item xs={6} sm={3}><StatCard title="Paused" value={stats.paused} icon={<PauseCircleIcon />} color="#C68A3E" /></Grid>
           </Grid>
           <Card sx={{ mt: 2 }}>
             <CardContent>
@@ -106,7 +106,7 @@ export default function AdminDetails() {
                   <XAxis dataKey="month" tick={AXIS} axisLine={false} tickLine={false} />
                   <YAxis allowDecimals={false} tick={AXIS} axisLine={false} tickLine={false} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#2DD4BF" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#055152" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

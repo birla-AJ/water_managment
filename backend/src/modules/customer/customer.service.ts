@@ -25,8 +25,11 @@ class CustomerService {
     status?: string;
     customerType?: string;
     area?: string;
+    distributorId?: string;
   }) {
     const where: Prisma.CustomerWhereInput = {
+      // Per-distributor scoping: a regular admin sees only their customers.
+      ...(query.distributorId ? { distributorId: query.distributorId } : {}),
       ...(query.status ? { status: query.status as Prisma.EnumCustomerStatusFilter } : {}),
       ...(query.customerType ? { customerType: query.customerType as Prisma.EnumCustomerTypeFilter } : {}),
       ...(query.area ? { area: { contains: query.area, mode: 'insensitive' } } : {}),
@@ -54,15 +57,21 @@ class CustomerService {
     return customer;
   }
 
-  async create(dto: CreateCustomerDto, createdById?: string) {
+  async create(dto: CreateCustomerDto, createdById?: string, defaultDistributorId?: string) {
     const existing = await customerRepository.findByMobile(dto.mobile);
     if (existing) throw ApiError.conflict('A customer with this mobile already exists');
 
+    // distributorId is a relation — keep it out of the scalar spread.
+    const { distributorId, ...rest } = dto;
+    // Explicit choice wins; otherwise a regular admin becomes the distributor.
+    const distId = distributorId ?? defaultDistributorId;
+
     const customer = await customerRepository.create({
-      ...dto,
+      ...rest,
       securityDeposit: new Prisma.Decimal(dto.securityDeposit),
       ratePerCamper: new Prisma.Decimal(dto.ratePerCamper),
       ...(createdById ? { createdBy: { connect: { id: createdById } } } : {}),
+      ...(distId ? { distributor: { connect: { id: distId } } } : {}),
     });
 
     // Seed a default schedule (weekdays on, Sunday off).
@@ -81,9 +90,12 @@ class CustomerService {
 
   async update(id: string, dto: UpdateCustomerDto) {
     await this.getById(id);
-    const data: Prisma.CustomerUpdateInput = { ...dto };
-    if (dto.securityDeposit !== undefined) data.securityDeposit = new Prisma.Decimal(dto.securityDeposit);
-    if (dto.ratePerCamper !== undefined) data.ratePerCamper = new Prisma.Decimal(dto.ratePerCamper);
+    // distributorId / decimals need relation/Decimal handling — keep them out of the spread.
+    const { distributorId, securityDeposit, ratePerCamper, ...rest } = dto;
+    const data: Prisma.CustomerUpdateInput = { ...rest };
+    if (securityDeposit !== undefined) data.securityDeposit = new Prisma.Decimal(securityDeposit);
+    if (ratePerCamper !== undefined) data.ratePerCamper = new Prisma.Decimal(ratePerCamper);
+    if (distributorId !== undefined) data.distributor = { connect: { id: distributorId } };
     await customerRepository.update(id, data);
     return this.getById(id);
   }
@@ -196,7 +208,7 @@ class CustomerService {
     return this.getSkipDates(id);
   }
 
-  /** Customer self-profile update (limited fields). */
+  /** Customer self-profile update (limited fields, incl. location & distributor). */
   async updateProfile(id: string, dto: UpdateCustomerDto) {
     await this.getById(id);
     const allowed: Prisma.CustomerUpdateInput = {
@@ -206,6 +218,11 @@ class CustomerService {
       area: dto.area,
       landmark: dto.landmark,
       altMobile: dto.altMobile,
+      pincode: dto.pincode,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      // The customer picks their distributor from the suggestion list.
+      ...(dto.distributorId ? { distributor: { connect: { id: dto.distributorId } } } : {}),
     };
     await customerRepository.update(id, allowed);
     return this.getById(id);

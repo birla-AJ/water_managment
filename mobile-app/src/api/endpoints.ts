@@ -26,6 +26,23 @@ export const orderApi = {
   create: (quantity: number, remarks?: string) => api.post('/me/orders', { quantity, remarks }).then((r) => r.data.data),
 };
 
+// Distributor (admin) discovery for the customer — matched by GPS radius,
+// pincode and/or service-area name. Falls back to all active distributors.
+export interface DistributorSuggestion {
+  id: string;
+  name: string;
+  serviceAreas: string[];
+  pincodes: string[];
+  distanceKm?: number | null;
+  matchReasons?: string[];
+  customerCount?: number;
+}
+export const distributorApi = {
+  suggest: (params: { lat?: number; lng?: number; pincode?: string; area?: string }): Promise<DistributorSuggestion[]> =>
+    api.get('/me/distributors/suggest', { params }).then((r) => r.data.data),
+  list: (): Promise<DistributorSuggestion[]> => api.get('/me/distributors').then((r) => r.data.data),
+};
+
 export const deliveryApi = {
   list: (params?: Record<string, unknown>) => api.get('/me/deliveries', { params }).then((r) => r.data.data),
   summary: (period: 'week' | 'month') => api.get('/me/deliveries/summary', { params: { period } }).then((r) => r.data.data),

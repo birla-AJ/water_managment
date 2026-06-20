@@ -50,12 +50,12 @@ export default function Inventory() {
       <PageHeader title="Inventory" subtitle="Track campers across their lifecycle" />
       <Grid container spacing={2} mb={2}>
         <Grid item xs={6} md={3}><StatCard title="Total" value={inv?.totalCampers ?? 0} /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Filled" value={inv?.filledCampers ?? 0} color="#1565c0" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Empty" value={inv?.emptyCampers ?? 0} color="#00acc1" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Allocated" value={inv?.allocatedCampers ?? 0} color="#7b1fa2" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Returned" value={inv?.returnedCampers ?? 0} color="#2e7d32" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Damaged" value={inv?.damagedCampers ?? 0} color="#ed6c02" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Lost" value={inv?.lostCampers ?? 0} color="#d32f2f" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title="Filled" value={inv?.filledCampers ?? 0} color="#055152" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title="Empty" value={inv?.emptyCampers ?? 0} color="#0E8C84" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title="Allocated" value={inv?.allocatedCampers ?? 0} color="#C68A3E" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title="Returned" value={inv?.returnedCampers ?? 0} color="#179A33" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title="Damaged" value={inv?.damagedCampers ?? 0} color="#DABD71" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title="Lost" value={inv?.lostCampers ?? 0} color="#D32F2F" /></Grid>
       </Grid>
 
       <Card sx={{ mb: 2 }}>

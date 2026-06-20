@@ -266,8 +266,11 @@ const makeStyles = (colors: AppColors) =>
     chipStatusText: { fontSize: 11, fontWeight: '800' },
 
     rowWrap: {
-      backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.cardBorder,
+      backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.cardBorder,
       padding: 14, marginBottom: 10,
+      shadowColor: colors.isDark ? '#000' : colors.primary,
+      shadowOpacity: colors.isDark ? 0.35 : 0.1,
+      shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3,
     },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

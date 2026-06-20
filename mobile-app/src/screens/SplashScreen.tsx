@@ -1,21 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCredentials, setBootstrapped, setProfileComplete, isProfileComplete } from '../store/slices/authSlice';
 import { authApi, meApi } from '../api/endpoints';
 import { setupNotifications } from '../services/notifications';
-import { GradientView } from '../components/ui';
-import { useTheme } from '../theme/ThemeContext';
-import type { AppColors } from '../theme/colors';
-
-const SPLASH = require('../../assets/splash.png');
 
 export default function SplashScreen() {
   const dispatch = useAppDispatch();
-  const { colors } = useTheme();
-  const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const accessToken = useAppSelector((s) => s.auth.accessToken);
 
   const [authReady, setAuthReady] = useState(false);
@@ -23,6 +17,7 @@ export default function SplashScreen() {
 
   // Animation values
   const fade = useRef(new Animated.Value(0)).current;
+  const rise = useRef(new Animated.Value(24)).current;
   const btn = useRef(new Animated.Value(0)).current;
   const bob = useRef(new Animated.Value(0)).current;
 
@@ -64,10 +59,13 @@ export default function SplashScreen() {
 
   // ── Entrance animation + reveal timer ──────────────────────────────────────
   useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 750, useNativeDriver: true }).start();
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 750, useNativeDriver: true }),
+      Animated.timing(rise, { toValue: 0, duration: 750, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
     const tBtn = setTimeout(() => setMinTimePassed(true), 2000);
     return () => clearTimeout(tBtn);
-  }, [fade]);
+  }, [fade, rise]);
 
   // Reveal the button once 2s have passed AND auth is resolved.
   const showButton = minTimePassed && authReady;
@@ -87,9 +85,38 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
-        <ImageBackground source={SPLASH} style={styles.bg} resizeMode="cover" />
+      <LinearGradient
+        colors={['#F2FBFB', '#D2F0EF', '#9FDEDD']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* ── Brand block: water-bottle trio inside a soft medallion + wordmark ── */}
+      <Animated.View style={[styles.brand, { opacity: fade, transform: [{ translateY: rise }] }]}>
+        <View style={styles.medallion}>
+          <View style={styles.jars}>
+            <Icon name="bottle-soda-classic" size={64} color={AQUA.light} style={styles.jarSide} />
+            <Icon name="bottle-soda-classic" size={104} color={AQUA.teal} style={styles.jarTall} />
+            <Icon name="bottle-soda-classic" size={78} color={AQUA.deep} style={styles.jarSide} />
+          </View>
+        </View>
+
+        <Text style={styles.eyebrow}>PURE DRINKING WATER</Text>
+        <Text style={styles.wordmark}>
+          <Text style={{ color: AQUA.ink }}>Water</Text>
+          <Text style={{ color: AQUA.teal }}>Flow</Text>
+        </Text>
       </Animated.View>
+
+      {/* ── Bottom water wave ── */}
+      <View pointerEvents="none" style={styles.splashWrap}>
+        <Icon name="water" size={22} color="rgba(255,255,255,0.85)" style={[styles.dropFloat, { left: '24%', bottom: 168 }]} />
+        <Icon name="water" size={15} color="rgba(255,255,255,0.7)" style={[styles.dropFloat, { left: '70%', bottom: 182 }]} />
+        {/* two offset white layers form an organic crest, no native SVG needed */}
+        <View style={styles.waveBack} />
+        <View style={styles.waveFront} />
+      </View>
 
       {/* Arrow button — fades in after 2s; routes based on auth */}
       <Animated.View
@@ -101,24 +128,72 @@ export default function SplashScreen() {
       >
         <Text style={styles.hint}>{accessToken ? 'Continue' : 'Get started'}</Text>
         <TouchableOpacity activeOpacity={0.85} onPress={proceed}>
-          <GradientView style={styles.fab}>
+          <LinearGradient colors={[AQUA.deep, AQUA.teal]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fab}>
             <Icon name="arrow-right" size={30} color="#FFFFFF" />
-          </GradientView>
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
     </View>
   );
 }
 
-const makeStyles = (colors: AppColors) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg },
-    bg: { flex: 1, width: '100%', height: '100%' },
+// The splash is always the light "aqua" design, so its palette is fixed here
+// (independent of the dark/light app theme) to guarantee legible contrast.
+const AQUA = {
+  ink: '#0E3A3C',
+  deep: '#0A6E72',
+  teal: '#16A8AE',
+  light: '#54C6CB',
+  muted: '#5E8487',
+};
 
-    fabWrap: { position: 'absolute', right: 26, bottom: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    hint: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    fab: {
-      width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
-      shadowColor: colors.primary, shadowOpacity: 0.7, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 12,
-    },
-  });
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F2FBFB' },
+
+  brand: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 90 },
+
+  // Soft translucent medallion behind the bottle trio.
+  medallion: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' },
+  jarSide: { marginHorizontal: -8, marginBottom: 4 },
+  jarTall: { marginHorizontal: -6 },
+
+  eyebrow: { marginTop: 30, fontSize: 12, fontWeight: '700', letterSpacing: 4, color: AQUA.muted },
+  wordmark: { marginTop: 6, fontSize: 44, fontWeight: '800', letterSpacing: -0.5 },
+
+  // Bottom water wave — two offset white layers for an organic crest.
+  splashWrap: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
+  waveBack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 168,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderTopLeftRadius: 90,
+    borderTopRightRadius: 170,
+  },
+  waveFront: {
+    height: 132,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 170,
+    borderTopRightRadius: 80,
+  },
+  dropFloat: { position: 'absolute' },
+
+  fabWrap: { position: 'absolute', right: 26, bottom: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  hint: { color: AQUA.deep, fontSize: 14, fontWeight: '800' },
+  fab: {
+    width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
+    shadowColor: AQUA.teal, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 12,
+  },
+});

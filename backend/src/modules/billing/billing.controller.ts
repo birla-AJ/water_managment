@@ -3,6 +3,7 @@ import { InvoiceStatus } from '@prisma/client';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, created } from '../../utils/apiResponse';
 import { getPagination, buildMeta } from '../../utils/pagination';
+import { scopedDistributorId } from '../../utils/scope';
 import { billingService } from './billing.service';
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
@@ -12,6 +13,7 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
     take: limit,
     status: req.query.status as InvoiceStatus | undefined,
     customerId: req.query.customerId as string | undefined,
+    distributorId: scopedDistributorId(req.user),
   });
   ok(res, items, 'Invoices', buildMeta(total, page, limit));
 });

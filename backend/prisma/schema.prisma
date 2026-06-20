@@ -139,15 +139,45 @@ model Admin {
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
 
+  // ── Distributor service definition ──────────────────────────────────────
+  // A regular ADMIN acts as a distributor for an area. Customers are matched to
+  // distributors by GPS radius, pincode, or service-area name (any may apply).
+  latitude        Float?
+  longitude       Float?
+  serviceRadiusKm Float?   @default(5) // GPS match radius around (latitude, longitude)
+  pincodes        String[] @default([]) // pincodes this distributor serves
+  serviceAreas    String[] @default([]) // free-text locality tags served (e.g. ["Limbodi","Bhawarkua"])
+
   refreshTokens RefreshToken[]
   inventoryLogs InventoryLog[]
-  customers     Customer[]     @relation("AdminCustomers")
+  customers     Customer[]     @relation("AdminCustomers")          // created by this admin (audit)
+  distributedCustomers Customer[] @relation("DistributorCustomers") // customers who chose this distributor
+  areaLinks     ServiceArea[]  @relation("AdminServiceAreas")        // areas assigned from the master list
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
   @@map("admins")
+}
+
+// Master list of service areas/localities, maintained by the super-admin. Admins
+// can be linked to any number of these for consistent, deduplicated area names
+// (complements the free-text Admin.serviceAreas tags).
+model ServiceArea {
+  id        String  @id @default(uuid())
+  name      String  @unique
+  city      String?
+  pincode   String?
+  latitude  Float?
+  longitude Float?
+
+  admins Admin[] @relation("AdminServiceAreas")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_areas")
 }
 
 // A delivery driver. Logs into the mobile app with the same phone+OTP flow as a
@@ -206,6 +236,10 @@ model Customer {
   address         String?
   area            String?
   landmark        String?
+  pincode         String?
+  // Geocoordinates of the customer's delivery location (used for distributor matching).
+  latitude        Float?
+  longitude       Float?
   customerType    CustomerType   @default(DAILY)
   status          CustomerStatus @default(ACTIVE)
   securityDeposit Decimal        @default(0) @db.Decimal(10, 2)
@@ -221,9 +255,13 @@ model Customer {
   driverId        String?
   // Admin who created / manages this customer (null for self-signups via OTP).
   createdById     String?
+  // Distributor (admin) the customer is assigned to — chosen at registration or
+  // by the admin who creates them. Scopes which dashboard the customer appears on.
+  distributorId   String?
 
   driver        Driver?            @relation(fields: [driverId], references: [id], onDelete: SetNull)
   createdBy     Admin?             @relation("AdminCustomers", fields: [createdById], references: [id], onDelete: SetNull)
+  distributor   Admin?             @relation("DistributorCustomers", fields: [distributorId], references: [id], onDelete: SetNull)
   schedules     CustomerSchedule[]
   orders        Order[]
   deliveries    Delivery[]
@@ -241,6 +279,8 @@ model Customer {
   @@index([customerType])
   @@index([driverId])
   @@index([createdById])
+  @@index([distributorId])
+  @@index([pincode])
   @@map("customers")
 }
 

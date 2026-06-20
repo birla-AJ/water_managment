@@ -15,20 +15,21 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../api/endpoints';
 import StatCard from '../components/StatCard';
 import PageHeader from '../components/PageHeader';
+import { CHART_COLORS, ACCENT_TEAL } from '../theme/theme';
 
-const PIE_COLORS = ['#2DD4BF', '#22D3EE', '#34D399', '#D9E25A', '#F87171', '#38BDF8'];
+const PIE_COLORS = CHART_COLORS;
 
 const AXIS = { fontSize: 12, fill: '#7C9A91' };
 const GRID = 'rgba(125,154,145,0.16)';
 const TOOLTIP_STYLE = {
   borderRadius: 12,
-  border: '1px solid rgba(45,212,191,0.25)',
-  background: '#0E1B18',
-  color: '#E6F2EE',
-  boxShadow: '0 10px 28px -12px rgba(0,0,0,0.6)',
+  border: '1px solid rgba(218,189,113,0.30)',
+  background: '#063A39',
+  color: '#F2E9D8',
+  boxShadow: '0 10px 28px -12px rgba(0,0,0,0.55)',
 };
 
-function ChartCard({ title, subtitle, children, accent = '#2DD4BF' }: { title: string; subtitle?: string; children: ReactNode; accent?: string }) {
+function ChartCard({ title, subtitle, children, accent = ACCENT_TEAL }: { title: string; subtitle?: string; children: ReactNode; accent?: string }) {
   return (
     <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${accent}, transparent)`, opacity: 0.8 } }}>
       <CardContent sx={{ p: 2.5 }}>
@@ -45,7 +46,7 @@ function ChartCard({ title, subtitle, children, accent = '#2DD4BF' }: { title: s
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mt: 3, mb: 1.5 }}>
-      <Box sx={{ width: 4, height: 18, borderRadius: 2, background: 'linear-gradient(180deg, #2DD4BF, #22D3EE)' }} />
+      <Box sx={{ width: 4, height: 18, borderRadius: 2, background: 'linear-gradient(180deg, #055152, #DABD71)' }} />
       <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 1.5 }}>
         {children}
       </Typography>
@@ -67,20 +68,20 @@ export default function Dashboard() {
 
   // Each tile: what it shows + where a click takes the admin.
   const metrics = [
-    { title: 'Total Customers', value: o.customers.total, icon: <PeopleIcon />, subtitle: `${o.customers.active} active · ${o.customers.inactive} inactive`, color: '#2DD4BF', to: '/customers' },
-    { title: 'Total Orders', value: o.orders.total, icon: <ShoppingCartIcon />, subtitle: `${o.orders.today} today`, color: '#22D3EE', to: '/orders' },
-    { title: 'Delivered', value: o.orders.delivered, icon: <LocalShippingIcon />, subtitle: `${o.orders.pending} pending`, color: '#34D399', to: '/orders' },
-    { title: 'Monthly Revenue', value: inr(o.revenue.monthly), icon: <CurrencyRupeeIcon />, subtitle: `Total ${inr(o.revenue.total)}`, color: '#D9E25A', to: '/reports' },
+    { title: 'Total Customers', value: o.customers.total, icon: <PeopleIcon />, subtitle: `${o.customers.active} active · ${o.customers.inactive} inactive`, color: '#055152', to: '/customers' },
+    { title: 'Total Orders', value: o.orders.total, icon: <ShoppingCartIcon />, subtitle: `${o.orders.today} today`, color: '#0E8C84', to: '/orders' },
+    { title: 'Delivered', value: o.orders.delivered, icon: <LocalShippingIcon />, subtitle: `${o.orders.pending} pending`, color: '#179A33', to: '/orders' },
+    { title: 'Monthly Revenue', value: inr(o.revenue.monthly), icon: <CurrencyRupeeIcon />, subtitle: `Total ${inr(o.revenue.total)}`, color: '#DABD71', to: '/reports' },
   ];
 
   const payInv = [
-    { title: 'Pending Payments', value: inr(o.payments.pending), icon: <PaymentsIcon />, color: '#F87171', to: '/billing', span: 3 },
-    { title: 'Paid', value: inr(o.payments.paid), icon: <PaymentsIcon />, color: '#34D399', to: '/payments', span: 3 },
-    { title: 'Filled Campers', value: o.inventory.filled, icon: <WaterDropIcon />, subtitle: `${o.inventory.empty} empty`, color: '#2DD4BF', to: '/inventory', span: 3 },
-    { title: 'Total Campers', value: o.inventory.total, icon: <WaterDropIcon />, subtitle: `${o.orders.cancelled} cancelled orders`, color: '#14B8A6', to: '/inventory', span: 3 },
-    { title: 'Damaged', value: o.inventory.damaged, color: '#D9E25A', to: '/inventory', span: 3, half: true },
-    { title: 'Lost', value: o.inventory.lost, color: '#F87171', to: '/inventory', span: 3, half: true },
-    { title: 'Returned', value: o.inventory.returned, color: '#22D3EE', to: '/inventory', span: 3, half: true },
+    { title: 'Pending Payments', value: inr(o.payments.pending), icon: <PaymentsIcon />, color: '#C68A3E', to: '/billing', span: 3 },
+    { title: 'Paid', value: inr(o.payments.paid), icon: <PaymentsIcon />, color: '#179A33', to: '/payments', span: 3 },
+    { title: 'Filled Campers', value: o.inventory.filled, icon: <WaterDropIcon />, subtitle: `${o.inventory.empty} empty`, color: '#055152', to: '/inventory', span: 3 },
+    { title: 'Total Campers', value: o.inventory.total, icon: <WaterDropIcon />, subtitle: `${o.orders.cancelled} cancelled orders`, color: '#0E8C84', to: '/inventory', span: 3 },
+    { title: 'Damaged', value: o.inventory.damaged, color: '#DABD71', to: '/inventory', span: 3, half: true },
+    { title: 'Lost', value: o.inventory.lost, color: '#D32F2F', to: '/inventory', span: 3, half: true },
+    { title: 'Returned', value: o.inventory.returned, color: '#0E8C84', to: '/inventory', span: 3, half: true },
     { title: 'Cancelled', value: o.orders.cancelled, color: '#7C9A91', to: '/orders', span: 3, half: true },
   ];
 
@@ -117,26 +118,26 @@ export default function Dashboard() {
       <SectionLabel>Analytics</SectionLabel>
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={8}>
-          <ChartCard title="Revenue" subtitle="Last 6 months" accent="#2DD4BF">
+          <ChartCard title="Revenue" subtitle="Last 6 months" accent="#055152">
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={charts?.revenue ?? []}>
                 <defs>
                   <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2DD4BF" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#2DD4BF" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#055152" stopOpacity={0.45} />
+                    <stop offset="95%" stopColor="#055152" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
                 <XAxis dataKey="month" tick={AXIS} axisLine={false} tickLine={false} />
                 <YAxis tick={AXIS} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Area type="monotone" dataKey="revenue" stroke="#2DD4BF" strokeWidth={3} fill="url(#rev)" />
+                <Area type="monotone" dataKey="revenue" stroke="#055152" strokeWidth={3} fill="url(#rev)" />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={4}>
-          <ChartCard title="Inventory" subtitle="Current camper status" accent="#22D3EE">
+          <ChartCard title="Inventory" subtitle="Current camper status" accent="#DABD71">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie data={charts?.inventory ?? []} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={3} cornerRadius={6}>
@@ -149,7 +150,7 @@ export default function Dashboard() {
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={7}>
-          <ChartCard title="Orders" subtitle="Last 14 days" accent="#34D399">
+          <ChartCard title="Orders" subtitle="Last 14 days" accent="#179A33">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={charts?.orders ?? []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
@@ -157,22 +158,22 @@ export default function Dashboard() {
                 <YAxis tick={AXIS} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Legend iconType="circle" />
-                <Bar dataKey="delivered" stackId="a" fill="#34D399" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="pending" stackId="a" fill="#D9E25A" />
-                <Bar dataKey="cancelled" stackId="a" fill="#F87171" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="delivered" stackId="a" fill="#179A33" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="pending" stackId="a" fill="#DABD71" />
+                <Bar dataKey="cancelled" stackId="a" fill="#D32F2F" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={5}>
-          <ChartCard title="Customer Growth" subtitle="Cumulative by month" accent="#38BDF8">
+          <ChartCard title="Customer Growth" subtitle="Cumulative by month" accent="#C68A3E">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={charts?.customerGrowth ?? []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
                 <XAxis dataKey="month" tick={AXIS} axisLine={false} tickLine={false} />
                 <YAxis tick={AXIS} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Line type="monotone" dataKey="count" stroke="#22D3EE" strokeWidth={3} dot={{ r: 3, fill: '#22D3EE' }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="count" stroke="#0E8C84" strokeWidth={3} dot={{ r: 3, fill: '#0E8C84' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>

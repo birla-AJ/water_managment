@@ -15,12 +15,12 @@ import PageHeader from '../components/PageHeader';
 // Map a notification type to an icon + accent colour (best-effort by keyword).
 function visualFor(type: string): { icon: ReactNode; color: string } {
   const t = (type ?? '').toUpperCase();
-  if (t.includes('ORDER')) return { icon: <ShoppingCartIcon />, color: '#2563EB' };
-  if (t.includes('PAY')) return { icon: <PaymentsIcon />, color: '#16A34A' };
-  if (t.includes('DELIV')) return { icon: <LocalShippingIcon />, color: '#0EA5E9' };
-  if (t.includes('BILL') || t.includes('INVOICE')) return { icon: <ReceiptIcon />, color: '#F59E0B' };
-  if (t.includes('INVENT') || t.includes('STOCK')) return { icon: <Inventory2Icon />, color: '#06B6D4' };
-  return { icon: <NotificationsActiveIcon />, color: '#7C3AED' };
+  if (t.includes('ORDER')) return { icon: <ShoppingCartIcon />, color: '#055152' };
+  if (t.includes('PAY')) return { icon: <PaymentsIcon />, color: '#179A33' };
+  if (t.includes('DELIV')) return { icon: <LocalShippingIcon />, color: '#0E8C84' };
+  if (t.includes('BILL') || t.includes('INVOICE')) return { icon: <ReceiptIcon />, color: '#C68A3E' };
+  if (t.includes('INVENT') || t.includes('STOCK')) return { icon: <Inventory2Icon />, color: '#DABD71' };
+  return { icon: <NotificationsActiveIcon />, color: '#7C9A91' };
 }
 
 export default function Notifications() {
@@ -37,8 +37,9 @@ export default function Notifications() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); qc.invalidateQueries({ queryKey: ['unread'] }); },
   });
 
-  const items = data?.data ?? [];
-  const unreadCount = items.filter((n: any) => !n.isRead).length;
+  // Only unread notifications are shown; reading one (or all) removes it from the list.
+  const items = (data?.data ?? []).filter((n: any) => !n.isRead);
+  const unreadCount = items.length;
 
   return (
     <Box>
@@ -109,8 +110,8 @@ export default function Notifications() {
           {!items.length && (
             <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
               <NotificationsOffIcon sx={{ fontSize: 56, opacity: 0.4 }} />
-              <Typography sx={{ mt: 1 }} fontWeight={600}>No notifications yet</Typography>
-              <Typography variant="body2">New activity will show up here.</Typography>
+              <Typography sx={{ mt: 1 }} fontWeight={600}>You're all caught up</Typography>
+              <Typography variant="body2">No unread notifications. New activity will show up here.</Typography>
             </Box>
           )}
         </List>

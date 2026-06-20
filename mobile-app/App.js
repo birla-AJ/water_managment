@@ -1,5 +1,6 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { Provider } from 'react-redux';
@@ -17,7 +18,7 @@ function ThemedApp() {
     colors: {
       ...base.colors,
       primary: colors.primary,
-      background: colors.bg,
+      background: 'transparent', // let the gradient backdrop show through
       card: colors.bgElevated,
       text: colors.text,
       border: colors.border,
@@ -27,8 +28,15 @@ function ThemedApp() {
 
   return (
     <SafeAreaProvider>
+      {/* Two-tone aqua → white backdrop, rendered once behind every screen. */}
+      <LinearGradient
+        colors={[colors.bgTop, colors.bgBottom]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <NavigationContainer theme={navTheme}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bg} translucent={false} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bgElevated} translucent={false} />
         <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>

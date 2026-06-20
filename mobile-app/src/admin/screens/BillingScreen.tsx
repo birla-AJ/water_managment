@@ -80,7 +80,7 @@ export default function BillingScreen() {
         renderItem={({ item }) => (
           <RowCard
             leftIcon="receipt"
-            leftColor="#F59E0B"
+            leftColor="#0EA5B5"
             title={item.customer?.name ?? item.invoiceNumber}
             subtitle={`${item.invoiceNumber} · ${dayjs(item.periodStart).format('DD MMM')}–${dayjs(item.periodEnd).format('DD MMM')}`}
             meta={`Total ₹${item.totalAmount} · Due ₹${item.dueAmount}`}
@@ -121,6 +121,6 @@ export default function BillingScreen() {
 const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, paddingBottom: 28 },
+    sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, paddingBottom: 28 },
     title: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 14 },
   });

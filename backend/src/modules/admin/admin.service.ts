@@ -16,6 +16,13 @@ const adminSelect = {
   isActive: true,
   lastLoginAt: true,
   createdAt: true,
+  // Distributor service definition
+  latitude: true,
+  longitude: true,
+  serviceRadiusKm: true,
+  pincodes: true,
+  serviceAreas: true,
+  areaLinks: { select: { id: true, name: true } },
 };
 
 class AdminService {
@@ -82,6 +89,12 @@ class AdminService {
         phone: dto.phone,
         mobile: dto.mobile,
         isActive: dto.isActive,
+        ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
+        ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
+        ...(dto.serviceRadiusKm !== undefined ? { serviceRadiusKm: dto.serviceRadiusKm } : {}),
+        ...(dto.pincodes ? { pincodes: dto.pincodes } : {}),
+        ...(dto.serviceAreas ? { serviceAreas: dto.serviceAreas } : {}),
+        ...(dto.areaIds?.length ? { areaLinks: { connect: dto.areaIds.map((id) => ({ id })) } } : {}),
       },
       select: adminSelect,
     });
@@ -109,6 +122,13 @@ class AdminService {
       ...(dto.mobile !== undefined ? { mobile: dto.mobile } : {}),
       ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       ...(dto.password ? { passwordHash: await hashPassword(dto.password) } : {}),
+      ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
+      ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
+      ...(dto.serviceRadiusKm !== undefined ? { serviceRadiusKm: dto.serviceRadiusKm } : {}),
+      ...(dto.pincodes !== undefined ? { pincodes: dto.pincodes } : {}),
+      ...(dto.serviceAreas !== undefined ? { serviceAreas: dto.serviceAreas } : {}),
+      // Replace the linked master-list areas with the supplied set.
+      ...(dto.areaIds !== undefined ? { areaLinks: { set: dto.areaIds.map((id) => ({ id })) } } : {}),
     };
     return prisma.admin.update({ where: { id }, data, select: adminSelect });
   }

@@ -24,8 +24,17 @@ interface AuthState {
 const initialState: AuthState = { user: null, accessToken: null, refreshToken: null, bootstrapped: false, profileComplete: true };
 
 /** A profile counts as complete once it has a real (non-placeholder) name and a delivery address. */
-export const isProfileComplete = (p?: { name?: string | null; address?: string | null } | null): boolean =>
-  !!p && !!p.name?.trim() && !/^Customer \d{4}$/.test(p.name.trim()) && !!p.address?.trim();
+// A profile is complete only once the customer has a name, an address AND has
+// chosen a distributor. Unassigned customers (distributorId == null) are routed
+// to CompleteProfileScreen on next app open to pick one.
+export const isProfileComplete = (
+  p?: { name?: string | null; address?: string | null; distributorId?: string | null } | null,
+): boolean =>
+  !!p &&
+  !!p.name?.trim() &&
+  !/^Customer \d{4}$/.test(p.name.trim()) &&
+  !!p.address?.trim() &&
+  !!p.distributorId;
 
 const authSlice = createSlice({
   name: 'auth',

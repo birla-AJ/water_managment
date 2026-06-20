@@ -10,6 +10,7 @@ import type {
   Invoice,
   Order,
   Payment,
+  ServiceArea,
   Vehicle,
 } from '../types';
 
@@ -40,6 +41,14 @@ export const adminApi = {
   update: (id: string, body: Record<string, unknown>) => api.put(`/admins/${id}`, body).then((r) => r.data.data),
   remove: (id: string) => api.delete(`/admins/${id}`),
   customers: (id: string) => api.get<ApiResponse<Customer[]>>(`/admins/${id}/customers`).then((r) => r.data.data),
+};
+
+// ---- Service Areas (master list; super admin manages, any admin reads) ----
+export const serviceAreaApi = {
+  list: () => api.get<ApiResponse<ServiceArea[]>>('/service-areas').then((r) => r.data.data),
+  create: (body: Partial<ServiceArea>) => api.post('/service-areas', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<ServiceArea>) => api.put(`/service-areas/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/service-areas/${id}`),
 };
 
 // ---- Customers ----

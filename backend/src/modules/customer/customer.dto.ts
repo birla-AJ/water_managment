@@ -10,12 +10,18 @@ export const createCustomerSchema = z.object({
   address: z.string().optional(),
   area: z.string().optional(),
   landmark: z.string().optional(),
+  pincode: z.string().regex(/^\d{6}$/, 'Enter a valid 6-digit pincode').optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   customerType: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).default('DAILY'),
   status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
   securityDeposit: z.number().nonnegative().default(0),
   ratePerCamper: z.number().nonnegative().default(0),
   allocatedCampers: z.number().int().nonnegative().default(0),
   notes: z.string().optional(),
+  // Chosen distributor (admin id). Optional on admin-create (defaults to the
+  // creating admin); required-ish on mobile self-assignment via the profile route.
+  distributorId: z.string().uuid().optional(),
 });
 
 export const updateCustomerSchema = createCustomerSchema.partial().omit({ mobile: true });

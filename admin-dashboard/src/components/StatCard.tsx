@@ -3,7 +3,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { ReactNode } from 'react';
-import { BRAND_GRADIENT } from '../theme/theme';
+import { BRAND_GRADIENT, ACCENT_TEAL } from '../theme/theme';
 
 interface Props {
   title: string;
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function StatCard({ title, value, icon, color, subtitle, trend, onClick }: Props) {
-  const accent = color ?? '#2DD4BF';
+  const accent = color ?? ACCENT_TEAL;
   const chipGradient = color ? `linear-gradient(135deg, ${accent} 0%, ${accent}bb 100%)` : BRAND_GRADIENT;
   const clickable = !!onClick;
 
@@ -90,12 +90,13 @@ export default function StatCard({ title, value, icon, color, subtitle, trend, o
         '&::before': {
           content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: 3,
           background: chipGradient, opacity: 0.9, zIndex: 1,
+          transition: 'height .22s ease, opacity .22s ease',
         },
         '&:hover': {
-          transform: 'translateY(-4px)',
-          borderColor: `${accent}66`,
-          boxShadow: `0 18px 40px -16px ${accent}99`,
+          transform: 'translateY(-6px)',
+          borderColor: `${accent}aa`,
         },
+        '&:hover::before': { height: 6, opacity: 1 },
         '&:hover .stat-arrow': { opacity: 1, transform: 'translateX(0)' },
       }}
     >

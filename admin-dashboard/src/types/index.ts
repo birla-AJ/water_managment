@@ -24,6 +24,23 @@ export interface Admin {
   lastLoginAt?: string | null;
   createdAt?: string;
   _count?: { customers: number };
+  // Distributor service definition
+  latitude?: number | null;
+  longitude?: number | null;
+  serviceRadiusKm?: number | null;
+  pincodes?: string[];
+  serviceAreas?: string[];
+  areaLinks?: { id: string; name: string }[];
+}
+
+export interface ServiceArea {
+  id: string;
+  name: string;
+  city?: string | null;
+  pincode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  _count?: { admins: number };
 }
 
 export interface Customer {

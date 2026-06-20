@@ -34,10 +34,11 @@ class BillingService {
     return (s?.value as { defaultRate?: number; taxPercent?: number; dueDays?: number }) ?? {};
   }
 
-  async list(query: { skip: number; take: number; status?: InvoiceStatus; customerId?: string }) {
+  async list(query: { skip: number; take: number; status?: InvoiceStatus; customerId?: string; distributorId?: string }) {
     const where: Prisma.InvoiceWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.customerId ? { customerId: query.customerId } : {}),
+      ...(query.distributorId ? { customer: { distributorId: query.distributorId } } : {}),
     };
     const [items, total] = await Promise.all([
       prisma.invoice.findMany({

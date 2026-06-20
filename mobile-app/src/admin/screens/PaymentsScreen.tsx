@@ -56,7 +56,7 @@ export default function PaymentsScreen() {
         renderItem={({ item }) => (
           <RowCard
             leftIcon="credit-card"
-            leftColor="#10B981"
+            leftColor="#0E8388"
             title={`₹${item.amount} · ${item.customer?.name ?? '—'}`}
             subtitle={`${item.method}${item.invoice ? ` · ${item.invoice.invoiceNumber}` : ''}`}
             meta={dayjs(item.createdAt).format('DD MMM YYYY HH:mm')}

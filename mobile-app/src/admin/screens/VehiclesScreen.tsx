@@ -68,7 +68,7 @@ export default function VehiclesScreen() {
         renderItem={({ item }) => (
           <RowCard
             leftIcon="car"
-            leftColor="#0FB8C0"
+            leftColor="#16A8AE"
             title={item.number}
             subtitle={`${item.type ?? 'Vehicle'}${item.capacity ? ` · ${item.capacity} cap` : ''}`}
             meta={item.driver ? `Assigned to ${item.driver.name}` : 'Unassigned'}
@@ -109,6 +109,6 @@ export default function VehiclesScreen() {
 const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, paddingBottom: 28 },
+    sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 18, paddingBottom: 28 },
     title: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 14 },
   });

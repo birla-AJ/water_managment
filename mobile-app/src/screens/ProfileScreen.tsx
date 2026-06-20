@@ -109,7 +109,7 @@ const makeStyles = (colors: AppColors) =>
     pauseSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
     section: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 12 },
     label: { color: colors.textMuted, fontSize: 12, marginBottom: 4 },
-    input: { backgroundColor: colors.bg, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, color: colors.text },
+    input: { backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, color: colors.text },
     supportRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.cardBorder },
     supportText: { flex: 1, marginLeft: 12, fontWeight: '700', color: colors.text },
   });

@@ -20,6 +20,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Admins from './pages/Admins';
 import AdminDetails from './pages/AdminDetails';
+import ServiceAreas from './pages/ServiceAreas';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = useAppSelector((s) => s.auth.accessToken);
@@ -62,6 +63,7 @@ export default function App() {
         {/* Super-admin only */}
         <Route path="admins" element={<RequireSuperAdmin><Admins /></RequireSuperAdmin>} />
         <Route path="admins/:id" element={<RequireSuperAdmin><AdminDetails /></RequireSuperAdmin>} />
+        <Route path="service-areas" element={<RequireSuperAdmin><ServiceAreas /></RequireSuperAdmin>} />
 
         {/* Shared */}
         <Route path="profile" element={<Profile />} />

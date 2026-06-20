@@ -7,8 +7,14 @@ import {
 } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 
+// Per-distributor scoping helpers. `cf` filters the customer table directly;
+// `crf` filters order/payment/invoice tables via their customer relation. Both
+// are empty (`{}`) for the super-admin, leaving figures global.
+const cf = (distributorId?: string) => (distributorId ? { distributorId } : {});
+const crf = (distributorId?: string) => (distributorId ? { customer: { distributorId } } : {});
+
 class DashboardService {
-  async overview() {
+  async overview(distributorId?: string) {
     const todayStart = dayjs().startOf('day').toDate();
     const todayEnd = dayjs().endOf('day').toDate();
     const monthStart = dayjs().startOf('month').toDate();
@@ -28,19 +34,19 @@ class DashboardService {
       pendingPaymentsAgg,
       paidPaymentsAgg,
     ] = await Promise.all([
-      prisma.customer.count(),
-      prisma.customer.count({ where: { status: CustomerStatus.ACTIVE } }),
-      prisma.customer.count({ where: { status: CustomerStatus.INACTIVE } }),
-      prisma.order.count(),
-      prisma.order.count({ where: { orderDate: { gte: todayStart, lte: todayEnd } } }),
-      prisma.order.count({ where: { status: OrderStatus.DELIVERED } }),
-      prisma.order.count({ where: { status: OrderStatus.PENDING } }),
-      prisma.order.count({ where: { status: OrderStatus.CANCELLED } }),
+      prisma.customer.count({ where: { ...cf(distributorId) } }),
+      prisma.customer.count({ where: { status: CustomerStatus.ACTIVE, ...cf(distributorId) } }),
+      prisma.customer.count({ where: { status: CustomerStatus.INACTIVE, ...cf(distributorId) } }),
+      prisma.order.count({ where: { ...crf(distributorId) } }),
+      prisma.order.count({ where: { orderDate: { gte: todayStart, lte: todayEnd }, ...crf(distributorId) } }),
+      prisma.order.count({ where: { status: OrderStatus.DELIVERED, ...crf(distributorId) } }),
+      prisma.order.count({ where: { status: OrderStatus.PENDING, ...crf(distributorId) } }),
+      prisma.order.count({ where: { status: OrderStatus.CANCELLED, ...crf(distributorId) } }),
       prisma.inventory.findUnique({ where: { id: 'default' } }),
-      prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS }, _sum: { amount: true } }),
-      prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, createdAt: { gte: monthStart } }, _sum: { amount: true } }),
-      prisma.invoice.aggregate({ where: { status: { in: [InvoiceStatus.PENDING, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE] } }, _sum: { dueAmount: true } }),
-      prisma.invoice.aggregate({ where: { status: InvoiceStatus.PAID }, _sum: { totalAmount: true } }),
+      prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, ...crf(distributorId) }, _sum: { amount: true } }),
+      prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, createdAt: { gte: monthStart }, ...crf(distributorId) }, _sum: { amount: true } }),
+      prisma.invoice.aggregate({ where: { status: { in: [InvoiceStatus.PENDING, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE] }, ...crf(distributorId) }, _sum: { dueAmount: true } }),
+      prisma.invoice.aggregate({ where: { status: InvoiceStatus.PAID, ...crf(distributorId) }, _sum: { totalAmount: true } }),
     ]);
 
     return {
@@ -73,10 +79,10 @@ class DashboardService {
   }
 
   /** Revenue per month for the last N months. */
-  async revenueChart(months = 6) {
+  async revenueChart(months = 6, distributorId?: string) {
     const start = dayjs().subtract(months - 1, 'month').startOf('month').toDate();
     const payments = await prisma.payment.findMany({
-      where: { status: PaymentStatus.SUCCESS, createdAt: { gte: start } },
+      where: { status: PaymentStatus.SUCCESS, createdAt: { gte: start }, ...crf(distributorId) },
       select: { amount: true, createdAt: true },
     });
     const buckets: Record<string, number> = {};
@@ -93,10 +99,10 @@ class DashboardService {
   }
 
   /** Orders per day for the last N days, split by status. */
-  async ordersChart(days = 14) {
+  async ordersChart(days = 14, distributorId?: string) {
     const start = dayjs().subtract(days - 1, 'day').startOf('day').toDate();
     const orders = await prisma.order.findMany({
-      where: { orderDate: { gte: start } },
+      where: { orderDate: { gte: start }, ...crf(distributorId) },
       select: { orderDate: true, status: true },
     });
     const buckets: Record<string, { delivered: number; pending: number; cancelled: number; total: number }> = {};
@@ -117,9 +123,9 @@ class DashboardService {
   }
 
   /** New customers per month for the last N months. */
-  async customerGrowthChart(months = 6) {
+  async customerGrowthChart(months = 6, distributorId?: string) {
     const start = dayjs().subtract(months - 1, 'month').startOf('month').toDate();
-    const customers = await prisma.customer.findMany({ where: { createdAt: { gte: start } }, select: { createdAt: true } });
+    const customers = await prisma.customer.findMany({ where: { createdAt: { gte: start }, ...cf(distributorId) }, select: { createdAt: true } });
     const buckets: Record<string, number> = {};
     for (let i = 0; i < months; i++) buckets[dayjs().subtract(i, 'month').format('MMM YYYY')] = 0;
     customers.forEach((c) => {

@@ -63,7 +63,7 @@ export default function OrdersScreen() {
         renderItem={({ item }) => (
           <RowCard
             leftIcon={item.type === 'EXTRA' ? 'cart-plus' : 'cart'}
-            leftColor={item.type === 'EXTRA' ? '#8B5CF6' : colors.primary}
+            leftColor={item.type === 'EXTRA' ? '#0C7C82' : colors.primary}
             title={item.customer?.name ?? item.orderNumber}
             subtitle={`${item.orderNumber} · Qty ${item.quantity}`}
             meta={`${item.type} · ${dayjs(item.orderDate).format('DD MMM YYYY')}`}

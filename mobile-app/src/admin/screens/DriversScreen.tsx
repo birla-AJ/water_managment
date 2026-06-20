@@ -51,7 +51,7 @@ export default function DriversScreen() {
         renderItem={({ item }) => (
           <RowCard
             leftIcon="truck"
-            leftColor="#3B82F6"
+            leftColor="#0E8388"
             title={item.name}
             subtitle={`${item.mobile}${item.zone ? ` · ${item.zone}` : ''}`}
             meta={`${item.vehicle?.number ?? 'No vehicle'} · ${item._count?.customers ?? item.customers?.length ?? 0} customers`}

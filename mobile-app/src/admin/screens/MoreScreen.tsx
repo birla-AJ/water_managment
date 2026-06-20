@@ -15,15 +15,15 @@ import type { AdminStackParamList } from '../navigation/types';
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'More'>;
 
 const LINKS: { label: string; icon: string; screen: keyof AdminStackParamList; color: string }[] = [
-  { label: 'Drivers', icon: 'truck', screen: 'Drivers', color: '#3B82F6' },
-  { label: 'Vehicles', icon: 'car', screen: 'Vehicles', color: '#0FB8C0' },
-  { label: 'Inventory', icon: 'package-variant', screen: 'Inventory', color: '#8B5CF6' },
-  { label: 'Billing', icon: 'receipt', screen: 'Billing', color: '#F59E0B' },
-  { label: 'Payments', icon: 'credit-card', screen: 'Payments', color: '#10B981' },
-  { label: 'Notifications', icon: 'bell', screen: 'Notifications', color: '#EC4899' },
-  { label: 'Reports', icon: 'chart-bar', screen: 'Reports', color: '#22D3EE' },
+  { label: 'Drivers', icon: 'truck', screen: 'Drivers', color: '#0E8388' },
+  { label: 'Vehicles', icon: 'car', screen: 'Vehicles', color: '#0EA5B5' },
+  { label: 'Inventory', icon: 'package-variant', screen: 'Inventory', color: '#16A8AE' },
+  { label: 'Billing', icon: 'receipt', screen: 'Billing', color: '#1AA7B0' },
+  { label: 'Payments', icon: 'credit-card', screen: 'Payments', color: '#2BB3B8' },
+  { label: 'Notifications', icon: 'bell', screen: 'Notifications', color: '#3FC1C9' },
+  { label: 'Reports', icon: 'chart-bar', screen: 'Reports', color: '#0C7C82' },
   { label: 'Settings', icon: 'cog', screen: 'Settings', color: '#94A3B8' },
-  { label: 'Profile', icon: 'account-circle', screen: 'Profile', color: '#2DD4BF' },
+  { label: 'Profile', icon: 'account-circle', screen: 'Profile', color: '#0891B2' },
 ];
 
 export default function MoreScreen() {

@@ -2,21 +2,37 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, created, noContent } from '../../utils/apiResponse';
 import { getPagination, buildMeta } from '../../utils/pagination';
+import { ApiError } from '../../utils/apiError';
+import { scopedDistributorId } from '../../utils/scope';
 import { customerService } from './customer.service';
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip } = getPagination(req.query);
-  const { items, total } = await customerService.list({ ...req.query, page, limit, skip } as never);
+  const { items, total } = await customerService.list({
+    ...req.query,
+    page,
+    limit,
+    skip,
+    distributorId: scopedDistributorId(req.user),
+  } as never);
   ok(res, items, 'Customers', buildMeta(total, page, limit));
 });
 
 export const getOne = asyncHandler(async (req: Request, res: Response) => {
-  ok(res, await customerService.getById(req.params.id));
+  const customer = await customerService.getById(req.params.id);
+  // A scoped (non-super) admin may only open their own distributor's customers.
+  const scope = scopedDistributorId(req.user);
+  if (scope && (customer as { distributorId?: string | null }).distributorId !== scope) {
+    throw ApiError.forbidden('This customer is not assigned to you');
+  }
+  ok(res, customer);
 });
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
-  // Tag the customer with the admin who created it (for super-admin grouping).
-  created(res, await customerService.create(req.body, req.user?.sub), 'Customer created');
+  // Tag the customer with the admin who created it (audit) and, for a regular
+  // admin, assign them as the customer's distributor so they appear on that
+  // admin's dashboard immediately.
+  created(res, await customerService.create(req.body, req.user?.sub, scopedDistributorId(req.user)), 'Customer created');
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {

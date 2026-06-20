@@ -1,9 +1,9 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../theme/ThemeContext';
+import PillTabBar from '../../components/PillTabBar';
 import type { AdminStackParamList } from './types';
 
 import DashboardScreen from '../../dashboard/DashboardScreen';
@@ -27,22 +27,12 @@ import ProfileScreen from '../screens/ProfileScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
-function ThemeToggleButton() {
-  const { isDark, toggle, colors } = useTheme();
-  return (
-    <TouchableOpacity onPress={toggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 16 }}>
-      <Icon name={isDark ? 'weather-sunny' : 'weather-night'} size={22} color={colors.primary} />
-    </TouchableOpacity>
-  );
-}
-
 function useStackScreenOptions() {
   const { colors } = useTheme();
   return {
     headerStyle: { backgroundColor: colors.bgElevated },
     headerTintColor: colors.text,
     headerTitleStyle: { fontWeight: '800' as const },
-    headerRight: () => <ThemeToggleButton />,
     contentStyle: { backgroundColor: colors.bg },
   };
 }
@@ -101,18 +91,11 @@ export default function AdminNavigator() {
   const { colors } = useTheme();
   return (
     <Tab.Navigator
+      tabBar={(props) => <PillTabBar {...props} />}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.bgElevated,
-          borderTopColor: colors.border,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, string> = {
             DashboardTab: 'view-dashboard',

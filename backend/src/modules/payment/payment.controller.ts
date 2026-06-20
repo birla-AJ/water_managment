@@ -5,6 +5,7 @@ import { ok, created } from '../../utils/apiResponse';
 import { getPagination, buildMeta } from '../../utils/pagination';
 import { verifyWebhookSignature } from '../../config/razorpay';
 import { logger } from '../../config/logger';
+import { scopedDistributorId } from '../../utils/scope';
 import { paymentService } from './payment.service';
 
 // ---- Admin ----
@@ -15,6 +16,7 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
     take: limit,
     status: req.query.status as PaymentStatus | undefined,
     customerId: req.query.customerId as string | undefined,
+    distributorId: scopedDistributorId(req.user),
   });
   ok(res, items, 'Payments', buildMeta(total, page, limit));
 });

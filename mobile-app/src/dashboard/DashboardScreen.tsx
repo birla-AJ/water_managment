@@ -12,7 +12,7 @@ import { StatTile } from './components/StatTile';
 import { BarChart, ChartCard, DistributionBar } from './components/charts';
 
 // Same accent palette the web dashboard uses for its inventory pie.
-const PIE_COLORS = ['#2DD4BF', '#22D3EE', '#34D399', '#D9E25A', '#F87171', '#38BDF8'];
+const PIE_COLORS = ['#0E8388', '#16A8AE', '#2BB3B8', '#3FC1C9', '#0891B2', '#54C6CB'];
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
@@ -78,22 +78,22 @@ export default function DashboardScreen() {
 
   // Mirrors the web dashboard's "Key metrics" row.
   const metrics = [
-    { title: 'Total Customers', value: o.customers.total, icon: 'account-group', subtitle: `${o.customers.active} active · ${o.customers.inactive} inactive`, color: '#2DD4BF' },
-    { title: 'Total Orders', value: o.orders.total, icon: 'cart', subtitle: `${o.orders.today} today`, color: '#22D3EE' },
+    { title: 'Total Customers', value: o.customers.total, icon: 'account-group', subtitle: `${o.customers.active} active · ${o.customers.inactive} inactive`, color: '#0E8388' },
+    { title: 'Total Orders', value: o.orders.total, icon: 'cart', subtitle: `${o.orders.today} today`, color: '#0EA5B5' },
     { title: 'Delivered', value: o.orders.delivered, icon: 'truck-check', subtitle: `${o.orders.pending} pending`, color: '#34D399' },
-    { title: 'Monthly Revenue', text: inr(o.revenue.monthly), icon: 'currency-inr', subtitle: `Total ${inr(o.revenue.total)}`, color: '#D9E25A' },
+    { title: 'Monthly Revenue', text: inr(o.revenue.monthly), icon: 'currency-inr', subtitle: `Total ${inr(o.revenue.total)}`, color: '#16A8AE' },
   ];
 
   // Mirrors the web dashboard's "Payments & inventory" row.
   const payInv = [
-    { title: 'Pending Payments', text: inr(o.payments.pending), icon: 'cash-clock', color: '#F87171' },
+    { title: 'Pending Payments', text: inr(o.payments.pending), icon: 'cash-clock', color: '#E0A92E' },
     { title: 'Paid', text: inr(o.payments.paid), icon: 'cash-check', color: '#34D399' },
-    { title: 'Filled Campers', value: o.inventory.filled, icon: 'cup-water', subtitle: `${o.inventory.empty} empty`, color: '#2DD4BF' },
-    { title: 'Total Campers', value: o.inventory.total, icon: 'water', subtitle: `${o.orders.cancelled} cancelled orders`, color: '#14B8A6' },
-    { title: 'Damaged', value: o.inventory.damaged, icon: 'alert-circle', color: '#D9E25A' },
+    { title: 'Filled Campers', value: o.inventory.filled, icon: 'cup-water', subtitle: `${o.inventory.empty} empty`, color: '#1AA7B0' },
+    { title: 'Total Campers', value: o.inventory.total, icon: 'water', subtitle: `${o.orders.cancelled} cancelled orders`, color: '#2BB3B8' },
+    { title: 'Damaged', value: o.inventory.damaged, icon: 'alert-circle', color: '#E0A92E' },
     { title: 'Lost', value: o.inventory.lost, icon: 'help-circle', color: '#F87171' },
-    { title: 'Returned', value: o.inventory.returned, icon: 'backup-restore', color: '#22D3EE' },
-    { title: 'Cancelled', value: o.orders.cancelled, icon: 'close-circle', color: '#8AA6B2' },
+    { title: 'Returned', value: o.inventory.returned, icon: 'backup-restore', color: '#3FC1C9' },
+    { title: 'Cancelled', value: o.orders.cancelled, icon: 'close-circle', color: '#F87171' },
   ];
 
   const inventoryDist = (charts?.inventory ?? []).map((it, i) => ({
@@ -145,16 +145,16 @@ export default function DashboardScreen() {
       <SectionLabel>ANALYTICS</SectionLabel>
 
       <FadeSlideIn key={`rev-${focusKey}`}>
-        <ChartCard title="Revenue" subtitle="Last 6 months" accent="#2DD4BF">
+        <ChartCard title="Revenue" subtitle="Last 6 months" accent="#0E8388">
           <BarChart
-            data={(charts?.revenue ?? []).map((r) => ({ label: r.month.split(' ')[0], value: r.revenue, color: '#2DD4BF' }))}
+            data={(charts?.revenue ?? []).map((r) => ({ label: r.month.split(' ')[0], value: r.revenue, color: '#0E8388' }))}
             formatValue={(n) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))}
           />
         </ChartCard>
       </FadeSlideIn>
 
       <FadeSlideIn key={`inv-${focusKey}`} delay={60}>
-        <ChartCard title="Inventory" subtitle="Current camper status" accent="#22D3EE">
+        <ChartCard title="Inventory" subtitle="Current camper status" accent="#16A8AE">
           <DistributionBar items={inventoryDist} />
         </ChartCard>
       </FadeSlideIn>
@@ -168,7 +168,7 @@ export default function DashboardScreen() {
               label: d.date.split(' ')[0],
               segments: [
                 { value: d.delivered, color: '#34D399' },
-                { value: d.pending, color: '#D9E25A' },
+                { value: d.pending, color: '#E0A92E' },
                 { value: d.cancelled, color: '#F87171' },
               ],
             }))}
@@ -176,7 +176,7 @@ export default function DashboardScreen() {
           <View style={styles.legendInline}>
             {[
               { name: 'Delivered', color: '#34D399' },
-              { name: 'Pending', color: '#D9E25A' },
+              { name: 'Pending', color: '#E0A92E' },
               { name: 'Cancelled', color: '#F87171' },
             ].map((l) => (
               <View key={l.name} style={styles.legendChip}>
@@ -189,9 +189,9 @@ export default function DashboardScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn key={`growth-${focusKey}`} delay={180}>
-        <ChartCard title="Customer Growth" subtitle="New customers by month" accent="#38BDF8">
+        <ChartCard title="Customer Growth" subtitle="New customers by month" accent="#0891B2">
           <BarChart
-            data={(charts?.customerGrowth ?? []).map((g) => ({ label: g.month.split(' ')[0], value: g.count, color: '#22D3EE' }))}
+            data={(charts?.customerGrowth ?? []).map((g) => ({ label: g.month.split(' ')[0], value: g.count, color: '#0891B2' }))}
           />
         </ChartCard>
       </FadeSlideIn>

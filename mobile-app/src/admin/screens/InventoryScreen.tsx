@@ -53,12 +53,12 @@ export default function InventoryScreen() {
   if (loading || !inv) return <Loader />;
 
   const tiles = [
-    { title: 'Total', value: inv.totalCampers, icon: 'water', color: '#2DD4BF' },
-    { title: 'Filled', value: inv.filledCampers, icon: 'cup-water', color: '#22D3EE' },
-    { title: 'Empty', value: inv.emptyCampers, icon: 'cup-outline', color: '#38BDF8' },
-    { title: 'Allocated', value: inv.allocatedCampers, icon: 'account-arrow-right', color: '#8B5CF6' },
+    { title: 'Total', value: inv.totalCampers, icon: 'water', color: '#0E8388' },
+    { title: 'Filled', value: inv.filledCampers, icon: 'cup-water', color: '#16A8AE' },
+    { title: 'Empty', value: inv.emptyCampers, icon: 'cup-outline', color: '#3FC1C9' },
+    { title: 'Allocated', value: inv.allocatedCampers, icon: 'account-arrow-right', color: '#0891B2' },
     { title: 'Returned', value: inv.returnedCampers, icon: 'backup-restore', color: '#34D399' },
-    { title: 'Damaged', value: inv.damagedCampers, icon: 'alert-circle', color: '#D9E25A' },
+    { title: 'Damaged', value: inv.damagedCampers, icon: 'alert-circle', color: '#E5544B' },
     { title: 'Lost', value: inv.lostCampers, icon: 'help-circle', color: '#F87171' },
   ];
 

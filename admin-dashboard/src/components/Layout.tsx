@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar, Box, Drawer, IconButton, List, ListItemButton,
-  ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem, Divider, Badge, Tooltip,
-  useTheme,
+  ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem, Badge, Tooltip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -18,17 +17,15 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
 import { useQuery } from '@tanstack/react-query';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { logout } from '../features/auth/authSlice';
 import { notificationApi } from '../api/endpoints';
-import { BRAND_GRADIENT, gradientSoft } from '../theme/theme';
-import { useColorMode } from '../theme/ColorModeContext';
+import { BRAND_GRADIENT, BRAND_GRADIENT_SOFT } from '../theme/theme';
 
 const DRAWER_WIDTH = 260;
 
@@ -56,12 +53,12 @@ export default function Layout() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   // Super admins only manage admins; regular admins get the operational nav.
   const nav = isSuperAdmin
-    ? [{ label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> }]
+    ? [
+        { label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> },
+        { label: 'Service Areas', path: '/service-areas', icon: <PlaceOutlinedIcon /> },
+      ]
     : NAV;
-  const theme = useTheme();
-  const { mode, toggle } = useColorMode();
-  const isDark = mode === 'dark';
-  const softGrad = gradientSoft(mode);
+  const softGrad = BRAND_GRADIENT_SOFT;
 
   const { data: unread } = useQuery({
     queryKey: ['unread'],
@@ -71,7 +68,7 @@ export default function Layout() {
   });
 
   const activeLabel = nav.find((n) => location.pathname.startsWith(n.path))?.label ?? 'Dashboard';
-  const drawerBg = isDark ? '#0A1714' : '#FFFFFF';
+  const drawerBg = '#FFFDF9';
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: drawerBg }}>
@@ -79,13 +76,13 @@ export default function Layout() {
         <Box
           sx={{
             background: BRAND_GRADIENT,
-            color: '#04201C',
+            color: '#FFFFFF',
             width: 42,
             height: 42,
             borderRadius: 2.5,
             display: 'grid',
             placeItems: 'center',
-            boxShadow: '0 8px 18px -6px rgba(45,212,191,0.6)',
+            boxShadow: '0 8px 18px -6px rgba(5,81,82,0.55)',
           }}
         >
           <WaterDropIcon />
@@ -116,24 +113,30 @@ export default function Layout() {
                 my: 0.4,
                 py: 1.05,
                 position: 'relative',
-                transition: 'background .2s ease, transform .15s ease',
-                '&:hover': { transform: 'translateX(3px)' },
+                overflow: 'hidden',
+                transition: 'background-color .2s ease, transform .15s ease, box-shadow .2s ease, color .15s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  backgroundColor: 'rgba(5,81,82,0.07)',
+                  color: 'primary.main',
+                  '& .MuiListItemIcon-root': { color: 'primary.main' },
+                },
                 '&.Mui-selected, &.Mui-selected:hover': {
                   background: softGrad,
                   color: 'primary.main',
-                  '& .MuiListItemIcon-root': { color: 'primary.main', filter: `drop-shadow(0 0 6px ${theme.palette.primary.main})` },
-                  '& .MuiListItemText-primary': { fontWeight: 700 },
+                  boxShadow: 'inset 0 0 0 1px rgba(5,81,82,0.18)',
+                  '& .MuiListItemIcon-root': { color: 'primary.main' },
+                  '& .MuiListItemText-primary': { fontWeight: 800 },
                   '&::before': {
                     content: '""',
                     position: 'absolute',
                     left: 0,
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    height: 22,
+                    height: 28,
                     width: 4,
                     borderRadius: 4,
                     background: BRAND_GRADIENT,
-                    boxShadow: `0 0 10px ${theme.palette.primary.main}`,
                   },
                 },
               }}
@@ -153,7 +156,7 @@ export default function Layout() {
 
       <Box sx={{ p: 2 }}>
         <Box sx={{ background: softGrad, border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Avatar sx={{ background: BRAND_GRADIENT, color: '#04201C', width: 36, height: 36, fontWeight: 800 }}>
+          <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 36, height: 36, fontWeight: 800 }}>
             {user?.name?.[0]?.toUpperCase() ?? 'A'}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
@@ -178,7 +181,7 @@ export default function Layout() {
           ml: { md: `${DRAWER_WIDTH}px` },
           borderBottom: '1px solid',
           borderColor: 'divider',
-          backgroundColor: isDark ? 'rgba(10,23,20,0.7)' : 'rgba(255,255,255,0.75)',
+          backgroundColor: 'rgba(255,253,249,0.78)',
           backdropFilter: 'blur(12px)',
         }}
       >
@@ -190,11 +193,6 @@ export default function Layout() {
             {activeLabel}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <IconButton onClick={toggle} sx={{ mr: 0.5 }}>
-              {isDark ? <LightModeIcon /> : <DarkModeIcon />}
-            </IconButton>
-          </Tooltip>
           {!isSuperAdmin && (
             <Tooltip title="Notifications">
               <IconButton onClick={() => navigate('/notifications')} sx={{ mr: 0.5 }}>
@@ -205,7 +203,7 @@ export default function Layout() {
             </Tooltip>
           )}
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
-            <Avatar sx={{ background: BRAND_GRADIENT, color: '#04201C', width: 38, height: 38, fontWeight: 800 }}>
+            <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 38, height: 38, fontWeight: 800 }}>
               {user?.name?.[0]?.toUpperCase() ?? 'A'}
             </Avatar>
           </IconButton>
@@ -215,17 +213,58 @@ export default function Layout() {
             onClose={() => setAnchorEl(null)}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{ sx: { mt: 1, minWidth: 200, borderRadius: 2.5 } }}
+            PaperProps={{
+              sx: {
+                mt: 1.2,
+                minWidth: 250,
+                borderRadius: 3,
+                overflow: 'hidden',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 18px 44px -18px rgba(5,81,82,0.35)',
+              },
+            }}
+            MenuListProps={{ sx: { p: 1 } }}
           >
-            <Box sx={{ px: 2, py: 1 }}>
-              <Typography variant="body2" fontWeight={700}>{user?.name ?? 'Admin'}</Typography>
-              <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                p: 1.5,
+                mb: 0.5,
+                borderRadius: 2.5,
+                background: softGrad,
+              }}
+            >
+              <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 42, height: 42, fontWeight: 800 }}>
+                {user?.name?.[0]?.toUpperCase() ?? 'A'}
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" fontWeight={800} noWrap>{user?.name ?? 'Admin'}</Typography>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{user?.email}</Typography>
+              </Box>
             </Box>
-            <Divider />
-            <MenuItem onClick={() => { setAnchorEl(null); navigate('/profile'); }}>
+
+            <MenuItem
+              onClick={() => { setAnchorEl(null); navigate('/profile'); }}
+              sx={{ borderRadius: 2, py: 1, mb: 0.25, '&:hover .MuiListItemIcon-root': { color: 'primary.main' } }}
+            >
               <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> Profile
             </MenuItem>
-            <MenuItem onClick={() => dispatch(logout())} sx={{ color: 'error.main' }}>
+            <MenuItem
+              onClick={() => dispatch(logout())}
+              sx={{
+                borderRadius: 2,
+                py: 1,
+                color: 'error.main',
+                '&:hover': {
+                  bgcolor: 'rgba(211,47,47,0.09)',
+                  color: 'error.main',
+                  '& .MuiListItemIcon-root': { color: 'error.main' },
+                },
+              }}
+            >
               <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> Logout
             </MenuItem>
           </Menu>

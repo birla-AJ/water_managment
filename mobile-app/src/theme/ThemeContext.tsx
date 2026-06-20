@@ -1,39 +1,23 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { darkColors, lightColors, AppColors } from './colors';
+import React, { createContext, useContext, useMemo } from 'react';
+import { lightColors, AppColors } from './colors';
 
 interface ThemeCtx {
   colors: AppColors;
   isDark: boolean;
+  /** No-op: the app is light-theme only (dark mode removed). Kept for API compatibility. */
   toggle: () => void;
 }
 
-const Ctx = createContext<ThemeCtx>({ colors: darkColors, isDark: true, toggle: () => {} });
+// The app is light-theme only. `isDark` is always false and `toggle` is a no-op;
+// both are retained so existing consumers keep compiling.
+const Ctx = createContext<ThemeCtx>({ colors: lightColors, isDark: false, toggle: () => {} });
 
 export const useTheme = () => useContext(Ctx);
 
-const STORAGE_KEY = 'wf_theme_mode';
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((v) => {
-      if (v === 'light') setIsDark(false);
-      else if (v === 'dark') setIsDark(true);
-    });
-  }, []);
-
-  const toggle = () =>
-    setIsDark((prev) => {
-      const next = !prev;
-      AsyncStorage.setItem(STORAGE_KEY, next ? 'dark' : 'light');
-      return next;
-    });
-
   const value = useMemo<ThemeCtx>(
-    () => ({ colors: isDark ? darkColors : lightColors, isDark, toggle }),
-    [isDark],
+    () => ({ colors: lightColors, isDark: false, toggle: () => {} }),
+    [],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

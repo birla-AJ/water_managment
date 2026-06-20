@@ -153,10 +153,11 @@ class PaymentService {
     }
   }
 
-  async list(query: { skip: number; take: number; status?: PaymentStatus; customerId?: string }) {
+  async list(query: { skip: number; take: number; status?: PaymentStatus; customerId?: string; distributorId?: string }) {
     const where: Prisma.PaymentWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.customerId ? { customerId: query.customerId } : {}),
+      ...(query.distributorId ? { customer: { distributorId: query.distributorId } } : {}),
     };
     const [items, total] = await Promise.all([
       prisma.payment.findMany({

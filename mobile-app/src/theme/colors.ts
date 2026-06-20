@@ -1,63 +1,43 @@
-// WaterFlow mobile palette — "Deep Ocean" theme built from the SlideOcean
-// teal palette (039AA1 · 056472 · 13404E · 04202B · 5C7687 · ADC3C9 · E4EDEC).
-// Both light and dark expose the same keys so screens can swap freely.
+// WaterFlow mobile palette — warm "WaterFlow" brand.
+// Deep teal primary (#055152), warm gold accent (#DABD71), fresh green glow
+// (#179A33), cream grounds. The app is LIGHT-THEME ONLY — dark mode removed.
 
-export const darkColors = {
-  primary: '#039AA1', // ocean teal (palette #1)
-  primaryDark: '#056472', // deep teal (palette #2)
-  primaryGlow: 'rgba(3,154,161,0.45)',
-  accent: '#3FC1C9', // brightened teal for highlights/badges
-  green: '#34D399',
-  lime: '#D9E25A',
-  gradientStart: '#039AA1',
-  gradientEnd: '#0FB8C0',
+export const lightColors = {
+  primary: '#055152', // --Primary-clr (deep teal)
+  primaryDark: '#033C3D', // pressed / emphasis
+  primaryGlow: 'rgba(5,81,82,0.25)',
+  accent: '#DABD71', // warm gold for highlights/badges
+  green: '#179A33', // fresh green
+  lime: '#C68A3E', // warm amber secondary accent
+  gradientStart: '#0A6E6F', // button gradient start (teal)
+  gradientEnd: '#0E8C84', // button gradient end (lighter teal)
 
-  bg: '#04202B', // deepest navy (palette #4)
-  bgElevated: '#0A2E3A', // headers / tab bar
-  card: '#13404E', // cards (palette #3)
-  cardBorder: 'rgba(3,154,161,0.22)',
+  // Transparent canvas → the cream gradient backdrop (bgTop → bgBottom) shows
+  // through every screen.
+  bg: 'transparent',
+  bgTop: '#F3EADC', // backdrop gradient top (warm cream)
+  bgBottom: '#FFFDF9', // backdrop gradient bottom (warm white)
+  surface: '#FAF3E8', // opaque fill for inputs / sheets (light cream)
+  bgElevated: '#FFFDF9', // headers / tab bar (warm white)
+  card: '#FFFDF9', // cards (warm white)
+  cardBorder: 'rgba(5,81,82,0.12)', // faint teal hairline
 
-  text: '#E4EDEC', // off-white (palette #7)
-  textMuted: '#8AA6B2', // lightened slate for legibility on dark surfaces
-  border: 'rgba(92,118,135,0.22)', // slate (palette #5)
+  text: '#1D1D1D', // ink
+  textMuted: '#5B5B5C', // muted grey for secondary text
+  border: 'rgba(5,81,82,0.14)',
 
-  success: '#34D399',
-  warning: '#E8C15A',
-  error: '#F87171',
-  white: '#FFFFFF',
-  isDark: true,
-};
-
-// Light theme — "Ember Cream": warm red/cream palette
-// (F56C4C · F02D1B · CE2F22 · 3A1916 · D9C8AF · EAD8BB · F2E7C9).
-export const lightColors: typeof darkColors = {
-  primary: '#CE2F22', // deep red (palette #3)
-  primaryDark: '#A8241A', // darker red for pressed/emphasis
-  primaryGlow: 'rgba(206,47,34,0.28)',
-  accent: '#F56C4C', // coral (palette #1)
-  green: '#2E9E5B',
-  lime: '#C2870A',
-  gradientStart: '#F02D1B', // bright red (palette #2)
-  gradientEnd: '#F56C4C', // coral (palette #1)
-
-  bg: '#F2E7C9', // pale cream (palette #7)
-  bgElevated: '#FFFFFF',
-  card: '#FFFFFF',
-  cardBorder: 'rgba(58,25,22,0.12)', // warm brown tint (palette #4)
-
-  text: '#3A1916', // dark brown (palette #4)
-  textMuted: '#8A6E5A', // muted warm brown for secondary text
-  border: 'rgba(58,25,22,0.14)',
-
-  success: '#2E9E5B',
-  warning: '#C2870A',
+  success: '#2E7D32',
+  warning: '#CA8A04',
   error: '#D32F2F',
   white: '#FFFFFF',
   isDark: false,
 };
 
-export type AppColors = typeof darkColors;
+export type AppColors = typeof lightColors;
+
+// Dark mode has been removed project-wide. `darkColors` is kept as an alias of
+// the single light palette so any legacy import resolves to the light theme.
+export const darkColors: AppColors = lightColors;
 
 // Default export used by screens not yet wired to the theme hook.
-// Defaults to the dark "hero" theme so the whole app adopts the new look.
-export const colors = darkColors;
+export const colors = lightColors;

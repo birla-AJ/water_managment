@@ -11,12 +11,12 @@ import { PageHeader, Loader, EmptyState } from '../components/ui';
 
 function visualFor(type: string): { icon: string; color: string } {
   const t = (type ?? '').toUpperCase();
-  if (t.includes('ORDER')) return { icon: 'cart', color: '#2563EB' };
+  if (t.includes('ORDER')) return { icon: 'cart', color: '#0E8388' };
   if (t.includes('PAY')) return { icon: 'cash', color: '#16A34A' };
-  if (t.includes('DELIV')) return { icon: 'truck', color: '#0EA5E9' };
-  if (t.includes('BILL') || t.includes('INVOICE')) return { icon: 'receipt', color: '#F59E0B' };
-  if (t.includes('INVENT') || t.includes('STOCK')) return { icon: 'package-variant', color: '#06B6D4' };
-  return { icon: 'bell-ring', color: '#7C3AED' };
+  if (t.includes('DELIV')) return { icon: 'truck', color: '#0EA5B5' };
+  if (t.includes('BILL') || t.includes('INVOICE')) return { icon: 'receipt', color: '#16A8AE' };
+  if (t.includes('INVENT') || t.includes('STOCK')) return { icon: 'package-variant', color: '#0891B2' };
+  return { icon: 'bell-ring', color: '#0C7C82' };
 }
 
 export default function NotificationsScreen() {

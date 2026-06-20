@@ -9,15 +9,15 @@ import { billingApi, deliveryApi, meApi } from '../api/endpoints';
 import { useTheme } from '../theme/ThemeContext';
 import type { AppColors } from '../theme/colors';
 
-// A curated, vibrant accent per quick-action — looks great on both themes.
+// Cohesive aqua/teal accent family (monochrome look, matching the reference).
 const ACTIONS = [
-  { label: 'Order Camper', icon: 'water-plus', screen: 'Order', tab: true, color: '#0FB8C0' },
-  { label: 'My Deliveries', icon: 'truck-delivery', screen: 'Deliveries', tab: true, color: '#3B82F6' },
-  { label: 'Order History', icon: 'history', screen: 'OrderHistory', color: '#8B5CF6' },
-  { label: 'Billing', icon: 'receipt', screen: 'Bills', tab: true, color: '#F59E0B' },
-  { label: 'Payments', icon: 'credit-card', screen: 'PaymentHistory', color: '#10B981' },
-  { label: 'Notifications', icon: 'bell', screen: 'Notifications', color: '#EC4899' },
-  { label: 'Support', icon: 'headset', screen: 'Support', color: '#EF4444' },
+  { label: 'Order Camper', icon: 'water-plus', screen: 'Order', tab: true, color: '#0E8388' },
+  { label: 'My Deliveries', icon: 'truck-delivery', screen: 'Deliveries', tab: true, color: '#0EA5B5' },
+  { label: 'Order History', icon: 'history', screen: 'OrderHistory', color: '#1AA7B0' },
+  { label: 'Billing', icon: 'receipt', screen: 'Bills', tab: true, color: '#2BB3B8' },
+  { label: 'Payments', icon: 'credit-card', screen: 'PaymentHistory', color: '#0C7C82' },
+  { label: 'Notifications', icon: 'bell', screen: 'Notifications', color: '#3FC1C9' },
+  { label: 'Support', icon: 'headset', screen: 'Support', color: '#16A8AE' },
 ] as const;
 
 function greeting(): string {
@@ -70,8 +70,8 @@ export default function HomeScreen() {
 
   const stats = [
     { label: 'This week', value: weekCount, icon: 'calendar-week', color: colors.primary, view: 'week' as const },
-    { label: 'This month', value: monthCount, icon: 'calendar-month', color: '#8B5CF6', view: 'month' as const },
-    { label: 'Campers', value: campers, icon: 'cup-water', color: '#3B82F6' },
+    { label: 'This month', value: monthCount, icon: 'calendar-month', color: '#1AA7B0', view: 'month' as const },
+    { label: 'Campers', value: campers, icon: 'cup-water', color: '#2BB3B8' },
   ];
 
   return (

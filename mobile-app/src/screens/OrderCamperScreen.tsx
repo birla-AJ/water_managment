@@ -134,7 +134,7 @@ const makeStyles = (colors: AppColors) =>
     stepBtn: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
     qtyBox: { alignItems: 'center', marginHorizontal: 30 },
     qtyNum: { fontSize: 36, fontWeight: '800', color: colors.text },
-    input: { backgroundColor: colors.bg, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, minHeight: 70, textAlignVertical: 'top', color: colors.text },
+    input: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, minHeight: 70, textAlignVertical: 'top', color: colors.text },
 
     summaryTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 14 },
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 },

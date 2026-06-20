@@ -242,7 +242,7 @@ const makeStyles = (colors: AppColors) =>
     legendText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
 
     navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, paddingHorizontal: 4 },
-    navBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+    navBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
     navTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
 
     // week rows

@@ -46,7 +46,15 @@ export const PrimaryButton = ({
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} disabled={disabled || loading} style={[s.btnShadow, (disabled || loading) && { opacity: 0.55 }]}>
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
+      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btn}>
+        {/* glossy glass highlight across the top half */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={s.btnGloss}
+        />
         {loading ? <ActivityIndicator color={onPrimaryText} /> : <Text style={[s.btnText, { color: onPrimaryText }]}>{title}</Text>}
       </LinearGradient>
     </TouchableOpacity>
@@ -85,30 +93,40 @@ const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.card,
-      borderRadius: 18,
+      borderRadius: 22,
       borderWidth: 1,
       borderColor: colors.cardBorder,
       padding: 16,
       marginBottom: 12,
-      shadowColor: colors.isDark ? '#000' : '#0B1F1A',
-      shadowOpacity: colors.isDark ? 0.4 : 0.08,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 3,
+      shadowColor: colors.isDark ? '#000' : colors.primary,
+      shadowOpacity: colors.isDark ? 0.4 : 0.14,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 4,
     },
     btnShadow: {
-      borderRadius: 14,
+      borderRadius: 16,
       shadowColor: colors.primary,
       shadowOpacity: 0.5,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 6 },
-      elevation: 6,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 7,
     },
     btn: {
-      paddingVertical: 15,
-      borderRadius: 14,
+      paddingVertical: 16,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    btnGloss: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '55%',
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
     },
     btnOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.primary },
     btnText: { fontWeight: '800', fontSize: 16, letterSpacing: 0.3 } as TextStyle,

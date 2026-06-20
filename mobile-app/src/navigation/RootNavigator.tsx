@@ -1,10 +1,11 @@
 import React from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../theme/ThemeContext';
 import { useAppSelector } from '../store/hooks';
+import PillTabBar from '../components/PillTabBar';
 
 import SplashScreen from '../screens/SplashScreen';
 import OtpLoginScreen from '../screens/OtpLoginScreen';
@@ -28,34 +29,17 @@ import { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-function ThemeToggleButton() {
-  const { isDark, toggle, colors } = useTheme();
-  return (
-    <TouchableOpacity onPress={toggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginRight: 16 }}>
-      <Icon name={isDark ? 'weather-sunny' : 'weather-night'} size={22} color={colors.primary} />
-    </TouchableOpacity>
-  );
-}
-
 function MainTabs() {
   const { colors } = useTheme();
   return (
     <Tab.Navigator
+      tabBar={(props) => <PillTabBar {...props} />}
       screenOptions={({ route }) => ({
         headerStyle: { backgroundColor: colors.bgElevated },
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '800' },
-        headerRight: () => <ThemeToggleButton />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.bgElevated,
-          borderTopColor: colors.border,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
         tabBarIcon: ({ color, size, focused }) => {
           const icons: Record<string, string> = {
             Home: 'home-variant', Deliveries: 'truck-delivery', Order: 'water-plus', Bills: 'receipt', Profile: 'account',
@@ -76,7 +60,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Deliveries" component={DeliveriesScreen} />
-      <Tab.Screen name="Order" component={OrderCamperScreen} options={{ title: 'Order Camper' }} />
+      <Tab.Screen name="Order" component={OrderCamperScreen} options={{ title: 'Order Camper', tabBarLabel: 'Order' }} />
       <Tab.Screen name="Bills" component={BillingScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

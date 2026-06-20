@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { sendPhoneOtp } from '../services/phoneAuth';
@@ -13,7 +13,7 @@ import { RootStackParamList } from '../navigation/types';
 type Props = NativeStackScreenProps<RootStackParamList, 'OtpLogin'>;
 
 export default function OtpLoginScreen({ navigation }: Props) {
-  const { colors, isDark, toggle } = useTheme();
+  const { colors } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,9 +46,6 @@ export default function OtpLoginScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <WaterDrops count={14} />
-      <TouchableOpacity style={styles.themeToggle} onPress={toggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Icon name={isDark ? 'weather-sunny' : 'weather-night'} size={22} color={colors.primary} />
-      </TouchableOpacity>
 
       <View style={styles.header}>
         <GradientView style={styles.logoBadge}>
@@ -82,11 +79,6 @@ export default function OtpLoginScreen({ navigation }: Props) {
 const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
-    themeToggle: {
-      position: 'absolute', top: 52, right: 24, zIndex: 10,
-      width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder,
-    },
     header: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     logoBadge: {
       width: 104, height: 104, borderRadius: 32, alignItems: 'center', justifyContent: 'center',

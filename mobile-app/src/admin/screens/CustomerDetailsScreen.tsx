@@ -186,12 +186,12 @@ const makeStyles = (colors: AppColors) =>
     dayRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
     dayLabel: { flex: 1, fontSize: 15, color: colors.text, fontWeight: '700' },
     qtyInput: {
-      width: 70, backgroundColor: colors.bg, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder,
+      width: 70, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder,
       paddingHorizontal: 12, paddingVertical: 8, color: colors.text, textAlign: 'center',
     },
     skipAddRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
     skipInput: {
-      flex: 1, backgroundColor: colors.bg, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder,
+      flex: 1, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder,
       paddingHorizontal: 12, paddingVertical: 10, color: colors.text,
     },
     addBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },

@@ -90,12 +90,12 @@ export default function Login() {
         p: 2,
         position: 'relative',
         overflow: 'hidden',
-        background: 'radial-gradient(1100px 600px at 12% -8%, #0F766E 0%, transparent 55%), radial-gradient(900px 500px at 95% 110%, #134E4A 0%, transparent 55%), linear-gradient(135deg, #0B1A16 0%, #0D9488 60%, #22D3EE 130%)',
+        background: 'radial-gradient(1100px 600px at 12% -8%, #066B6C 0%, transparent 55%), radial-gradient(900px 500px at 95% 110%, #033C3D 0%, transparent 55%), linear-gradient(135deg, #033C3D 0%, #055152 55%, #0E8C84 130%)',
       }}
     >
       {/* decorative blobs */}
       <Box sx={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', top: -80, right: -60 }} />
-      <Box sx={{ position: 'absolute', width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.10)', bottom: -70, left: -40 }} />
+      <Box sx={{ position: 'absolute', width: 240, height: 240, borderRadius: '50%', background: 'rgba(218,189,113,0.18)', bottom: -70, left: -40 }} />
 
       <Card sx={{ width: 420, maxWidth: '94vw', borderRadius: 4, position: 'relative', boxShadow: '0 30px 60px -20px rgba(2,6,23,0.5)' }}>
         <CardContent sx={{ p: { xs: 3, sm: 4.5 } }}>
@@ -109,7 +109,7 @@ export default function Login() {
                 borderRadius: 4,
                 display: 'grid',
                 placeItems: 'center',
-                boxShadow: '0 14px 28px -10px rgba(37,99,235,0.7)',
+                boxShadow: '0 14px 28px -10px rgba(5,81,82,0.7)',
               }}
             >
               <WaterDropIcon sx={{ fontSize: 36 }} />
