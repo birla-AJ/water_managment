@@ -16,10 +16,18 @@ export const authenticate =
   (principal?: Principal) =>
   (req: Request, _res: Response, next: NextFunction): void => {
     const header = req.headers.authorization;
-    if (!header || !header.startsWith('Bearer ')) {
+    // Prefer the Authorization header, but also accept ?access_token= so that
+    // file downloads opened in the device browser / download manager (which
+    // cannot set request headers) can still authenticate.
+    let token: string | undefined;
+    if (header && header.startsWith('Bearer ')) {
+      token = header.slice(7);
+    } else if (typeof req.query.access_token === 'string') {
+      token = req.query.access_token;
+    }
+    if (!token) {
       throw ApiError.unauthorized('Missing or invalid Authorization header');
     }
-    const token = header.slice(7);
     try {
       const payload = verifyAccessToken(token);
       if (principal && payload.principal !== principal) {

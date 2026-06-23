@@ -20,6 +20,19 @@ paymentRouter.post('/webhook', ctrl.webhook);
 // Admin
 const admin = authenticate('admin');
 paymentRouter.get('/', admin, ctrl.list);
+
+/**
+ * @openapi
+ * /payments/export:
+ *   get:
+ *     tags: [Payments]
+ *     summary: Export payments as a styled Excel workbook
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: status, schema: { type: string, enum: [PENDING, SUCCESS, FAILED, REFUNDED] } }
+ *     responses: { 200: { description: File stream } }
+ */
+paymentRouter.get('/export', admin, ctrl.exportPayments);
 paymentRouter.post('/manual', admin, validate(manualPaymentSchema), ctrl.recordManual);
 paymentRouter.post('/:id/refund', admin, validate(refundSchema), ctrl.refund);
 
