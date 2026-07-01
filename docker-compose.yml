@@ -8,11 +8,11 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: waterflow
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,12 +30,12 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/waterflow?schema=public
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_access}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh}
-      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+      CORS_ORIGINS: http://13.235.27.138:8080,http://localhost:8080,http://localhost:5173
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
     ports:
-      - '4000:4000'
+      - "4000:4000"
     volumes:
       - uploads:/app/uploads
 
@@ -43,13 +43,13 @@ services:
     build:
       context: ./admin-dashboard
       args:
-        VITE_API_URL: http://localhost:4000/api/v1
+        VITE_API_URL: http://13.235.27.138:4000/api/v1
     container_name: waterflow-admin
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - '8080:80'
+      - "8080:80"
 
 volumes:
   db_data:
