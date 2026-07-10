@@ -331,6 +331,7 @@ model Customer {
   notifications Notification[]
   refreshTokens RefreshToken[]
   deliverySkips DeliverySkip[]
+  aiChatUsages AiChatUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -343,6 +344,24 @@ model Customer {
   @@index([distributorId])
   @@index([pincode])
   @@map("customers")
+}
+
+// Daily AI-chat usage counter for customer accounts. Admin chat is intentionally
+// not capped here; customer self-service stays limited to avoid surprise AI cost.
+model AiChatUsage {
+  id         String   @id @default(uuid())
+  customerId String
+  date       DateTime @db.Date
+  count      Int      @default(0)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerId, date])
+  @@index([date])
+  @@map("ai_chat_usages")
 }
 
 // Specific dates a customer marked as unavailable to receive water.

@@ -20,6 +20,7 @@ import adminRoutes from './modules/admin/admin.routes';
 import distributorMeRoutes from './modules/distributor/distributor.routes';
 import serviceAreaRoutes from './modules/servicearea/servicearea.routes';
 import { trackingRouter, trackingDriverRouter, trackingCustomerRouter } from './modules/tracking/tracking.routes';
+import { aiAdminRouter, aiCustomerRouter } from './modules/ai/ai.routes';
 
 export const apiRouter = Router();
 
@@ -42,6 +43,7 @@ apiRouter.use('/drivers', driverRoutes);
 apiRouter.use('/admins', adminRoutes);
 apiRouter.use('/service-areas', serviceAreaRoutes);
 apiRouter.use('/tracking', trackingRouter);
+apiRouter.use('/ai', aiAdminRouter);
 
 // ---- Customer-facing (mobile app) ----
 apiRouter.use('/me', customerMeRoutes);
@@ -51,6 +53,7 @@ apiRouter.use('/me/billing', billingMeRouter);
 apiRouter.use('/me/payments', paymentMeRouter);
 apiRouter.use('/me/deliveries', deliveryMeRouter);
 apiRouter.use('/me/tracking', trackingCustomerRouter);
+apiRouter.use('/me/ai', aiCustomerRouter);
 
 // ---- Driver-facing (mobile app) ----
 apiRouter.use('/driver', driverMeRoutes);

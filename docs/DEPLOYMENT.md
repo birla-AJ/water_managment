@@ -4,17 +4,18 @@
 - Node.js ≥ 18, npm
 - PostgreSQL ≥ 14
 - (optional) Docker & Docker Compose
-- Razorpay account (keys) and a Firebase project (service account) for full functionality
+- Razorpay account (keys), Firebase project (service account), and Google Maps API key for full functionality
 
 ## 2. Local development
 
 ### Backend
 ```bash
 cd backend
-cp .env.example .env          # set DATABASE_URL, JWT secrets, Razorpay, Firebase
+cp .env.example .env          # set DATABASE_URL, JWT secrets, Razorpay, Firebase, Google Maps
 npm install
 npm run prisma:generate
 npm run prisma:migrate        # creates tables
+npx prisma db execute --file prisma/ai-chat-feature.sql --schema prisma/schema.prisma
 npm run seed                  # seed admins, inventory, sample customers
 npm run dev                   # http://localhost:4000  (Swagger: /api/docs)
 ```
@@ -44,6 +45,8 @@ npm run android               # or: npm run ios  (after: cd ios && pod install)
 # from repo root
 export JWT_ACCESS_SECRET=$(openssl rand -hex 32)
 export JWT_REFRESH_SECRET=$(openssl rand -hex 32)
+export GOOGLE_MAPS_API_KEY=your_google_maps_key
+export OPENAI_API_KEY=your_openai_key_optional
 docker compose up --build -d
 ```
 - DB: localhost:5432
@@ -62,6 +65,9 @@ docker compose exec backend node dist/../prisma/seed.js
 - [ ] Real SMS gateway wired in `auth.service.requestOtp`
 - [ ] `CORS_ORIGINS` set to your dashboard/app origins
 - [ ] Razorpay live keys + webhook secret; configure webhook URL `/api/v1/payments/webhook`
+- [ ] Google Maps key configured as `GOOGLE_MAPS_API_KEY` for road-based delivery ETA; restrict the key in Google Cloud
+- [ ] Optional AI key configured as `OPENAI_API_KEY`; without it, AI chat uses local ERP summaries only
+- [ ] AI customer usage table applied with `npx prisma db execute --file prisma/ai-chat-feature.sql --schema prisma/schema.prisma`
 - [ ] Firebase service account mounted (`FIREBASE_SERVICE_ACCOUNT_PATH` or inline JSON)
 - [ ] Managed Postgres with automated backups
 - [ ] HTTPS termination (reverse proxy / load balancer)

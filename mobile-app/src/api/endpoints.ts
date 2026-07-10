@@ -52,6 +52,11 @@ export const customerTrackingApi = {
   activeDelivery: () => api.get('/me/tracking/active-delivery').then((r) => r.data.data),
 };
 
+export const customerAiApi = {
+  usage: () => api.get('/me/ai/usage').then((r) => r.data.data),
+  chat: (message: string, intent?: string) => api.post('/me/ai/chat', { message, intent }).then((r) => r.data.data),
+};
+
 export const billingApi = {
   invoices: () => api.get('/me/billing/invoices').then((r) => r.data.data),
   due: () => api.get('/me/billing/due').then((r) => r.data.data),

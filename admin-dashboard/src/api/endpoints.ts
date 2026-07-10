@@ -1,6 +1,7 @@
 import { api } from './client';
 import type {
   Admin,
+  AiChatResponse,
   ApiResponse,
   Customer,
   CustomerSchedule,
@@ -149,6 +150,13 @@ export const trackingApi = {
   updatePolygon: (id: string, body: Partial<ServiceAreaPolygon>) =>
     api.put<ApiResponse<ServiceAreaPolygon>>(`/tracking/polygons/${id}`, body).then((r) => r.data.data),
   removePolygon: (id: string) => api.delete(`/tracking/polygons/${id}`),
+};
+
+// ---- AI Chat ----
+export const aiApi = {
+  suggestions: () => api.get<ApiResponse<string[]>>('/ai/suggestions').then((r) => r.data.data),
+  chat: (message: string, intent?: string) =>
+    api.post<ApiResponse<AiChatResponse>>('/ai/chat', { message, intent }).then((r) => r.data.data),
 };
 
 // ---- Notifications ----

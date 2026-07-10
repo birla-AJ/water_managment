@@ -113,3 +113,8 @@ export const adminSettingsApi = {
   getAll: () => api.get('/settings').then((r) => r.data.data),
   update: (key: string, value: Record<string, unknown>) => api.put(`/settings/${key}`, value).then((r) => r.data.data),
 };
+
+export const adminAiApi = {
+  suggestions: (): Promise<string[]> => api.get('/ai/suggestions').then((r) => r.data.data),
+  chat: (message: string, intent?: string) => api.post('/ai/chat', { message, intent }).then((r) => r.data.data),
+};

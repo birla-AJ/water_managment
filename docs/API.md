@@ -46,6 +46,10 @@ Authenticated endpoints require `Authorization: Bearer <accessToken>`.
 | POST | `/payments/manual` | Record offline payment |
 | POST | `/payments/:id/refund` | Refund |
 | GET/POST | `/deliveries` · `/deliveries/mark` | List / mark delivery |
+| GET | `/tracking/admin/live` | Live map snapshot: drivers, active delivery stops, polygons |
+| POST/PUT/DELETE | `/tracking/polygons` · `/tracking/polygons/:id` | Create/update/delete distributor service polygons |
+| GET | `/ai/suggestions` | AI quick prompts for admins |
+| POST | `/ai/chat` | AI assistant for reports, billing, drivers, inventory and performance |
 | GET | `/notifications` | Admin notifications |
 | GET | `/reports/:type` | Report data |
 | GET | `/reports/:type/export?format=excel\|csv\|pdf` | Export |
@@ -62,6 +66,9 @@ Authenticated endpoints require `Authorization: Bearer <accessToken>`.
 | POST | `/me/pause` · `/me/resume` | Pause / resume |
 | GET/POST | `/me/orders` | My orders / request extra |
 | GET | `/me/deliveries` · `/me/deliveries/summary?period=week\|month` | Deliveries |
+| GET | `/me/tracking/active-delivery` | Active delivery driver location + ETA when trackable |
+| GET | `/me/ai/usage` | Customer AI usage counter |
+| POST | `/me/ai/chat` | Customer AI assistant for own account, deliveries, bills and payments |
 | GET | `/me/billing/invoices` · `/me/billing/due` | Invoices / due amount |
 | POST | `/me/payments/razorpay-order` | Create Razorpay order |
 | POST | `/me/payments/verify` | Verify signature & capture |
@@ -86,3 +93,44 @@ curl -X POST http://localhost:4000/api/v1/auth/otp/verify  -H 'Content-Type: app
 ## Webhook
 
 `POST /payments/webhook` — Razorpay server-to-server events; signature verified with `RAZORPAY_WEBHOOK_SECRET` against the raw body. Configure this URL in the Razorpay dashboard.
+
+## Driver tracking endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/driver/tracking/duty` | Current driver's duty status and latest location |
+| POST | `/driver/tracking/duty` | Toggle duty on/off: `{ "isOnDuty": true }` |
+| POST | `/driver/tracking/location` | Send GPS ping while duty is on |
+
+Driver GPS payload:
+
+```json
+{
+  "latitude": 22.7196,
+  "longitude": 75.8577,
+  "accuracy": 12,
+  "speed": 4.2,
+  "heading": 180,
+  "batteryLevel": 74
+}
+```
+
+Customer ETA uses Google Maps driving ETA when `GOOGLE_MAPS_API_KEY` is configured. If Google Maps is unavailable, the API falls back to straight-line GPS estimate.
+
+## AI chat response shape
+
+AI chat returns a short answer plus optional visual data for app screens:
+
+```json
+{
+  "answer": "Monthly earning is ₹12,400.",
+  "scope": "ADMIN",
+  "intent": "monthly_earning",
+  "provider": "openai",
+  "cards": [{ "label": "Monthly earning", "value": "₹12,400" }],
+  "table": { "title": "Performance snapshot", "columns": ["metric", "value"], "rows": [] },
+  "chart": { "title": "Customer growth", "type": "line", "xKey": "month", "yKey": "customers", "data": [] }
+}
+```
+
+Customer AI chat is limited by `AI_CUSTOMER_DAILY_LIMIT` (`3` by default). If `OPENAI_API_KEY` is blank, the backend still returns local ERP summaries; with the key, it polishes the answer in the same language/script as the question.

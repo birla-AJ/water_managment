@@ -66,6 +66,13 @@ export const env = {
     apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
   },
 
+  ai: {
+    provider: (process.env.AI_PROVIDER ?? 'openai').toLowerCase(),
+    openaiApiKey: process.env.OPENAI_API_KEY ?? '',
+    openaiModel: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+    customerDailyLimit: parseInt(process.env.AI_CUSTOMER_DAILY_LIMIT ?? '3', 10),
+  },
+
   firebase: {
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH ?? '',
     serviceAccountInline: process.env.FIREBASE_SERVICE_ACCOUNT ?? '',

@@ -27,6 +27,7 @@ import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { logout } from '../features/auth/authSlice';
 import { notificationApi } from '../api/endpoints';
 import { BRAND_GRADIENT, BRAND_GRADIENT_SOFT } from '../theme/theme';
+import AdminAiChat from './ai/AdminAiChat';
 
 const DRAWER_WIDTH = 260;
 
@@ -300,6 +301,7 @@ export default function Layout() {
         <Toolbar />
         <Outlet />
       </Box>
+      <AdminAiChat />
     </Box>
   );
 }
