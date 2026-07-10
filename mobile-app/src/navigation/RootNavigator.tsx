@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../theme/ThemeContext';
 import { useAppSelector } from '../store/hooks';
 import PillTabBar from '../components/PillTabBar';
+import AppHeader from '../components/AppHeader';
 
 import SplashScreen from '../screens/SplashScreen';
 import OtpLoginScreen from '../screens/OtpLoginScreen';
@@ -18,6 +19,7 @@ import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import BillingScreen from '../screens/BillingScreen';
 import PaymentHistoryScreen from '../screens/PaymentHistoryScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import TrackDeliveryScreen from '../screens/TrackDeliveryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SupportScreen from '../screens/SupportScreen';
 import SkipDeliveriesScreen from '../screens/SkipDeliveriesScreen';
@@ -35,9 +37,7 @@ function MainTabs() {
     <Tab.Navigator
       tabBar={(props) => <PillTabBar {...props} />}
       screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: colors.bgElevated },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '800' },
+        header: (props) => <AppHeader {...props} />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarIcon: ({ color, size, focused }) => {
@@ -76,9 +76,7 @@ export default function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.bgElevated },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '800' },
+        header: (props) => <AppHeader {...props} />,
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
@@ -108,6 +106,7 @@ export default function RootNavigator() {
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} options={{ title: 'Order History' }} />
           <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: 'Payment History' }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="TrackDelivery" component={TrackDeliveryScreen} options={{ title: 'Track Delivery' }} />
           <Stack.Screen name="Support" component={SupportScreen} />
           <Stack.Screen name="SkipDeliveries" component={SkipDeliveriesScreen} options={{ title: 'Skip Deliveries' }} />
         </>

@@ -62,6 +62,10 @@ export const env = {
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET ?? '',
   },
 
+  googleMaps: {
+    apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
+  },
+
   firebase: {
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH ?? '',
     serviceAccountInline: process.env.FIREBASE_SERVICE_ACCOUNT ?? '',

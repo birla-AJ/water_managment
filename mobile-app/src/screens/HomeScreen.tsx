@@ -13,6 +13,7 @@ import type { AppColors } from '../theme/colors';
 const ACTIONS = [
   { label: 'Order Camper', icon: 'water-plus', screen: 'Order', tab: true, color: '#0E8388' },
   { label: 'My Deliveries', icon: 'truck-delivery', screen: 'Deliveries', tab: true, color: '#0EA5B5' },
+  { label: 'Track Delivery', icon: 'map-marker-path', screen: 'TrackDelivery', color: '#0B8FD3' },
   { label: 'Order History', icon: 'history', screen: 'OrderHistory', color: '#1AA7B0' },
   { label: 'Billing', icon: 'receipt', screen: 'Bills', tab: true, color: '#2BB3B8' },
   { label: 'Payments', icon: 'credit-card', screen: 'PaymentHistory', color: '#0C7C82' },

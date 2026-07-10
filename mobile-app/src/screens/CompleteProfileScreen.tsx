@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setProfileComplete, setUser } from '../store/slices/authSlice';
 import { useTheme } from '../theme/ThemeContext';
 import type { AppColors } from '../theme/colors';
+import { getCurrentLocation } from '../services/location';
 
 interface Form {
   name: string;
@@ -20,9 +21,12 @@ interface Form {
   area: string;
   landmark: string;
   pincode: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-const empty: Form = { name: '', email: '', altMobile: '', address: '', area: '', landmark: '', pincode: '' };
+const empty: Form = { name: '', email: '', altMobile: '', address: '', area: '', landmark: '', pincode: '', latitude: null, longitude: null };
+type TextFieldKey = Exclude<keyof Form, 'latitude' | 'longitude'>;
 
 export default function CompleteProfileScreen() {
   const { colors, isDark } = useTheme();
@@ -52,6 +56,8 @@ export default function CompleteProfileScreen() {
           area: p?.area ?? '',
           landmark: p?.landmark ?? '',
           pincode: p?.pincode ?? '',
+          latitude: p?.latitude ?? null,
+          longitude: p?.longitude ?? null,
         });
         if (p?.distributorId) setDistributorId(p.distributorId);
       } catch {
@@ -60,7 +66,7 @@ export default function CompleteProfileScreen() {
     })();
   }, []);
 
-  const set = (key: keyof Form) => (v: string) => setForm((f) => ({ ...f, [key]: v }));
+  const set = (key: TextFieldKey) => (v: string) => setForm((f) => ({ ...f, [key]: v }));
 
   // Fetch distributors that serve the entered area / pincode.
   const findDistributors = async () => {
@@ -77,6 +83,16 @@ export default function CompleteProfileScreen() {
       Alert.alert('Error', errorMessage(e));
     } finally {
       setFinding(false);
+    }
+  };
+
+  const captureLocation = async () => {
+    try {
+      const loc = await getCurrentLocation();
+      setForm((f) => ({ ...f, latitude: loc.latitude, longitude: loc.longitude }));
+      Alert.alert('Location saved', 'Your delivery GPS location was captured for live ETA tracking.');
+    } catch (e) {
+      Alert.alert('Location error', errorMessage(e));
     }
   };
 
@@ -108,6 +124,8 @@ export default function CompleteProfileScreen() {
         area: form.area.trim() || undefined,
         landmark: form.landmark.trim() || undefined,
         pincode: pincode || undefined,
+        latitude: form.latitude ?? undefined,
+        longitude: form.longitude ?? undefined,
         distributorId,
       });
       if (user) dispatch(setUser({ ...user, name }));
@@ -173,6 +191,19 @@ export default function CompleteProfileScreen() {
           <Field label="Area" value={form.area} onChange={set('area')} placeholder="Locality / sector" autoCapitalize="words" />
           <Field label="Pincode" value={form.pincode} onChange={set('pincode')} placeholder="6-digit pincode" keyboardType="number-pad" maxLength={6} />
           <Field label="Landmark" value={form.landmark} onChange={set('landmark')} placeholder="Nearby landmark" />
+          <TouchableOpacity style={styles.locationBtn} onPress={captureLocation} activeOpacity={0.8}>
+            <Icon name="crosshairs-gps" size={18} color={colors.primary} />
+            <Text style={styles.locationBtnText}>
+              {form.latitude && form.longitude ? 'Update delivery GPS location' : 'Use current delivery location'}
+            </Text>
+          </TouchableOpacity>
+          {form.latitude && form.longitude ? (
+            <Text style={styles.locationMeta}>
+              Saved: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+            </Text>
+          ) : (
+            <Text style={styles.locationMeta}>GPS helps calculate delivery ETA when driver is on the way.</Text>
+          )}
         </Card>
 
         <Card>
@@ -248,6 +279,12 @@ const makeStyles = (colors: AppColors) =>
       borderWidth: 1, borderColor: colors.primary, borderRadius: 10, paddingVertical: 11, marginBottom: 12,
     },
     findBtnText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+    locationBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1, borderColor: colors.primary, borderRadius: 10, paddingVertical: 11, marginTop: 4,
+    },
+    locationBtnText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+    locationMeta: { color: colors.textMuted, fontSize: 11.5, marginTop: 8, textAlign: 'center' },
     distRow: {
       flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
       borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: colors.surface,

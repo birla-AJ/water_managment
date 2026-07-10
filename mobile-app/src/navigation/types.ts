@@ -9,6 +9,7 @@ export type RootStackParamList = {
   Billing: undefined;
   PaymentHistory: undefined;
   Notifications: undefined;
+  TrackDelivery: undefined;
   Support: undefined;
   SkipDeliveries: { view?: 'week' | 'month' } | undefined;
   // Driver area

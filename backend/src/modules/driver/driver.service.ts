@@ -23,6 +23,9 @@ const driverPublicSelect = {
   zone: true,
   status: true,
   vehicleId: true,
+  isOnDuty: true,
+  dutyStartedAt: true,
+  lastSeenAt: true,
   createdAt: true,
   vehicle: { select: { id: true, number: true, type: true, capacity: true } },
 };

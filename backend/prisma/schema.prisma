@@ -153,6 +153,7 @@ model Admin {
   customers     Customer[]     @relation("AdminCustomers")          // created by this admin (audit)
   distributedCustomers Customer[] @relation("DistributorCustomers") // customers who chose this distributor
   areaLinks     ServiceArea[]  @relation("AdminServiceAreas")        // areas assigned from the master list
+  servicePolygons ServiceAreaPolygon[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,19 +196,79 @@ model Driver {
   status        DriverStatus @default(ACTIVE)
   fcmToken      String?
   vehicleId     String?      @unique
+  isOnDuty      Boolean      @default(false)
+  dutyStartedAt DateTime?
+  lastSeenAt    DateTime?
 
   vehicle       Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   customers     Customer[]
   deliveries    Delivery[]
   notifications Notification[]
   refreshTokens RefreshToken[]
+  locations     DriverLocation[]
+  dutySessions  DriverDutySession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([zone])
+  @@index([isOnDuty])
   @@map("drivers")
+}
+
+// Driver GPS pings while the driver has duty enabled in the mobile app.
+// Customers can see exact location only for their active assigned delivery.
+model DriverLocation {
+  id           String   @id @default(uuid())
+  driverId     String
+  latitude     Float
+  longitude    Float
+  accuracy     Float?
+  speed        Float?
+  heading      Float?
+  batteryLevel Float?
+  recordedAt   DateTime @default(now())
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, recordedAt])
+  @@map("driver_locations")
+}
+
+// Duty sessions make it easy to understand which driver was on duty,
+// when they started, and when they left duty.
+model DriverDutySession {
+  id        String    @id @default(uuid())
+  driverId  String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, startedAt])
+  @@index([endedAt])
+  @@map("driver_duty_sessions")
+}
+
+// GeoJSON polygon boundaries for distributor service coverage.
+// A regular admin manages their own polygons; super admin can manage all.
+model ServiceAreaPolygon {
+  id        String  @id @default(uuid())
+  adminId   String
+  name      String
+  geoJson   Json
+  color     String  @default("#0E8C84")
+  isActive  Boolean @default(true)
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([adminId])
+  @@index([isActive])
+  @@map("service_area_polygons")
 }
 
 // Delivery vehicle managed by admin and (optionally) assigned to one driver.

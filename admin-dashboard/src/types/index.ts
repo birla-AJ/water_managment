@@ -94,10 +94,63 @@ export interface Driver {
   zone?: string;
   status: DriverStatus;
   vehicleId?: string | null;
+  isOnDuty?: boolean;
+  dutyStartedAt?: string | null;
+  lastSeenAt?: string | null;
   vehicle?: { id: string; number: string; type?: string; capacity?: number } | null;
   customers?: Array<{ id: string; name: string; mobile: string; area?: string; status: CustomerStatus; isPaused: boolean }>;
   _count?: { customers: number };
   createdAt?: string;
+}
+
+export interface DriverLocation {
+  id: string;
+  driverId: string;
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+  speed?: number | null;
+  heading?: number | null;
+  batteryLevel?: number | null;
+  recordedAt: string;
+}
+
+export interface ServiceAreaPolygon {
+  id: string;
+  adminId: string;
+  name: string;
+  geoJson: { type: 'Polygon'; coordinates: number[][][] };
+  color: string;
+  isActive: boolean;
+  admin?: { id: string; name: string; email: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveTrackingDriver {
+  id: string;
+  name: string;
+  mobile: string;
+  zone?: string | null;
+  isOnDuty: boolean;
+  dutyStartedAt?: string | null;
+  lastSeenAt?: string | null;
+  vehicle?: { id: string; number: string; type?: string | null } | null;
+  assignedCustomers: number;
+  latestLocation?: DriverLocation | null;
+  isLocationFresh: boolean;
+  activeDeliveries: Array<{
+    id: string;
+    status: string;
+    customer: { id: string; name: string; mobile: string; area?: string | null; latitude?: number | null; longitude?: number | null };
+    order: { id: string; orderNumber: string; quantity: number; status: string };
+  }>;
+}
+
+export interface LiveTrackingSnapshot {
+  generatedAt: string;
+  drivers: LiveTrackingDriver[];
+  polygons: ServiceAreaPolygon[];
 }
 
 export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'PROCESSING' | 'DELIVERED' | 'CANCELLED';

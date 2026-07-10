@@ -8,9 +8,11 @@ import type {
   Driver,
   Inventory,
   Invoice,
+  LiveTrackingSnapshot,
   Order,
   Payment,
   ServiceArea,
+  ServiceAreaPolygon,
   Vehicle,
 } from '../types';
 
@@ -133,6 +135,20 @@ export const paymentApi = {
 export const deliveryApi = {
   list: (params: Record<string, unknown>) => api.get('/deliveries', { params }).then((r) => r.data),
   mark: (body: Record<string, unknown>) => api.post('/deliveries/mark', body).then((r) => r.data.data),
+};
+
+// ---- Live Tracking / Service Polygons ----
+export const trackingApi = {
+  live: () => api.get<ApiResponse<LiveTrackingSnapshot>>('/tracking/admin/live').then((r) => r.data.data),
+  createPolygon: (body: {
+    adminId?: string;
+    name: string;
+    color?: string;
+    geoJson: { type: 'Polygon'; coordinates: number[][][] };
+  }) => api.post<ApiResponse<ServiceAreaPolygon>>('/tracking/polygons', body).then((r) => r.data.data),
+  updatePolygon: (id: string, body: Partial<ServiceAreaPolygon>) =>
+    api.put<ApiResponse<ServiceAreaPolygon>>(`/tracking/polygons/${id}`, body).then((r) => r.data.data),
+  removePolygon: (id: string) => api.delete(`/tracking/polygons/${id}`),
 };
 
 // ---- Notifications ----

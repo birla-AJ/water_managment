@@ -21,6 +21,7 @@ import Profile from './pages/Profile';
 import Admins from './pages/Admins';
 import AdminDetails from './pages/AdminDetails';
 import ServiceAreas from './pages/ServiceAreas';
+import LiveTracking from './pages/LiveTracking';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = useAppSelector((s) => s.auth.accessToken);
@@ -67,6 +68,7 @@ export default function App() {
 
         {/* Shared */}
         <Route path="profile" element={<Profile />} />
+        <Route path="live-tracking" element={<LiveTracking />} />
 
         {/* Operational pages — regular admins only (super admins bounced to /admins) */}
         <Route element={<OperationalOnly />}>

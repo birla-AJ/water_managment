@@ -18,6 +18,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
@@ -34,6 +35,7 @@ const NAV = [
   { label: 'Customers', path: '/customers', icon: <PeopleIcon /> },
   { label: 'Drivers', path: '/drivers', icon: <LocalShippingIcon /> },
   { label: 'Vehicles', path: '/vehicles', icon: <DirectionsCarIcon /> },
+  { label: 'Live Tracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
   { label: 'Orders', path: '/orders', icon: <ShoppingCartIcon /> },
   { label: 'Inventory', path: '/inventory', icon: <Inventory2Icon /> },
   { label: 'Billing', path: '/billing', icon: <ReceiptIcon /> },
@@ -56,6 +58,7 @@ export default function Layout() {
     ? [
         { label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> },
         { label: 'Service Areas', path: '/service-areas', icon: <PlaceOutlinedIcon /> },
+        { label: 'Live Tracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
       ]
     : NAV;
   const softGrad = BRAND_GRADIENT_SOFT;

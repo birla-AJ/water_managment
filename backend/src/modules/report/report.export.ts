@@ -1,64 +1,33 @@
 import { Response } from 'express';
+import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { ReportResult } from './report.service';
-import { streamExcel, slug, ChartSpec, Kpi } from './excelTheme';
-
-/** Columns that should be formatted as currency in any report. */
-const CURRENCY_COLUMNS = ['Amount', 'Revenue', 'Rate', 'Deposit'];
-
-/** Build presentation-style KPIs + a chart from whatever columns the report has. */
-function deriveInsights(report: ReportResult): { kpis: Kpi[]; chart: ChartSpec | null } {
-  const { columns, rows } = report;
-  const kpis: Kpi[] = [{ label: 'Total Records', value: String(rows.length) }];
-
-  // Sum the first currency-ish numeric column for a headline figure.
-  const amountCol = columns.find((c) => CURRENCY_COLUMNS.includes(c));
-  if (amountCol) {
-    const total = rows.reduce((s, r) => s + (Number(r[amountCol]) || 0), 0);
-    kpis.push({ label: `Total ${amountCol}`, value: `₹${total.toLocaleString('en-IN')}`, accent: 'FF1B873F' });
-  }
-
-  // Choose a chart: time-series for revenue, otherwise a category breakdown.
-  let chart: ChartSpec | null = null;
-  if (columns.includes('Revenue') && columns.includes('Date')) {
-    chart = {
-      type: 'line',
-      label: 'Revenue Trend',
-      labels: rows.map((r) => String(r.Date)),
-      data: rows.map((r) => Number(r.Revenue) || 0),
-    };
-  } else {
-    const catCol = ['Status', 'Type', 'Method', 'Action'].find((c) => columns.includes(c));
-    if (catCol) {
-      const counts: Record<string, number> = {};
-      rows.forEach((r) => {
-        const k = String(r[catCol] ?? '—');
-        counts[k] = (counts[k] ?? 0) + 1;
-      });
-      chart = {
-        type: 'doughnut',
-        label: `By ${catCol}`,
-        labels: Object.keys(counts),
-        data: Object.values(counts),
-      };
-    }
-  }
-  return { kpis, chart };
-}
 
 export async function exportExcel(res: Response, report: ReportResult) {
-  const { kpis, chart } = deriveInsights(report);
-  await streamExcel(res, slug(report.title), {
-    title: report.title,
-    subtitle: 'Business Report',
-    generatedAt: report.generatedAt,
-    columns: report.columns,
-    rows: report.rows,
-    kpis,
-    chart,
-    currencyColumns: CURRENCY_COLUMNS.filter((c) => report.columns.includes(c)),
-    statusColumn: report.columns.includes('Status') ? 'Status' : undefined,
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Report');
+
+  ws.mergeCells(1, 1, 1, report.columns.length);
+  ws.getCell('A1').value = report.title;
+  ws.getCell('A1').font = { bold: true, size: 14 };
+
+  ws.addRow([]);
+  const header = ws.addRow(report.columns);
+  header.font = { bold: true };
+  header.eachCell((cell) => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } };
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   });
+
+  report.rows.forEach((row) => ws.addRow(report.columns.map((c) => row[c])));
+  ws.columns.forEach((col) => {
+    col.width = 18;
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${slug(report.title)}.xlsx"`);
+  await wb.xlsx.write(res);
+  res.end();
 }
 
 export function exportCsv(res: Response, report: ReportResult) {
@@ -104,4 +73,7 @@ export function exportPdf(res: Response, report: ReportResult) {
 function csvCell(v: unknown): string {
   const s = String(v ?? '');
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function slug(s: string): string {
+  return s.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
 }

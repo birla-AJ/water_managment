@@ -48,6 +48,10 @@ export const deliveryApi = {
   summary: (period: 'week' | 'month') => api.get('/me/deliveries/summary', { params: { period } }).then((r) => r.data.data),
 };
 
+export const customerTrackingApi = {
+  activeDelivery: () => api.get('/me/tracking/active-delivery').then((r) => r.data.data),
+};
+
 export const billingApi = {
   invoices: () => api.get('/me/billing/invoices').then((r) => r.data.data),
   due: () => api.get('/me/billing/due').then((r) => r.data.data),
@@ -80,4 +84,14 @@ export const driverApi = {
   }) => api.post('/driver/deliveries/mark', body).then((r) => r.data.data),
   updateFcm: (fcmToken: string) => api.patch('/driver/fcm-token', { fcmToken }),
   notifications: () => api.get('/notifications/driver').then((r) => r.data.data),
+  duty: () => api.get('/driver/tracking/duty').then((r) => r.data.data),
+  setDuty: (isOnDuty: boolean) => api.post('/driver/tracking/duty', { isOnDuty }).then((r) => r.data.data),
+  updateLocation: (body: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    speed?: number;
+    heading?: number;
+    batteryLevel?: number;
+  }) => api.post('/driver/tracking/location', body).then((r) => r.data.data),
 };
