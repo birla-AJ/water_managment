@@ -125,8 +125,12 @@ export default function FloatingAiChat() {
     try {
       const data: AiChatResponse = isAdmin ? await adminAiApi.chat(message, intent) : await customerAiApi.chat(message, intent);
       setMessages((prev) => [...prev, { role: 'assistant', text: data.answer, data }]);
-    } catch (err) {
-      setMessages((prev) => [...prev, { role: 'assistant', text: errorMessage(err) }]);
+    } catch (error) {
+      const raw = errorMessage(error);
+      const text = raw.toLowerCase().includes('database request')
+        ? 'AI setup is pending on the server. Please try again after backend migration is updated.'
+        : raw;
+      setMessages((prev) => [...prev, { role: 'assistant', text }]);
     } finally {
       setLoading(false);
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
@@ -155,13 +159,19 @@ export default function FloatingAiChat() {
               </TouchableOpacity>
             </LinearGradient>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.prompts}>
+            <View style={s.promptStrip}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.prompts}
+              >
               {prompts.map((p) => (
                 <TouchableOpacity key={p} onPress={() => ask(p, p)} style={s.promptBtn} disabled={loading}>
-                  <Text style={s.promptText}>{p}</Text>
+                  <Text style={s.promptText} numberOfLines={1}>{p}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+              </ScrollView>
+            </View>
 
             <FlatList
               ref={listRef}
@@ -219,20 +229,39 @@ const makeStyles = (colors: AppColors) =>
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
     sheetWrap: { flex: 1, justifyContent: 'flex-end' },
     sheet: {
-      height: '78%',
+      height: '72%',
       backgroundColor: colors.bgElevated,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       overflow: 'hidden',
     },
-    header: { padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    header: { padding: 18, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
     headerSub: { color: 'rgba(255,255,255,0.82)', fontSize: 12, marginTop: 2 },
     closeBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
-    prompts: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-    promptBtn: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
+    promptStrip: {
+      height: 58,
+      flexGrow: 0,
+      flexShrink: 0,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.bgElevated,
+    },
+    prompts: { height: 58, paddingHorizontal: 12, paddingVertical: 10, gap: 8, alignItems: 'center' },
+    promptBtn: {
+      height: 36,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: 18,
+      paddingHorizontal: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      maxWidth: 190,
+    },
     promptText: { color: colors.primary, fontWeight: '800', fontSize: 12 },
-    chatList: { padding: 14, paddingBottom: 22 },
+    chatList: { padding: 14, paddingBottom: 22, flexGrow: 1 },
     bubble: { maxWidth: '92%', padding: 12, borderRadius: 16, marginBottom: 10 },
     userBubble: { alignSelf: 'flex-end', backgroundColor: colors.primary },
     aiBubble: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },

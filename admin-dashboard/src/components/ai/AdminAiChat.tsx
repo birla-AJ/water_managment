@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
   Chip,
   CircularProgress,
   Divider,
@@ -39,8 +38,8 @@ function MiniChart({ data }: { data: AiChatResponse }) {
   if (!data.chart || data.chart.data.length === 0) return null;
   const c = data.chart;
   return (
-    <Box sx={{ height: 190, mt: 1.5 }}>
-      <Typography variant="caption" fontWeight={800}>{c.title}</Typography>
+    <Box sx={{ height: 160, mt: 1.25 }}>
+      <Typography variant="caption" fontWeight={800} sx={{ display: 'block', mb: 0.5 }}>{c.title}</Typography>
       <ResponsiveContainer width="100%" height="90%">
         {c.type === 'line' ? (
           <LineChart data={c.data}>
@@ -81,10 +80,10 @@ function DataPreview({ data }: { data: AiChatResponse }) {
       )}
       <MiniChart data={data} />
       {data.table && data.table.rows.length > 0 && (
-        <Box sx={{ mt: 1.5, maxHeight: 220, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ mt: 1.25, maxHeight: 190, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
           <Table size="small" stickyHeader>
             <TableHead>
-              <TableRow>{data.table.columns.map((col) => <TableCell key={col} sx={{ fontWeight: 800 }}>{col}</TableCell>)}</TableRow>
+              <TableRow>{data.table.columns.map((col) => <TableCell key={col} sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{col}</TableCell>)}</TableRow>
             </TableHead>
             <TableBody>
               {data.table.rows.slice(0, 8).map((row, idx) => (
@@ -150,9 +149,9 @@ export default function AdminAiChat() {
             right: { xs: 12, sm: 24 },
             bottom: 92,
             zIndex: 1300,
-            width: { xs: 'calc(100vw - 24px)', sm: 430 },
-            maxWidth: 430,
-            height: { xs: '72vh', sm: 620 },
+            width: { xs: 'calc(100vw - 24px)', sm: 500 },
+            maxWidth: 500,
+            height: { xs: '76vh', sm: 650 },
             display: 'flex',
             flexDirection: 'column',
             borderRadius: 2,
@@ -170,11 +169,40 @@ export default function AdminAiChat() {
             <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: '#fff' }}><CloseIcon fontSize="small" /></IconButton>
           </Box>
 
-          <Box sx={{ p: 1.25, display: 'flex', gap: 0.75, overflowX: 'auto' }}>
+          <Box
+            sx={{
+              p: 1.25,
+              display: 'flex',
+              gap: 0.75,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              bgcolor: '#FFFDF9',
+              scrollSnapType: 'x proximity',
+              '&::-webkit-scrollbar': { height: 6 },
+              '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(5,81,82,0.22)', borderRadius: 99 },
+            }}
+          >
             {quick.map((q) => (
-              <Button key={q} size="small" variant="outlined" onClick={() => send(q, q)} sx={{ whiteSpace: 'nowrap', borderRadius: 99 }}>
-                {q}
-              </Button>
+              <Chip
+                key={q}
+                label={q}
+                variant="outlined"
+                clickable
+                onClick={() => send(q, q)}
+                sx={{
+                  flex: '0 0 auto',
+                  maxWidth: '100%',
+                  height: 30,
+                  borderRadius: 99,
+                  fontWeight: 800,
+                  color: 'primary.main',
+                  bgcolor: '#fff',
+                  '& .MuiChip-label': {
+                    px: 1.25,
+                    whiteSpace: 'nowrap',
+                  },
+                }}
+              />
             ))}
           </Box>
           <Divider />
@@ -182,7 +210,7 @@ export default function AdminAiChat() {
           <Box sx={{ flex: 1, overflow: 'auto', p: 1.5, bgcolor: '#FFFDF9' }}>
             <Stack spacing={1.25}>
               {messages.map((m, idx) => (
-                <Box key={idx} sx={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
+                <Box key={idx} sx={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: m.role === 'user' ? '86%' : '100%', width: m.data ? '100%' : 'auto' }}>
                   <Box
                     sx={{
                       px: 1.5,
@@ -192,6 +220,7 @@ export default function AdminAiChat() {
                       color: m.role === 'user' ? '#fff' : 'text.primary',
                       border: m.role === 'assistant' ? '1px solid' : 'none',
                       borderColor: 'divider',
+                      boxShadow: m.role === 'assistant' ? '0 8px 22px -18px rgba(5,81,82,0.5)' : 'none',
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{m.text}</Typography>

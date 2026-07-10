@@ -177,6 +177,18 @@ export interface LiveTrackingSnapshot {
   generatedAt: string;
   drivers: LiveTrackingDriver[];
   polygons: ServiceAreaPolygon[];
+  customers: Array<{
+    id: string;
+    name: string;
+    mobile: string;
+    area?: string | null;
+    address?: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    status: string;
+    allocatedCampers: number;
+    driver?: { id: string; name: string } | null;
+  }>;
 }
 
 export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'PROCESSING' | 'DELIVERED' | 'CANCELLED';

@@ -1,9 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
-import { Badge, Card, EmptyState, Loader, PrimaryButton } from '../components/ui';
+import { Badge, Card, EmptyState, Loader } from '../components/ui';
 import { customerTrackingApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
 import { useTheme } from '../theme/ThemeContext';
@@ -11,7 +12,8 @@ import type { AppColors } from '../theme/colors';
 
 export default function TrackDeliveryScreen() {
   const { colors } = useTheme();
-  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const mapRef = useRef<MapView | null>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,12 +31,6 @@ export default function TrackDeliveryScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const openMap = () => {
-    const loc = data?.latestLocation;
-    if (!loc) return;
-    Linking.openURL(`https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}#map=16/${loc.latitude}/${loc.longitude}`);
-  };
-
   if (loading) return <Loader />;
 
   if (!data?.trackable) {
@@ -47,6 +43,19 @@ export default function TrackDeliveryScreen() {
 
   const driver = data.driver;
   const loc = data.latestLocation;
+  const customer = data.delivery.customer;
+  const driverPoint = { latitude: loc.latitude, longitude: loc.longitude };
+  const customerPoint = customer.latitude != null && customer.longitude != null
+    ? { latitude: customer.latitude, longitude: customer.longitude }
+    : null;
+
+  const fitMap = () => {
+    const points = customerPoint ? [driverPoint, customerPoint] : [driverPoint];
+    mapRef.current?.fitToCoordinates(points, {
+      edgePadding: { top: 70, right: 55, bottom: 70, left: 55 },
+      animated: true,
+    });
+  };
 
   return (
     <ScrollView
@@ -60,6 +69,40 @@ export default function TrackDeliveryScreen() {
         />
       }
     >
+      <Card style={styles.mapCard}>
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          initialRegion={{
+            latitude: driverPoint.latitude,
+            longitude: driverPoint.longitude,
+            latitudeDelta: 0.035,
+            longitudeDelta: 0.035,
+          }}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+          showsCompass
+          toolbarEnabled={false}
+          onMapReady={fitMap}
+        >
+          <Marker coordinate={driverPoint} title={driver.name} description={driver.vehicle?.number ?? 'Driver'}>
+            <View style={styles.driverMarker}><Icon name="truck-fast" size={19} color="#FFFFFF" /></View>
+          </Marker>
+          {customerPoint && (
+            <Marker coordinate={customerPoint} title={customer.name} description={customer.address ?? customer.area ?? 'Delivery location'}>
+              <View style={styles.customerMarker}><Icon name="map-marker" size={18} color="#FFFFFF" /></View>
+            </Marker>
+          )}
+          {customerPoint && (
+            <Polyline coordinates={[driverPoint, customerPoint]} strokeColor={colors.primary} strokeWidth={4} lineDashPattern={[12, 8]} />
+          )}
+        </MapView>
+        <TouchableOpacity style={styles.recenterBtn} onPress={fitMap} activeOpacity={0.86}>
+          <Icon name="crosshairs-gps" size={19} color={colors.primary} />
+        </TouchableOpacity>
+      </Card>
+
       <Card>
         <View style={styles.headerRow}>
           <View style={styles.iconBubble}>
@@ -67,7 +110,7 @@ export default function TrackDeliveryScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Your camper is on the way</Text>
-            <Text style={styles.sub}>Exact driver location is visible only for this active delivery.</Text>
+            <Text style={styles.sub}>Live driver location is shown inside the app.</Text>
           </View>
         </View>
       </Card>
@@ -79,6 +122,7 @@ export default function TrackDeliveryScreen() {
         </View>
         <Text style={styles.meta}>Order: {data.delivery.order.orderNumber}</Text>
         <Text style={styles.meta}>Quantity: {data.delivery.order.quantity} camper(s)</Text>
+        <Text style={styles.meta}>Deliver to: {customer.address ?? customer.area ?? 'Saved delivery location'}</Text>
       </Card>
 
       <Card>
@@ -112,8 +156,6 @@ export default function TrackDeliveryScreen() {
           <Text style={styles.note}>ETA is estimated using live GPS distance because road ETA is unavailable right now.</Text>
         )}
       </Card>
-
-      <PrimaryButton title="Open Driver Location on Map" onPress={openMap} />
     </ScrollView>
   );
 }
@@ -121,6 +163,42 @@ export default function TrackDeliveryScreen() {
 const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
+    mapCard: { padding: 0, overflow: 'hidden' },
+    map: { height: 330, width: '100%' },
+    recenterBtn: {
+      position: 'absolute',
+      right: 14,
+      top: 14,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: colors.bgElevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      elevation: 4,
+    },
+    driverMarker: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderWidth: 3,
+      borderColor: '#FFFFFF',
+    },
+    customerMarker: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.error,
+      borderWidth: 3,
+      borderColor: '#FFFFFF',
+    },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     iconBubble: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
     title: { fontSize: 20, fontWeight: '800', color: colors.text },

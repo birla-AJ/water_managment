@@ -9,6 +9,16 @@ export const api = axios.create({ baseURL: config.apiUrl, timeout: 15000 });
 api.interceptors.request.use(async (cfg) => {
   const token = store.getState().auth.accessToken;
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  if (__DEV__) {
+    const method = (cfg.method ?? 'get').toUpperCase();
+    const url = `${cfg.baseURL ?? config.apiUrl}${cfg.url ?? ''}`;
+    console.log('[WaterFlow API] request', {
+      method,
+      url,
+      hasToken: Boolean(token),
+      params: cfg.params,
+    });
+  }
   return cfg;
 });
 
@@ -31,9 +41,25 @@ async function doRefresh(): Promise<string | null> {
 }
 
 api.interceptors.response.use(
-  (r) => r,
+  (r) => {
+    if (__DEV__) {
+      console.log('[WaterFlow API] response', {
+        status: r.status,
+        url: `${r.config.baseURL ?? config.apiUrl}${r.config.url ?? ''}`,
+      });
+    }
+    return r;
+  },
   async (error) => {
     const original = error.config;
+    if (__DEV__) {
+      console.log('[WaterFlow API] error', {
+        status: error.response?.status,
+        url: original ? `${original.baseURL ?? config.apiUrl}${original.url ?? ''}` : undefined,
+        message: error.response?.data?.message ?? error.message,
+        code: error.code,
+      });
+    }
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       refreshing = refreshing ?? doRefresh();

@@ -1,11 +1,12 @@
 import dayjs from 'dayjs';
-import { DeliveryStatus, InvoiceStatus, OrderStatus, PaymentStatus } from '@prisma/client';
+import { DeliveryStatus, InvoiceStatus, OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
 import { JwtPayload } from '../../utils/jwt';
 import { customerRelationScope, customerScope, scopedDistributorId } from '../../utils/scope';
-import { AiChatResponse, AiChart, AiTable } from './ai.types';
+import { logger } from '../../config/logger';
+import { AiChatResponse } from './ai.types';
 import { polishWithOpenAi } from './ai.provider';
 
 type AdminIntent =
@@ -89,22 +90,43 @@ class AiService {
 
   async customerUsage(customerId: string) {
     const date = dayjs().startOf('day').toDate();
-    const usage = await prisma.aiChatUsage.findUnique({ where: { customerId_date: { customerId, date } } });
-    return { used: usage?.count ?? 0, limit: env.ai.customerDailyLimit, remaining: Math.max(0, env.ai.customerDailyLimit - (usage?.count ?? 0)) };
+    try {
+      const usage = await prisma.aiChatUsage.findUnique({ where: { customerId_date: { customerId, date } } });
+      return { used: usage?.count ?? 0, limit: env.ai.customerDailyLimit, remaining: Math.max(0, env.ai.customerDailyLimit - (usage?.count ?? 0)) };
+    } catch (err) {
+      if (this.isMissingAiUsageTable(err)) {
+        logger.warn('[AI chat] ai_chat_usages table is missing; customer limit temporarily not enforced.');
+        return { used: 0, limit: env.ai.customerDailyLimit, remaining: env.ai.customerDailyLimit, setupPending: true };
+      }
+      throw err;
+    }
   }
 
   private async consumeCustomerQuestion(customerId: string) {
     const date = dayjs().startOf('day').toDate();
-    const usage = await prisma.aiChatUsage.findUnique({ where: { customerId_date: { customerId, date } } });
-    if ((usage?.count ?? 0) >= env.ai.customerDailyLimit) {
-      throw new ApiError(429, `Daily AI chat limit reached. You can ask ${env.ai.customerDailyLimit} questions per day.`);
+    try {
+      const usage = await prisma.aiChatUsage.findUnique({ where: { customerId_date: { customerId, date } } });
+      if ((usage?.count ?? 0) >= env.ai.customerDailyLimit) {
+        throw new ApiError(429, `Daily AI chat limit reached. You can ask ${env.ai.customerDailyLimit} questions per day.`);
+      }
+      if (usage) {
+        const updated = await prisma.aiChatUsage.update({ where: { id: usage.id }, data: { count: { increment: 1 } } });
+        return Math.max(0, env.ai.customerDailyLimit - updated.count);
+      }
+      await prisma.aiChatUsage.create({ data: { customerId, date, count: 1 } });
+      return Math.max(0, env.ai.customerDailyLimit - 1);
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      if (this.isMissingAiUsageTable(err)) {
+        logger.warn('[AI chat] ai_chat_usages table is missing; allowing customer AI question without counting usage.');
+        return undefined;
+      }
+      throw err;
     }
-    if (usage) {
-      const updated = await prisma.aiChatUsage.update({ where: { id: usage.id }, data: { count: { increment: 1 } } });
-      return Math.max(0, env.ai.customerDailyLimit - updated.count);
-    }
-    await prisma.aiChatUsage.create({ data: { customerId, date, count: 1 } });
-    return Math.max(0, env.ai.customerDailyLimit - 1);
+  }
+
+  private isMissingAiUsageTable(err: unknown) {
+    return err instanceof Prisma.PrismaClientKnownRequestError && ['P2021', 'P2022'].includes(err.code);
   }
 
   private async polish(base: AiChatResponse, userQuestion: string, language: string, scope: 'ADMIN' | 'CUSTOMER') {
@@ -428,4 +450,3 @@ class AiService {
 }
 
 export const aiService = new AiService();
-

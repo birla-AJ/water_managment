@@ -7,6 +7,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useAppSelector } from '../store/hooks';
 import PillTabBar from '../components/PillTabBar';
 import AppHeader from '../components/AppHeader';
+import FloatingAiChat from '../components/ai/FloatingAiChat';
 
 import SplashScreen from '../screens/SplashScreen';
 import OtpLoginScreen from '../screens/OtpLoginScreen';
@@ -67,6 +68,24 @@ function MainTabs() {
   );
 }
 
+function CustomerMainWithAi() {
+  return (
+    <View style={{ flex: 1 }}>
+      <MainTabs />
+      <FloatingAiChat />
+    </View>
+  );
+}
+
+function AdminMainWithAi() {
+  return (
+    <View style={{ flex: 1 }}>
+      <AdminNavigator />
+      <FloatingAiChat />
+    </View>
+  );
+}
+
 export default function RootNavigator() {
   const { colors } = useTheme();
   const { accessToken, bootstrapped, profileComplete, user } = useAppSelector((s) => s.auth);
@@ -88,7 +107,7 @@ export default function RootNavigator() {
           <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: 'Verify OTP' }} />
         </>
       ) : isAdmin ? (
-        <Stack.Screen name="AdminMain" component={AdminNavigator} options={{ headerShown: false }} />
+        <Stack.Screen name="AdminMain" component={AdminMainWithAi} options={{ headerShown: false }} />
       ) : isDriver ? (
         <>
           <Stack.Screen name="DriverMain" component={DriverNavigator} options={{ headerShown: false }} />
@@ -102,7 +121,7 @@ export default function RootNavigator() {
         />
       ) : (
         <>
-          <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="Main" component={CustomerMainWithAi} options={{ headerShown: false }} />
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} options={{ title: 'Order History' }} />
           <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: 'Payment History' }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />

@@ -15,6 +15,7 @@ import { generateOtp } from '../../utils/generators';
 import { sendOtpSms } from '../../config/sms';
 import { notificationService } from '../notification/notification.service';
 import { getFirebaseAdmin } from '../../config/firebase';
+import { logger } from '../../config/logger';
 import { AdminLoginDto, RequestOtpDto, VerifyOtpDto, FirebaseLoginDto } from './auth.dto';
 
 class AuthService {
@@ -169,27 +170,41 @@ class AuthService {
   // ---------------- FIREBASE PHONE AUTH ----------------
   /** Verify a Firebase ID token (phone auth), then find-or-create the customer and issue our JWTs. */
   async firebaseLogin(dto: FirebaseLoginDto) {
+    logger.info(`[Auth/firebase-login] Request received tokenLength=${dto.firebaseToken?.length ?? 0} hasFcm=${Boolean(dto.fcmToken)}`);
     const adminSdk = getFirebaseAdmin();
-    if (!adminSdk) throw ApiError.internal('Firebase is not configured on the server');
+    if (!adminSdk) {
+      logger.error('[Auth/firebase-login] Firebase Admin SDK is not configured');
+      throw ApiError.internal('Firebase is not configured on the server');
+    }
 
     let decoded;
     try {
       decoded = await adminSdk.auth().verifyIdToken(dto.firebaseToken);
-    } catch {
+      logger.info(`[Auth/firebase-login] Firebase token verified uid=${decoded.uid} phone=${decoded.phone_number ?? 'missing'}`);
+    } catch (err) {
+      logger.warn(`[Auth/firebase-login] Firebase token verify failed: ${(err as Error).message}`);
       throw ApiError.unauthorized('Invalid or expired Firebase token');
     }
 
-    if (!decoded.phone_number) throw ApiError.badRequest('Firebase token has no phone number');
+    if (!decoded.phone_number) {
+      logger.warn('[Auth/firebase-login] Verified token has no phone_number');
+      throw ApiError.badRequest('Firebase token has no phone number');
+    }
     // Normalise +91XXXXXXXXXX (or any country code) down to the last 10 digits.
     const mobile = decoded.phone_number.replace(/\D/g, '').slice(-10);
-    if (!/^[6-9]\d{9}$/.test(mobile)) throw ApiError.badRequest('Unsupported phone number');
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      logger.warn(`[Auth/firebase-login] Unsupported phone number phone=${decoded.phone_number} normalized=${mobile}`);
+      throw ApiError.badRequest('Unsupported phone number');
+    }
 
     // Registered driver numbers log in as drivers (no customer record created).
     const asDriver = await this.loginAsDriverIfRegistered(mobile, dto.fcmToken);
+    if (asDriver) logger.info(`[Auth/firebase-login] Logged in as driver mobile=${mobile}`);
     if (asDriver) return asDriver;
 
     // Registered admin numbers log in as admins (no customer record created).
     const asAdmin = await this.loginAsAdminIfRegistered(mobile);
+    if (asAdmin) logger.info(`[Auth/firebase-login] Logged in as admin mobile=${mobile}`);
     if (asAdmin) return asAdmin;
 
     let customer = await prisma.customer.findUnique({ where: { mobile } });
@@ -199,6 +214,7 @@ class AuthService {
         data: { name: `Customer ${mobile.slice(-4)}`, mobile, fcmToken: dto.fcmToken },
       });
       isNew = true;
+      logger.info(`[Auth/firebase-login] Created customer mobile=${mobile} customerId=${customer.id}`);
       await notificationService.notify({
         audience: NotificationAudience.ADMIN,
         type: NotificationType.NEW_CUSTOMER,
@@ -208,9 +224,13 @@ class AuthService {
       });
     } else if (dto.fcmToken) {
       customer = await prisma.customer.update({ where: { id: customer.id }, data: { fcmToken: dto.fcmToken } });
+      logger.info(`[Auth/firebase-login] Updated customer FCM mobile=${mobile} customerId=${customer.id}`);
+    } else {
+      logger.info(`[Auth/firebase-login] Existing customer mobile=${mobile} customerId=${customer.id}`);
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
+    logger.info(`[Auth/firebase-login] Issued customer tokens mobile=${mobile} isNew=${isNew}`);
     return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const } };
   }
 

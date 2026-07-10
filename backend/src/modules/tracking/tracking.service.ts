@@ -141,7 +141,7 @@ class TrackingService {
     });
 
     const driverIds = drivers.map((d) => d.id);
-    const [locations, activeOrders, polygons] = await Promise.all([
+    const [locations, activeOrders, polygons, customers] = await Promise.all([
       Promise.all(
         driverIds.map((driverId) =>
           prisma.driverLocation.findFirst({ where: { driverId }, orderBy: { recordedAt: 'desc' } })
@@ -167,6 +167,26 @@ class TrackingService {
         where: distributorId ? { adminId: distributorId } : {},
         include: { admin: { select: { id: true, name: true, email: true } } },
         orderBy: { createdAt: 'desc' },
+      }),
+      prisma.customer.findMany({
+        where: {
+          ...customerFilter,
+          latitude: { not: null },
+          longitude: { not: null },
+        },
+        select: {
+          id: true,
+          name: true,
+          mobile: true,
+          area: true,
+          address: true,
+          latitude: true,
+          longitude: true,
+          status: true,
+          allocatedCampers: true,
+          driver: { select: { id: true, name: true } },
+        },
+        orderBy: { name: 'asc' },
       }),
     ]);
 
@@ -210,6 +230,7 @@ class TrackingService {
         };
       }),
       polygons,
+      customers,
     };
   }
 
