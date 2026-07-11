@@ -1,14 +1,15 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
 import { Badge, Card, EmptyState, Loader } from '../components/ui';
-import { customerTrackingApi } from '../api/endpoints';
+import { customerTrackingApi, meApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
 import { useTheme } from '../theme/ThemeContext';
 import type { AppColors } from '../theme/colors';
+import { getCurrentLocation } from '../services/location';
 
 export default function TrackDeliveryScreen() {
   const { colors } = useTheme();
@@ -17,6 +18,8 @@ export default function TrackDeliveryScreen() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const askedForLocationRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -30,6 +33,43 @@ export default function TrackDeliveryScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const saveCurrentDeliveryLocation = useCallback(async (showSuccess = true) => {
+    if (savingLocation) return;
+    setSavingLocation(true);
+    try {
+      const loc = await getCurrentLocation();
+      await meApi.updateProfile({ latitude: loc.latitude, longitude: loc.longitude });
+      setData((prev: any) => {
+        if (!prev?.delivery?.customer) return prev;
+        return {
+          ...prev,
+          delivery: {
+            ...prev.delivery,
+            customer: {
+              ...prev.delivery.customer,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            },
+          },
+        };
+      });
+      await load();
+      if (showSuccess) Alert.alert('Location saved', 'Your delivery location is saved. ETA and map route are refreshed.');
+    } catch (e) {
+      if (showSuccess) Alert.alert('Location error', errorMessage(e));
+    } finally {
+      setSavingLocation(false);
+    }
+  }, [load, savingLocation]);
+
+  useEffect(() => {
+    const customer = data?.delivery?.customer;
+    const missingCustomerGps = data?.trackable && (customer?.latitude == null || customer?.longitude == null);
+    if (!missingCustomerGps || askedForLocationRef.current) return;
+    askedForLocationRef.current = true;
+    saveCurrentDeliveryLocation(false);
+  }, [data, saveCurrentDeliveryLocation]);
 
   if (loading) return <Loader />;
 
@@ -48,9 +88,13 @@ export default function TrackDeliveryScreen() {
   const customerPoint = customer.latitude != null && customer.longitude != null
     ? { latitude: customer.latitude, longitude: customer.longitude }
     : null;
+  const hub = data.distributorHub;
+  const hubPoint = hub?.latitude != null && hub?.longitude != null
+    ? { latitude: hub.latitude, longitude: hub.longitude }
+    : null;
 
   const fitMap = () => {
-    const points = customerPoint ? [driverPoint, customerPoint] : [driverPoint];
+    const points = [driverPoint, customerPoint, hubPoint].filter(Boolean) as Array<{ latitude: number; longitude: number }>;
     mapRef.current?.fitToCoordinates(points, {
       edgePadding: { top: 70, right: 55, bottom: 70, left: 55 },
       animated: true,
@@ -94,8 +138,16 @@ export default function TrackDeliveryScreen() {
               <View style={styles.customerMarker}><Icon name="map-marker" size={18} color="#FFFFFF" /></View>
             </Marker>
           )}
+          {hubPoint && (
+            <Marker coordinate={hubPoint} title={hub.name} description="Distributor hub / warehouse">
+              <View style={styles.hubMarker}><Text style={styles.hubEmoji}>🏭</Text></View>
+            </Marker>
+          )}
           {customerPoint && (
             <Polyline coordinates={[driverPoint, customerPoint]} strokeColor={colors.primary} strokeWidth={4} lineDashPattern={[12, 8]} />
+          )}
+          {hubPoint && (
+            <Polyline coordinates={[hubPoint, driverPoint]} strokeColor="#2563EB" strokeWidth={3} lineDashPattern={[6, 8]} />
           )}
         </MapView>
         <TouchableOpacity style={styles.recenterBtn} onPress={fitMap} activeOpacity={0.86}>
@@ -114,6 +166,24 @@ export default function TrackDeliveryScreen() {
           </View>
         </View>
       </Card>
+
+      {!customerPoint && (
+        <Card style={styles.locationCard}>
+          <View style={styles.headerRow}>
+            <View style={styles.locationIcon}>
+              <Icon name="crosshairs-gps" size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.section}>Save delivery location</Text>
+              <Text style={styles.sub}>We need your GPS point to show route, distance and ETA accurately.</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.locationBtn} onPress={() => saveCurrentDeliveryLocation(true)} disabled={savingLocation} activeOpacity={0.86}>
+            {savingLocation ? <ActivityIndicator color="#FFFFFF" /> : <Icon name="map-marker-check" size={18} color="#FFFFFF" />}
+            <Text style={styles.locationBtnText}>{savingLocation ? 'Saving location...' : 'Use my current location'}</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
 
       <Card>
         <View style={styles.row}>
@@ -135,6 +205,20 @@ export default function TrackDeliveryScreen() {
           <Text style={styles.callText}>Call Driver</Text>
         </TouchableOpacity>
       </Card>
+
+      {hubPoint && (
+        <Card>
+          <Text style={styles.section}>Distributor hub</Text>
+          <Text style={styles.driverName}>{hub.name}</Text>
+          <Text style={styles.meta}>Warehouse / plant location is visible on the map.</Text>
+          {hub.phone ? (
+            <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${hub.phone}`)}>
+              <Icon name="phone" size={18} color={colors.primary} />
+              <Text style={styles.callText}>Call Distributor</Text>
+            </TouchableOpacity>
+          ) : null}
+        </Card>
+      )}
 
       <Card>
         <Text style={styles.section}>ETA</Text>
@@ -199,6 +283,21 @@ const makeStyles = (colors: AppColors) =>
       borderWidth: 3,
       borderColor: '#FFFFFF',
     },
+    hubMarker: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#2563EB',
+      borderWidth: 3,
+      borderColor: '#FFFFFF',
+    },
+    hubEmoji: { fontSize: 18 },
+    locationCard: { borderColor: colors.primary, borderWidth: 1 },
+    locationIcon: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryGlow },
+    locationBtn: { marginTop: 14, height: 48, borderRadius: 16, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    locationBtnText: { color: '#FFFFFF', fontWeight: '900', fontSize: 14 },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     iconBubble: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
     title: { fontSize: 20, fontWeight: '800', color: colors.text },

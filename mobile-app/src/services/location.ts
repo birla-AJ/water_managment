@@ -12,8 +12,8 @@ export interface DeviceLocation {
 export async function requestLocationPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
   const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, {
-    title: 'Live duty location',
-    message: 'WaterFlow needs your location while duty is ON so admin and active customers can track delivery.',
+    title: 'Delivery location',
+    message: 'WaterFlow uses your location to save the delivery point and calculate live ETA during active deliveries.',
     buttonPositive: 'Allow',
     buttonNegative: 'Cancel',
   });
@@ -23,7 +23,7 @@ export async function requestLocationPermission(): Promise<boolean> {
 export async function getCurrentLocation(): Promise<DeviceLocation> {
   const allowed = await requestLocationPermission();
   if (!allowed) {
-    Alert.alert('Location permission needed', 'Please allow location permission to start duty.', [
+    Alert.alert('Location permission needed', 'Please allow location permission to save your delivery point and show accurate tracking.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Open Settings', onPress: () => Linking.openSettings() },
     ]);

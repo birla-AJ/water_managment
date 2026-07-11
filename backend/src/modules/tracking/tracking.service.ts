@@ -141,7 +141,7 @@ class TrackingService {
     });
 
     const driverIds = drivers.map((d) => d.id);
-    const [locations, activeOrders, polygons, customers] = await Promise.all([
+    const [locations, activeOrders, polygons, customers, hubs] = await Promise.all([
       Promise.all(
         driverIds.map((driverId) =>
           prisma.driverLocation.findFirst({ where: { driverId }, orderBy: { recordedAt: 'desc' } })
@@ -188,6 +188,26 @@ class TrackingService {
         },
         orderBy: { name: 'asc' },
       }),
+      prisma.admin.findMany({
+        where: {
+          ...(distributorId ? { id: distributorId } : { role: 'ADMIN' }),
+          latitude: { not: null },
+          longitude: { not: null },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          mobile: true,
+          latitude: true,
+          longitude: true,
+          serviceRadiusKm: true,
+          serviceAreas: true,
+        },
+        orderBy: { name: 'asc' },
+      }),
     ]);
 
     const locationByDriver = new Map(locations.filter(Boolean).map((l) => [l!.driverId, l]));
@@ -231,6 +251,7 @@ class TrackingService {
       }),
       polygons,
       customers,
+      hubs,
     };
   }
 
@@ -250,6 +271,17 @@ class TrackingService {
             longitude: true,
             address: true,
             area: true,
+            distributor: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                mobile: true,
+                latitude: true,
+                longitude: true,
+                serviceRadiusKm: true,
+              },
+            },
             driver: { select: { id: true, name: true, mobile: true, isOnDuty: true, lastSeenAt: true, vehicle: { select: { number: true, type: true } } } },
           },
         },
@@ -293,6 +325,16 @@ class TrackingService {
         },
       },
       driver,
+      distributorHub: active.customer.distributor && active.customer.distributor.latitude != null && active.customer.distributor.longitude != null
+        ? {
+            id: active.customer.distributor.id,
+            name: active.customer.distributor.name,
+            phone: active.customer.distributor.phone ?? active.customer.distributor.mobile ?? null,
+            latitude: active.customer.distributor.latitude,
+            longitude: active.customer.distributor.longitude,
+            serviceRadiusKm: active.customer.distributor.serviceRadiusKm,
+          }
+        : null,
       latestLocation: location,
       distanceKm: googleEta?.distanceKm ?? (straightDistance != null ? Number(straightDistance.toFixed(2)) : null),
       etaMinutes: googleEta?.etaMinutes ?? (straightDistance != null ? etaMinutes(straightDistance) : null),

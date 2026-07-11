@@ -41,6 +41,7 @@ export default function CompleteProfileScreen() {
   const [distributors, setDistributors] = useState<DistributorSuggestion[]>([]);
   const [distributorId, setDistributorId] = useState<string | null>(null);
   const [finding, setFinding] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   // Prefill anything we already know (e.g. a returning user who skipped before).
   // The placeholder name "Customer 1234" is treated as blank so they type a real one.
@@ -48,7 +49,7 @@ export default function CompleteProfileScreen() {
     (async () => {
       try {
         const p = await meApi.profile();
-        setForm({
+        const nextForm = {
           name: /^Customer \d{4}$/.test(p?.name ?? '') ? '' : p?.name ?? '',
           email: p?.email ?? '',
           altMobile: p?.altMobile ?? '',
@@ -58,8 +59,20 @@ export default function CompleteProfileScreen() {
           pincode: p?.pincode ?? '',
           latitude: p?.latitude ?? null,
           longitude: p?.longitude ?? null,
-        });
+        };
+        setForm(nextForm);
         if (p?.distributorId) setDistributorId(p.distributorId);
+        if (nextForm.latitude == null || nextForm.longitude == null) {
+          setLocating(true);
+          try {
+            const loc = await getCurrentLocation();
+            setForm((f) => ({ ...f, latitude: loc.latitude, longitude: loc.longitude }));
+          } catch {
+            /* The manual location button remains available. */
+          } finally {
+            setLocating(false);
+          }
+        }
       } catch {
         /* start with a blank form */
       }
@@ -75,6 +88,8 @@ export default function CompleteProfileScreen() {
       const list = await distributorApi.suggest({
         area: form.area.trim() || undefined,
         pincode: /^\d{6}$/.test(form.pincode.trim()) ? form.pincode.trim() : undefined,
+        lat: form.latitude ?? undefined,
+        lng: form.longitude ?? undefined,
       });
       setDistributors(list);
       if (list.length === 1) setDistributorId(list[0].id);
@@ -88,11 +103,14 @@ export default function CompleteProfileScreen() {
 
   const captureLocation = async () => {
     try {
+      setLocating(true);
       const loc = await getCurrentLocation();
       setForm((f) => ({ ...f, latitude: loc.latitude, longitude: loc.longitude }));
       Alert.alert('Location saved', 'Your delivery GPS location was captured for live ETA tracking.');
     } catch (e) {
       Alert.alert('Location error', errorMessage(e));
+    } finally {
+      setLocating(false);
     }
   };
 
@@ -191,13 +209,13 @@ export default function CompleteProfileScreen() {
           <Field label="Area" value={form.area} onChange={set('area')} placeholder="Locality / sector" autoCapitalize="words" />
           <Field label="Pincode" value={form.pincode} onChange={set('pincode')} placeholder="6-digit pincode" keyboardType="number-pad" maxLength={6} />
           <Field label="Landmark" value={form.landmark} onChange={set('landmark')} placeholder="Nearby landmark" />
-          <TouchableOpacity style={styles.locationBtn} onPress={captureLocation} activeOpacity={0.8}>
-            <Icon name="crosshairs-gps" size={18} color={colors.primary} />
+          <TouchableOpacity style={styles.locationBtn} onPress={captureLocation} activeOpacity={0.8} disabled={locating}>
+            {locating ? <ActivityIndicator color={colors.primary} /> : <Icon name="crosshairs-gps" size={18} color={colors.primary} />}
             <Text style={styles.locationBtnText}>
-              {form.latitude && form.longitude ? 'Update delivery GPS location' : 'Use current delivery location'}
+              {locating ? 'Capturing delivery location...' : form.latitude != null && form.longitude != null ? 'Update delivery GPS location' : 'Use current delivery location'}
             </Text>
           </TouchableOpacity>
-          {form.latitude && form.longitude ? (
+          {form.latitude != null && form.longitude != null ? (
             <Text style={styles.locationMeta}>
               Saved: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
             </Text>

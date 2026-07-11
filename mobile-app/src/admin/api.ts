@@ -116,5 +116,6 @@ export const adminSettingsApi = {
 
 export const adminAiApi = {
   suggestions: (): Promise<string[]> => api.get('/ai/suggestions').then((r) => r.data.data),
+  usage: () => api.get('/ai/usage').then((r) => r.data.data),
   chat: (message: string, intent?: string) => api.post('/ai/chat', { message, intent }).then((r) => r.data.data),
 };

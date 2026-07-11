@@ -19,8 +19,10 @@ export interface AiChatResponse {
   intent: string;
   provider: 'openai' | 'local';
   remainingQuestions?: number;
+  dailyLimit?: number;
+  resetAt?: string;
+  limitExceeded?: boolean;
   cards?: Array<{ label: string; value: string | number; tone?: 'success' | 'warning' | 'danger' | 'info' }>;
   table?: AiTable;
   chart?: AiChart;
 }
-

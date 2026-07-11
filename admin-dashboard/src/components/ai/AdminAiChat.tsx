@@ -23,7 +23,7 @@ import SendIcon from '@mui/icons-material/Send';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { aiApi } from '../../api/endpoints';
-import type { AiChatResponse } from '../../types';
+import type { AiChatResponse, AiUsage } from '../../types';
 import { BRAND_GRADIENT } from '../../theme/theme';
 
 interface ChatMessage {
@@ -33,6 +33,21 @@ interface ChatMessage {
 }
 
 const COLORS = ['#0E8C84', '#DABD71', '#2563EB', '#2E7D32', '#CA8A04', '#D32F2F'];
+
+function formatCountdown(resetAt?: string) {
+  if (!resetAt) return '';
+  const diff = new Date(resetAt).getTime() - Date.now();
+  if (diff <= 0) return '00:00:00';
+  const totalSeconds = Math.floor(diff / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((n) => String(n).padStart(2, '0')).join(':');
+}
+
+function limitPayload(err: any) {
+  return err?.response?.data?.errors?.[0] as Partial<AiUsage> | undefined;
+}
 
 function MiniChart({ data }: { data: AiChatResponse }) {
   if (!data.chart || data.chart.data.length === 0) return null;
@@ -102,28 +117,62 @@ function DataPreview({ data }: { data: AiChatResponse }) {
 export default function AdminAiChat() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [tick, setTick] = useState(0);
+  const [usageInfo, setUsageInfo] = useState<Partial<AiUsage> | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', text: 'Ask about earnings, drivers, payments, billing, inventory, areas, or customer growth.' },
   ]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const { data: suggestions } = useQuery({ queryKey: ['ai-suggestions'], queryFn: aiApi.suggestions, enabled: open });
+  const { data: usage } = useQuery({ queryKey: ['ai-usage'], queryFn: aiApi.usage, enabled: open });
   const ask = useMutation({
     mutationFn: ({ message, intent }: { message: string; intent?: string }) => aiApi.chat(message, intent),
-    onSuccess: (data) => setMessages((prev) => [...prev, { role: 'assistant', text: data.answer, data }]),
-    onError: (err: any) => setMessages((prev) => [...prev, { role: 'assistant', text: err?.response?.data?.message ?? 'AI chat failed. Please try again.' }]),
+    onSuccess: (data) => {
+      if (data.remainingQuestions !== undefined) {
+        setUsageInfo((prev) => ({
+          ...prev,
+          remaining: data.remainingQuestions,
+          remainingQuestions: data.remainingQuestions,
+          limit: data.dailyLimit ?? prev?.limit,
+          dailyLimit: data.dailyLimit ?? prev?.dailyLimit,
+          resetAt: data.resetAt ?? prev?.resetAt,
+          limitExceeded: data.limitExceeded,
+        }));
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', text: data.answer, data }]);
+    },
+    onError: (err: any) => {
+      const payload = limitPayload(err);
+      if (payload?.resetAt) setUsageInfo((prev) => ({ ...prev, ...payload, remaining: 0, remainingQuestions: 0, limitExceeded: true }));
+      const timer = payload?.resetAt ? ` Reset in ${formatCountdown(payload.resetAt)}.` : '';
+      setMessages((prev) => [...prev, { role: 'assistant', text: `${err?.response?.data?.message ?? 'AI chat failed. Please try again.'}${timer}` }]);
+    },
   });
+
+  useEffect(() => {
+    if (usage) setUsageInfo(usage);
+  }, [usage]);
+
+  useEffect(() => {
+    if (!open || !usageInfo?.resetAt) return undefined;
+    const id = window.setInterval(() => setTick((v) => v + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [open, usageInfo?.resetAt]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, ask.isPending, open]);
 
-  const canSend = input.trim().length > 1 && !ask.isPending;
+  const remaining = usageInfo?.remainingQuestions ?? usageInfo?.remaining;
+  const resetTimer = useMemo(() => formatCountdown(usageInfo?.resetAt), [usageInfo?.resetAt, tick]);
+  const limitExceeded = remaining === 0 || usageInfo?.limitExceeded;
+  const canSend = input.trim().length > 1 && !ask.isPending && !limitExceeded;
   const quick = useMemo(() => suggestions ?? ['Monthly earning', 'Daily performance', 'Pending payments', 'Driver performance', 'Inventory status'], [suggestions]);
 
   const send = (text = input, intent?: string) => {
     const message = text.trim();
-    if (!message || ask.isPending) return;
+    if (!message || ask.isPending || limitExceeded) return;
     setMessages((prev) => [...prev, { role: 'user', text: message }]);
     setInput('');
     ask.mutate({ message, intent });
@@ -166,6 +215,13 @@ export default function AdminAiChat() {
               <Typography fontWeight={900}>WaterFlow AI</Typography>
               <Typography variant="caption">Business reports in text, table and chart</Typography>
             </Box>
+            {remaining !== undefined && (
+              <Chip
+                size="small"
+                label={limitExceeded ? `Reset ${resetTimer}` : `${remaining}/${usageInfo?.dailyLimit ?? usageInfo?.limit ?? 3} left`}
+                sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 800 }}
+              />
+            )}
             <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: '#fff' }}><CloseIcon fontSize="small" /></IconButton>
           </Box>
 
@@ -188,6 +244,7 @@ export default function AdminAiChat() {
                 label={q}
                 variant="outlined"
                 clickable
+                disabled={ask.isPending || limitExceeded}
                 onClick={() => send(q, q)}
                 sx={{
                   flex: '0 0 auto',
@@ -237,9 +294,10 @@ export default function AdminAiChat() {
             <TextField
               size="small"
               fullWidth
-              placeholder="Ask: monthly report, pending payments..."
+              placeholder={limitExceeded ? `Daily AI limit exceeded. Reset in ${resetTimer}` : 'Ask: monthly report, pending payments...'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              disabled={limitExceeded}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (canSend) send(); } }}
             />
             <IconButton color="primary" disabled={!canSend} onClick={() => send()}><SendIcon /></IconButton>

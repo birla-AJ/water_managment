@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Animated, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { sendPhoneOtp } from '../services/phoneAuth';
@@ -44,34 +44,42 @@ export default function OtpLoginScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
-      <WaterDrops count={14} />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <WaterDrops count={14} color={colors.primary} />
 
-      <View style={styles.header}>
-        <GradientView style={styles.logoBadge}>
-          <Icon name="water" size={56} color="#FFFFFF" />
-        </GradientView>
-        <Text style={styles.brand}>WaterFlow</Text>
-        <Text style={styles.tagline}>Pure water, delivered.</Text>
-      </View>
-
-      <Animated.View style={[styles.sheet, { opacity: fade, transform: [{ translateY: slide }] }]}>
-        <Text style={styles.title}>Login</Text>
-        <Text style={styles.subtitle}>We'll send an OTP to your mobile number</Text>
-        <View style={styles.inputRow}>
-          <Text style={styles.prefix}>+91</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mobile number"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="number-pad"
-            maxLength={10}
-            value={mobile}
-            onChangeText={setMobile}
-          />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <GradientView style={styles.logoBadge}>
+            <Icon name="water" size={56} color="#FFFFFF" />
+          </GradientView>
+          <Text style={styles.brand}>WaterFlow</Text>
+          <Text style={styles.tagline}>Pure water, delivered.</Text>
         </View>
-        <PrimaryButton title="Send OTP" onPress={sendOtp} loading={loading} />
-      </Animated.View>
+
+        <Animated.View style={[styles.sheet, { opacity: fade, transform: [{ translateY: slide }] }]}>
+          <Text style={styles.title}>Login</Text>
+          <Text style={styles.subtitle}>We'll send an OTP to your mobile number</Text>
+          <View style={styles.inputRow}>
+            <Text style={styles.prefix}>+91</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Mobile number"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              maxLength={10}
+              value={mobile}
+              onChangeText={(value) => setMobile(value.replace(/\D/g, '').slice(0, 10))}
+              returnKeyType="done"
+              blurOnSubmit
+            />
+          </View>
+          <PrimaryButton title="Send OTP" onPress={sendOtp} loading={loading} />
+        </Animated.View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -79,7 +87,8 @@ export default function OtpLoginScreen({ navigation }: Props) {
 const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
-    header: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    scrollContent: { flexGrow: 1, justifyContent: 'space-between' },
+    header: { flex: 1, minHeight: 430, alignItems: 'center', justifyContent: 'center', paddingTop: 36 },
     logoBadge: {
       width: 104, height: 104, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
       backgroundColor: colors.primary,

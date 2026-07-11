@@ -148,9 +148,22 @@ export interface AiChatResponse {
   intent: string;
   provider: 'openai' | 'local';
   remainingQuestions?: number;
+  dailyLimit?: number;
+  resetAt?: string;
+  limitExceeded?: boolean;
   cards?: Array<{ label: string; value: string | number; tone?: 'success' | 'warning' | 'danger' | 'info' }>;
   table?: AiTable;
   chart?: AiChart;
+}
+
+export interface AiUsage {
+  used: number;
+  limit: number;
+  remaining: number;
+  remainingQuestions: number;
+  dailyLimit: number;
+  resetAt: string;
+  limitExceeded: boolean;
 }
 
 export interface LiveTrackingDriver {
@@ -188,6 +201,17 @@ export interface LiveTrackingSnapshot {
     status: string;
     allocatedCampers: number;
     driver?: { id: string; name: string } | null;
+  }>;
+  hubs?: Array<{
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    mobile?: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    serviceRadiusKm?: number | null;
+    serviceAreas?: string[];
   }>;
 }
 

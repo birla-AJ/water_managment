@@ -15,7 +15,10 @@ export const adminSuggestions = asyncHandler(async (_req: Request, res: Response
   ok(res, aiService.adminSuggestions, 'AI suggestions');
 });
 
+export const adminUsage = asyncHandler(async (req: Request, res: Response) => {
+  ok(res, await aiService.adminUsage(req.user!.sub), 'AI usage');
+});
+
 export const customerUsage = asyncHandler(async (req: Request, res: Response) => {
   ok(res, await aiService.customerUsage(req.user!.sub), 'AI usage');
 });
-

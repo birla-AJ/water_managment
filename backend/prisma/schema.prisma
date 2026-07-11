@@ -346,8 +346,7 @@ model Customer {
   @@map("customers")
 }
 
-// Daily AI-chat usage counter for customer accounts. Admin chat is intentionally
-// not capped here; customer self-service stays limited to avoid surprise AI cost.
+// Legacy customer AI-chat usage counter kept for existing deployments.
 model AiChatUsage {
   id         String   @id @default(uuid())
   customerId String
@@ -362,6 +361,23 @@ model AiChatUsage {
   @@unique([customerId, date])
   @@index([date])
   @@map("ai_chat_usages")
+}
+
+// Daily AI-chat usage counter for every account type that can use WaterFlow AI.
+model AiDailyUsage {
+  id          String   @id @default(uuid())
+  principal   String
+  principalId String
+  date        DateTime @db.Date
+  count       Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([principal, principalId, date])
+  @@index([principal, principalId])
+  @@index([date])
+  @@map("ai_daily_usages")
 }
 
 // Specific dates a customer marked as unavailable to receive water.

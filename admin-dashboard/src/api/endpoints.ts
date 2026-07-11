@@ -2,6 +2,7 @@ import { api } from './client';
 import type {
   Admin,
   AiChatResponse,
+  AiUsage,
   ApiResponse,
   Customer,
   CustomerSchedule,
@@ -155,6 +156,7 @@ export const trackingApi = {
 // ---- AI Chat ----
 export const aiApi = {
   suggestions: () => api.get<ApiResponse<string[]>>('/ai/suggestions').then((r) => r.data.data),
+  usage: () => api.get<ApiResponse<AiUsage>>('/ai/usage').then((r) => r.data.data),
   chat: (message: string, intent?: string) =>
     api.post<ApiResponse<AiChatResponse>>('/ai/chat', { message, intent }).then((r) => r.data.data),
 };

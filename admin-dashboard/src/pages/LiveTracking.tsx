@@ -18,6 +18,7 @@ import type { Admin, LiveTrackingDriver, ServiceAreaPolygon } from '../types';
 
 const DEFAULT_CENTER = { lat: 22.7196, lng: 75.8577 };
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? 'AIzaSyBqtNNRlrJDPr392gapSx7VPk3BkTVjDrM';
+let googleMapsPromise: Promise<any> | null = null;
 
 declare global {
   interface Window {
@@ -28,18 +29,38 @@ declare global {
 
 function loadGoogleMaps(): Promise<any> {
   if (window.google?.maps?.Map) return Promise.resolve(window.google);
-  return new Promise((resolve, reject) => {
+  if (googleMapsPromise) return googleMapsPromise;
+  googleMapsPromise = new Promise((resolve, reject) => {
     const existing = document.getElementById('google-maps-js') as HTMLScriptElement | null;
-    window.__wfGoogleMapsReady = () => resolve(window.google);
-    if (existing) return;
+    const resolveIfReady = () => {
+      if (window.google?.maps?.Map) {
+        resolve(window.google);
+        return true;
+      }
+      return false;
+    };
+    window.__wfGoogleMapsReady = () => resolveIfReady();
+    if (existing) {
+      if (resolveIfReady()) return;
+      existing.addEventListener('load', resolveIfReady, { once: true });
+      existing.addEventListener('error', (event) => {
+        googleMapsPromise = null;
+        reject(event);
+      }, { once: true });
+      return;
+    }
     const script = document.createElement('script');
     script.id = 'google-maps-js';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_KEY)}&libraries=drawing,geometry&callback=__wfGoogleMapsReady`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_KEY)}&libraries=drawing,geometry&loading=async&callback=__wfGoogleMapsReady`;
     script.async = true;
     script.defer = true;
-    script.onerror = reject;
+    script.onerror = (event) => {
+      googleMapsPromise = null;
+      reject(event);
+    };
     document.body.appendChild(script);
   });
+  return googleMapsPromise;
 }
 
 function polygonPath(polygon: ServiceAreaPolygon) {
@@ -62,6 +83,32 @@ function markerSvg(color: string, label = '') {
   `)}`;
 }
 
+function vehicleMarkerSvg(color: string, emoji = '🚚') {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="46" height="54" viewBox="0 0 46 54">
+      <filter id="shadow" x="-30%" y="-20%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#123" flood-opacity="0.28"/>
+      </filter>
+      <path d="M23 51C17 42 7 35 7 22C7 13.2 14.2 6 23 6s16 7.2 16 16c0 13-10 20-16 29z" fill="${color}" filter="url(#shadow)"/>
+      <circle cx="23" cy="22" r="15" fill="white" opacity="0.96"/>
+      <text x="23" y="29" text-anchor="middle" font-size="20" font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif">${emoji}</text>
+    </svg>
+  `)}`;
+}
+
+function emojiPinSvg(color: string, emoji: string) {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="52" viewBox="0 0 44 52">
+      <filter id="shadow" x="-30%" y="-20%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#123" flood-opacity="0.25"/>
+      </filter>
+      <path d="M22 49C16.2 40.4 7 33.5 7 21.5C7 13.2 13.7 6.5 22 6.5s15 6.7 15 15C37 33.5 27.8 40.4 22 49z" fill="${color}" filter="url(#shadow)"/>
+      <circle cx="22" cy="21.5" r="13.5" fill="white"/>
+      <text x="22" y="27.5" text-anchor="middle" font-size="18" font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif">${emoji}</text>
+    </svg>
+  `)}`;
+}
+
 export default function LiveTracking() {
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -72,6 +119,7 @@ export default function LiveTracking() {
   const mapRef = useRef<any>(null);
   const drawingRef = useRef<any>(null);
   const overlaysRef = useRef<any[]>([]);
+  const draftOverlaysRef = useRef<any[]>([]);
   const draftOverlayRef = useRef<any>(null);
   const [mapsReady, setMapsReady] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
@@ -80,6 +128,17 @@ export default function LiveTracking() {
   const [polygonColor, setPolygonColor] = useState('#0E8C84');
   const [polygonAdminId, setPolygonAdminId] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<ServiceAreaPolygon | null>(null);
+
+  const removeDraftPoint = (index: number) => {
+    setDraftPath((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const clearDraftVisuals = () => {
+    draftOverlayRef.current?.setMap(null);
+    draftOverlayRef.current = null;
+    draftOverlaysRef.current.forEach((overlay) => overlay.setMap(null));
+    draftOverlaysRef.current = [];
+  };
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['live-tracking'],
@@ -119,8 +178,7 @@ export default function LiveTracking() {
       setDraftPath([]);
       setDrawMode(false);
       setPolygonName('');
-      draftOverlayRef.current?.setMap(null);
-      draftOverlayRef.current = null;
+      clearDraftVisuals();
       qc.invalidateQueries({ queryKey: ['live-tracking'] });
     },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
@@ -149,42 +207,110 @@ export default function LiveTracking() {
           fullscreenControl: true,
           clickableIcons: false,
         });
-        drawingRef.current = new google.maps.drawing.DrawingManager({
-          drawingMode: null,
-          drawingControl: false,
-          polygonOptions: {
-            fillColor: polygonColor,
-            fillOpacity: 0.16,
-            strokeColor: polygonColor,
-            strokeWeight: 3,
-            clickable: true,
-            editable: true,
-            zIndex: 10,
-          },
-        });
-        drawingRef.current.setMap(mapRef.current);
-        google.maps.event.addListener(drawingRef.current, 'polygoncomplete', (poly: any) => {
-          draftOverlayRef.current?.setMap(null);
-          draftOverlayRef.current = poly;
-          const path = poly.getPath().getArray().map((p: any) => ({ lat: p.lat(), lng: p.lng() }));
-          setDraftPath(path);
-          drawingRef.current.setDrawingMode(null);
-        });
+        if (google.maps.drawing?.DrawingManager) {
+          drawingRef.current = new google.maps.drawing.DrawingManager({
+            drawingMode: null,
+            drawingControl: false,
+            polygonOptions: {
+              fillColor: polygonColor,
+              fillOpacity: 0.16,
+              strokeColor: polygonColor,
+              strokeWeight: 3,
+              clickable: true,
+              editable: true,
+              zIndex: 10,
+            },
+          });
+          drawingRef.current.setMap(mapRef.current);
+          google.maps.event.addListener(drawingRef.current, 'polygoncomplete', (poly: any) => {
+            clearDraftVisuals();
+            draftOverlayRef.current = poly;
+            const path = poly.getPath().getArray().map((p: any) => ({ lat: p.lat(), lng: p.lng() }));
+            setDraftPath(path);
+            drawingRef.current?.setDrawingMode(null);
+          });
+        }
         setMapsReady(true);
       })
-      .catch(() => enqueueSnackbar('Could not load Google Maps', { variant: 'error' }));
+      .catch((error) => {
+        if (window.google?.maps?.Map) {
+          setMapsReady(true);
+          return;
+        }
+        console.error('[LiveTracking] Google Maps load failed', error);
+        enqueueSnackbar('Could not load Google Maps. Check API key, domain restriction and Maps JavaScript API.', { variant: 'error' });
+      });
     return () => { mounted = false; };
   }, [enqueueSnackbar, polygonColor]);
 
   useEffect(() => {
     if (!mapsReady || !window.google?.maps || !drawingRef.current) return;
-    drawingRef.current.setDrawingMode(drawMode ? window.google.maps.drawing.OverlayType.POLYGON : null);
+    drawingRef.current.setDrawingMode(null);
   }, [drawMode, mapsReady]);
 
   useEffect(() => {
     if (!draftOverlayRef.current) return;
     draftOverlayRef.current.setOptions({ fillColor: polygonColor, strokeColor: polygonColor });
   }, [polygonColor]);
+
+  useEffect(() => {
+    if (!mapsReady || !window.google?.maps || !mapRef.current) return undefined;
+    const google = window.google;
+    mapRef.current.setOptions({ draggableCursor: drawMode ? 'crosshair' : null });
+    if (!drawMode) return undefined;
+    const listener = mapRef.current.addListener('click', (event: any) => {
+      if (!event.latLng) return;
+      setDraftPath((prev) => [...prev, { lat: event.latLng.lat(), lng: event.latLng.lng() }]);
+    });
+    return () => {
+      listener.remove();
+      mapRef.current?.setOptions({ draggableCursor: null });
+    };
+  }, [drawMode, mapsReady]);
+
+  useEffect(() => {
+    if (!mapsReady || !window.google?.maps || !mapRef.current) return;
+    const google = window.google;
+    draftOverlaysRef.current.forEach((overlay) => overlay.setMap(null));
+    draftOverlaysRef.current = [];
+    if (draftPath.length === 0) return;
+
+    draftPath.forEach((point, idx) => {
+      const marker = new google.maps.Marker({
+        position: point,
+        map: mapRef.current,
+        label: { text: String(idx + 1), color: '#fff', fontWeight: '800' },
+        icon: { url: markerSvg(polygonColor), scaledSize: new google.maps.Size(24, 24) },
+        zIndex: 1000,
+      });
+      marker.addListener('click', () => removeDraftPoint(idx));
+      draftOverlaysRef.current.push(marker);
+    });
+
+    const line = new google.maps.Polyline({
+      path: draftPath,
+      strokeColor: polygonColor,
+      strokeOpacity: 0.95,
+      strokeWeight: 3,
+      map: mapRef.current,
+      zIndex: 999,
+    });
+    draftOverlaysRef.current.push(line);
+
+    if (draftPath.length >= 3) {
+      const polygon = new google.maps.Polygon({
+        paths: draftPath,
+        strokeColor: polygonColor,
+        strokeWeight: 3,
+        fillColor: polygonColor,
+        fillOpacity: 0.16,
+        clickable: false,
+        map: mapRef.current,
+        zIndex: 998,
+      });
+      draftOverlaysRef.current.push(polygon);
+    }
+  }, [draftPath, mapsReady, polygonColor]);
 
   useEffect(() => {
     if (!mapsReady || !window.google?.maps || !mapRef.current || !data) return;
@@ -227,9 +353,25 @@ export default function LiveTracking() {
         position,
         map: mapRef.current,
         title: customer.name,
-        icon: { url: markerSvg('#D32F2F'), scaledSize: new google.maps.Size(24, 24) },
+        icon: { url: emojiPinSvg('#D32F2F', '📱'), scaledSize: new google.maps.Size(38, 45), anchor: new google.maps.Point(19, 45) },
       });
       addInfo(marker, `<b>${customer.name}</b><br/>${customer.mobile}<br/>${customer.area ?? ''}<br/>Driver: ${customer.driver?.name ?? 'Not assigned'}`);
+      overlaysRef.current.push(marker);
+      bounds.extend(position);
+      hasBounds = true;
+    });
+
+    (data.hubs ?? []).forEach((hub) => {
+      if (hub.latitude == null || hub.longitude == null) return;
+      const position = { lat: hub.latitude, lng: hub.longitude };
+      const marker = new google.maps.Marker({
+        position,
+        map: mapRef.current,
+        title: hub.name,
+        icon: { url: emojiPinSvg('#2563EB', '🏭'), scaledSize: new google.maps.Size(42, 50), anchor: new google.maps.Point(21, 50) },
+        zIndex: 800,
+      });
+      addInfo(marker, `<b>${hub.name}</b><br/>Distributor hub / warehouse<br/>${hub.phone ?? hub.mobile ?? hub.email ?? ''}`);
       overlaysRef.current.push(marker);
       bounds.extend(position);
       hasBounds = true;
@@ -244,7 +386,7 @@ export default function LiveTracking() {
         position,
         map: mapRef.current,
         title: driver.name,
-        icon: { url: markerSvg(color, 'D'), scaledSize: new google.maps.Size(30, 30) },
+        icon: { url: vehicleMarkerSvg(color, driver.vehicle?.type?.toLowerCase().includes('bike') ? '🛵' : '🚚'), scaledSize: new google.maps.Size(42, 49), anchor: new google.maps.Point(21, 49) },
       });
       addInfo(marker, `<b>${driver.name}</b><br/>${driver.vehicle?.number ?? 'No vehicle'}<br/>${driver.isOnDuty ? 'On duty' : 'Off duty'}<br/>Last ping: ${dayjs(loc.recordedAt).format('HH:mm:ss')}`);
       overlaysRef.current.push(marker);
@@ -271,14 +413,14 @@ export default function LiveTracking() {
 
   const clearDraft = () => {
     setDraftPath([]);
-    draftOverlayRef.current?.setMap(null);
-    draftOverlayRef.current = null;
+    clearDraftVisuals();
   };
 
   const onDuty = data?.drivers.filter((d) => d.isOnDuty).length ?? 0;
   const fresh = data?.drivers.filter((d) => d.isLocationFresh).length ?? 0;
   const activeDeliveries = data?.drivers.reduce((sum, d) => sum + d.activeDeliveries.length, 0) ?? 0;
   const customerPins = data?.customers?.length ?? 0;
+  const hubPins = data?.hubs?.length ?? 0;
 
   return (
     <Box>
@@ -315,13 +457,14 @@ export default function LiveTracking() {
                 <Chip label={`${fresh} live`} color="info" />
                 <Chip label={`${activeDeliveries} active deliveries`} />
                 <Chip label={`${customerPins} customer pins`} color="error" variant="outlined" />
+                <Chip label={`${hubPins} hub pins`} color="primary" variant="outlined" />
               </Stack>
             </Card>
 
             {drawMode && (
               <Card sx={{ p: 2 }}>
                 <Typography variant="subtitle1" fontWeight={800}>New Service Polygon</Typography>
-                <Typography variant="caption" color="text.secondary">Click around the map boundary. Double-click to finish, then drag points to adjust.</Typography>
+                <Typography variant="caption" color="text.secondary">Click map boundary points in order. Click any numbered point below or on the map to delete it.</Typography>
                 <Stack spacing={1.25} sx={{ mt: 1.5 }}>
                   {isSuperAdmin && (
                     <TextField select size="small" label="Distributor" value={polygonAdminId} onChange={(e) => setPolygonAdminId(e.target.value)}>
@@ -332,11 +475,27 @@ export default function LiveTracking() {
                   <TextField size="small" label="Color" value={polygonColor} onChange={(e) => setPolygonColor(e.target.value)} />
                   <Stack direction="row" spacing={1}>
                     <Button variant="outlined" onClick={clearDraft}>Clear</Button>
+                    <Button variant="outlined" color="warning" onClick={() => setDraftPath((prev) => prev.slice(0, -1))} disabled={draftPath.length === 0}>Undo Last</Button>
                     <Button variant="contained" startIcon={<SaveIcon />} onClick={() => createPolygon.mutate()} disabled={createPolygon.isPending || draftPath.length < 3}>
                       Save
                     </Button>
                   </Stack>
                   <Typography variant="caption" color="text.secondary">{draftPath.length} point(s) selected</Typography>
+                  {draftPath.length > 0 && (
+                    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                      {draftPath.map((point, idx) => (
+                        <Chip
+                          key={`${point.lat}-${point.lng}-${idx}`}
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          label={`Delete ${idx + 1}`}
+                          onDelete={() => removeDraftPoint(idx)}
+                          onClick={() => removeDraftPoint(idx)}
+                        />
+                      ))}
+                    </Stack>
+                  )}
                 </Stack>
               </Card>
             )}
@@ -378,7 +537,7 @@ export default function LiveTracking() {
       </Grid>
 
       <Alert severity="info" sx={{ mt: 2 }}>
-        Google Maps is active. Red dots are customer delivery locations; driver markers show live pings.
+        Google Maps is active. Phone markers are customer locations, truck markers are drivers, and factory markers are distributor hubs.
       </Alert>
 
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>

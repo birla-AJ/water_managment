@@ -21,6 +21,7 @@ type AdminIntent =
   | 'overview';
 
 type CustomerIntent = 'monthly_deliveries' | 'billing_due' | 'payment_history' | 'active_delivery' | 'orders' | 'account_summary';
+type AiPrincipal = 'ADMIN' | 'CUSTOMER';
 
 const money = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const number = (v: unknown) => Number(v ?? 0);
@@ -72,54 +73,98 @@ class AiService {
   ];
 
   async askAdmin(user: JwtPayload, message: string, explicitIntent?: string): Promise<AiChatResponse> {
+    const usage = await this.consumeQuestion('ADMIN', user.sub);
     const language = detectLanguage(message);
     const intent = adminIntent(message, explicitIntent);
     const distributorId = scopedDistributorId(user);
     const response = await this.buildAdminResponse(intent, language, user, distributorId);
-    return this.polish(response, message, language, 'ADMIN');
+    const polished = await this.polish(response, message, language, 'ADMIN');
+    return { ...polished, ...usage };
   }
 
   async askCustomer(customerId: string, message: string, explicitIntent?: string): Promise<AiChatResponse> {
-    const remainingQuestions = await this.consumeCustomerQuestion(customerId);
+    const usage = await this.consumeQuestion('CUSTOMER', customerId);
     const language = detectLanguage(message);
     const intent = customerIntent(message, explicitIntent);
     const response = await this.buildCustomerResponse(intent, language, customerId);
     const polished = await this.polish(response, message, language, 'CUSTOMER');
-    return { ...polished, remainingQuestions };
+    return { ...polished, ...usage };
+  }
+
+  async adminUsage(adminId: string) {
+    return this.getUsage('ADMIN', adminId);
   }
 
   async customerUsage(customerId: string) {
-    const date = dayjs().startOf('day').toDate();
+    return this.getUsage('CUSTOMER', customerId);
+  }
+
+  private usageWindow() {
+    const now = dayjs();
+    return {
+      date: now.startOf('day').toDate(),
+      resetAt: now.add(1, 'day').startOf('day').toDate(),
+    };
+  }
+
+  private async getUsage(principal: AiPrincipal, principalId: string) {
+    const { date, resetAt } = this.usageWindow();
     try {
-      const usage = await prisma.aiChatUsage.findUnique({ where: { customerId_date: { customerId, date } } });
-      return { used: usage?.count ?? 0, limit: env.ai.customerDailyLimit, remaining: Math.max(0, env.ai.customerDailyLimit - (usage?.count ?? 0)) };
+      const usage = await prisma.aiDailyUsage.findUnique({ where: { principal_principalId_date: { principal, principalId, date } } });
+      const used = usage?.count ?? 0;
+      const limit = env.ai.customerDailyLimit;
+      return {
+        used,
+        limit,
+        remaining: Math.max(0, limit - used),
+        remainingQuestions: Math.max(0, limit - used),
+        dailyLimit: limit,
+        resetAt: resetAt.toISOString(),
+        limitExceeded: used >= limit,
+      };
     } catch (err) {
       if (this.isMissingAiUsageTable(err)) {
-        logger.warn('[AI chat] ai_chat_usages table is missing; customer limit temporarily not enforced.');
-        return { used: 0, limit: env.ai.customerDailyLimit, remaining: env.ai.customerDailyLimit, setupPending: true };
+        logger.error('[AI chat] ai_daily_usages table is missing. Run prisma/ai-daily-limit-feature.sql before using AI chat.');
+        throw ApiError.internal('AI daily limit setup pending. Please run backend migration.');
       }
       throw err;
     }
   }
 
-  private async consumeCustomerQuestion(customerId: string) {
-    const date = dayjs().startOf('day').toDate();
+  private async consumeQuestion(principal: AiPrincipal, principalId: string) {
+    const { date, resetAt } = this.usageWindow();
+    const limit = env.ai.customerDailyLimit;
     try {
-      const usage = await prisma.aiChatUsage.findUnique({ where: { customerId_date: { customerId, date } } });
-      if ((usage?.count ?? 0) >= env.ai.customerDailyLimit) {
-        throw new ApiError(429, `Daily AI chat limit reached. You can ask ${env.ai.customerDailyLimit} questions per day.`);
+      const usage = await prisma.aiDailyUsage.findUnique({ where: { principal_principalId_date: { principal, principalId, date } } });
+      if ((usage?.count ?? 0) >= limit) {
+        throw new ApiError(429, 'Daily AI chat limit exceeded. Please wait for tomorrow.', [{
+          remainingQuestions: 0,
+          dailyLimit: limit,
+          resetAt: resetAt.toISOString(),
+          limitExceeded: true,
+        }]);
       }
       if (usage) {
-        const updated = await prisma.aiChatUsage.update({ where: { id: usage.id }, data: { count: { increment: 1 } } });
-        return Math.max(0, env.ai.customerDailyLimit - updated.count);
+        const updated = await prisma.aiDailyUsage.update({ where: { id: usage.id }, data: { count: { increment: 1 } } });
+        return {
+          remainingQuestions: Math.max(0, limit - updated.count),
+          dailyLimit: limit,
+          resetAt: resetAt.toISOString(),
+          limitExceeded: updated.count >= limit,
+        };
       }
-      await prisma.aiChatUsage.create({ data: { customerId, date, count: 1 } });
-      return Math.max(0, env.ai.customerDailyLimit - 1);
+      await prisma.aiDailyUsage.create({ data: { principal, principalId, date, count: 1 } });
+      return {
+        remainingQuestions: Math.max(0, limit - 1),
+        dailyLimit: limit,
+        resetAt: resetAt.toISOString(),
+        limitExceeded: limit <= 1,
+      };
     } catch (err) {
       if (err instanceof ApiError) throw err;
       if (this.isMissingAiUsageTable(err)) {
-        logger.warn('[AI chat] ai_chat_usages table is missing; allowing customer AI question without counting usage.');
-        return undefined;
+        logger.error('[AI chat] ai_daily_usages table is missing. Run prisma/ai-daily-limit-feature.sql before using AI chat.');
+        throw ApiError.internal('AI daily limit setup pending. Please run backend migration.');
       }
       throw err;
     }

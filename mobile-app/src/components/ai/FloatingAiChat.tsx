@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -26,6 +26,9 @@ interface AiChatResponse {
   answer: string;
   provider: 'openai' | 'local';
   remainingQuestions?: number;
+  dailyLimit?: number;
+  resetAt?: string;
+  limitExceeded?: boolean;
   cards?: Array<{ label: string; value: string | number }>;
   table?: { title: string; columns: string[]; rows: Array<Record<string, string | number>> };
   chart?: { title: string; xKey: string; yKey: string; data: Array<Record<string, string | number>> };
@@ -37,8 +40,33 @@ interface ChatMessage {
   data?: AiChatResponse;
 }
 
+interface AiUsage {
+  used?: number;
+  limit?: number;
+  remaining?: number;
+  remainingQuestions?: number;
+  dailyLimit?: number;
+  resetAt?: string;
+  limitExceeded?: boolean;
+}
+
 const adminPrompts = ['Monthly earning', 'Daily performance', 'Pending payments', 'Driver performance', 'Inventory status'];
 const customerPrompts = ['This month campers', 'My bill due', 'Payment history', 'Track delivery'];
+
+function formatCountdown(resetAt?: string) {
+  if (!resetAt) return '';
+  const diff = new Date(resetAt).getTime() - Date.now();
+  if (diff <= 0) return '00:00:00';
+  const totalSeconds = Math.floor(diff / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((n) => String(n).padStart(2, '0')).join(':');
+}
+
+function usagePayload(error: unknown): AiUsage | undefined {
+  return (error as any)?.response?.data?.errors?.[0];
+}
 
 function ResultDetails({ data, colors }: { data: AiChatResponse; colors: AppColors }) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -109,27 +137,71 @@ export default function FloatingAiChat() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [usageInfo, setUsageInfo] = useState<AiUsage | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', text: isAdmin ? 'Ask me for reports, performance, inventory, billing or pending payments.' : 'Ask me about your deliveries, bill, payments or active delivery.' },
   ]);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
+  useEffect(() => {
+    if (!open || !visible) return;
+    let cancelled = false;
+    const loadUsage = async () => {
+      try {
+        const data: AiUsage = isAdmin ? await adminAiApi.usage() : await customerAiApi.usage();
+        if (!cancelled) setUsageInfo(data);
+      } catch {
+        if (!cancelled) setUsageInfo(null);
+      }
+    };
+    loadUsage();
+    return () => { cancelled = true; };
+  }, [isAdmin, open, visible]);
+
+  useEffect(() => {
+    if (!open || !usageInfo?.resetAt) return undefined;
+    const id = setInterval(() => setTick((v) => v + 1), 1000);
+    return () => clearInterval(id);
+  }, [open, usageInfo?.resetAt]);
+
+  void tick;
+
   if (!visible) return null;
+
+  const remaining = usageInfo?.remainingQuestions ?? usageInfo?.remaining;
+  const dailyLimit = usageInfo?.dailyLimit ?? usageInfo?.limit ?? 3;
+  const resetTimer = formatCountdown(usageInfo?.resetAt);
+  const limitExceeded = remaining === 0 || usageInfo?.limitExceeded;
 
   const ask = async (text = input, intent?: string) => {
     const message = text.trim();
-    if (!message || loading) return;
+    if (!message || loading || limitExceeded) return;
     setMessages((prev) => [...prev, { role: 'user', text: message }]);
     setInput('');
     setLoading(true);
     try {
       const data: AiChatResponse = isAdmin ? await adminAiApi.chat(message, intent) : await customerAiApi.chat(message, intent);
+      if (data.remainingQuestions !== undefined) {
+        setUsageInfo((prev) => ({
+          ...prev,
+          remaining: data.remainingQuestions,
+          remainingQuestions: data.remainingQuestions,
+          limit: data.dailyLimit ?? prev?.limit,
+          dailyLimit: data.dailyLimit ?? prev?.dailyLimit,
+          resetAt: data.resetAt ?? prev?.resetAt,
+          limitExceeded: data.limitExceeded,
+        }));
+      }
       setMessages((prev) => [...prev, { role: 'assistant', text: data.answer, data }]);
     } catch (error) {
+      const payload = usagePayload(error);
+      if (payload?.resetAt) setUsageInfo((prev) => ({ ...prev, ...payload, remaining: 0, remainingQuestions: 0, limitExceeded: true }));
       const raw = errorMessage(error);
+      const timer = payload?.resetAt ? ` Reset in ${formatCountdown(payload.resetAt)}.` : '';
       const text = raw.toLowerCase().includes('database request')
         ? 'AI setup is pending on the server. Please try again after backend migration is updated.'
-        : raw;
+        : `${raw}${timer}`;
       setMessages((prev) => [...prev, { role: 'assistant', text }]);
     } finally {
       setLoading(false);
@@ -154,6 +226,11 @@ export default function FloatingAiChat() {
                 <Text style={s.headerTitle}>WaterFlow AI</Text>
                 <Text style={s.headerSub}>{isAdmin ? 'Reports in text, table and graph' : 'Your account assistant'}</Text>
               </View>
+              {remaining !== undefined && (
+                <View style={s.usagePill}>
+                  <Text style={s.usageText}>{limitExceeded ? `Reset ${resetTimer}` : `${remaining}/${dailyLimit} left`}</Text>
+                </View>
+              )}
               <TouchableOpacity onPress={() => setOpen(false)} style={s.closeBtn}>
                 <Icon name="close" color="#fff" size={22} />
               </TouchableOpacity>
@@ -166,7 +243,7 @@ export default function FloatingAiChat() {
                 contentContainerStyle={s.prompts}
               >
               {prompts.map((p) => (
-                <TouchableOpacity key={p} onPress={() => ask(p, p)} style={s.promptBtn} disabled={loading}>
+                <TouchableOpacity key={p} onPress={() => ask(p, p)} style={s.promptBtn} disabled={loading || limitExceeded}>
                   <Text style={s.promptText} numberOfLines={1}>{p}</Text>
                 </TouchableOpacity>
               ))}
@@ -195,12 +272,13 @@ export default function FloatingAiChat() {
               <TextInput
                 value={input}
                 onChangeText={setInput}
-                placeholder={isAdmin ? 'Ask monthly report...' : 'Ask about my bill...'}
+                placeholder={limitExceeded ? `Daily AI limit exceeded. Reset in ${resetTimer}` : isAdmin ? 'Ask monthly report...' : 'Ask about my bill...'}
                 placeholderTextColor={colors.textMuted}
                 style={s.input}
                 multiline
+                editable={!limitExceeded}
               />
-              <TouchableOpacity onPress={() => ask()} disabled={loading || input.trim().length < 2} style={[s.sendBtn, (loading || input.trim().length < 2) && { opacity: 0.5 }]}>
+              <TouchableOpacity onPress={() => ask()} disabled={loading || input.trim().length < 2 || limitExceeded} style={[s.sendBtn, (loading || input.trim().length < 2 || limitExceeded) && { opacity: 0.5 }]}>
                 <Icon name="send" color="#fff" size={20} />
               </TouchableOpacity>
             </View>
@@ -238,6 +316,8 @@ const makeStyles = (colors: AppColors) =>
     header: { padding: 18, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
     headerSub: { color: 'rgba(255,255,255,0.82)', fontSize: 12, marginTop: 2 },
+    usagePill: { paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', marginRight: 8 },
+    usageText: { color: '#fff', fontSize: 11, fontWeight: '900' },
     closeBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
     promptStrip: {
       height: 58,
