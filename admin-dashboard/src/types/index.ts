@@ -22,6 +22,7 @@ export interface Admin {
   mobile?: string | null;
   isActive?: boolean;
   lastLoginAt?: string | null;
+  language?: 'en' | 'hi';
   createdAt?: string;
   _count?: { customers: number };
   // Distributor service definition

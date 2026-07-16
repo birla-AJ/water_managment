@@ -10,6 +10,7 @@ import {
   refreshSchema,
   updateFcmSchema,
   firebaseLoginSchema,
+  setLanguageSchema,
 } from './auth.dto';
 
 const router = Router();
@@ -82,5 +83,7 @@ router.post('/refresh', validate(refreshSchema), ctrl.refresh);
 router.post('/logout', validate(refreshSchema), ctrl.logout);
 router.get('/me', authenticate(), ctrl.me);
 router.patch('/fcm-token', authenticate('customer'), validate(updateFcmSchema), ctrl.updateFcm);
+// Any logged-in principal (admin / driver / customer) can set their language.
+router.patch('/language', authenticate(), validate(setLanguageSchema), ctrl.setLanguage);
 
 export default router;

@@ -1,0 +1,63 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "name": "Name",
+    "email": "Email",
+    "address": "Address",
+    "error": "Something went wrong"
+  },
+  "language": {
+    "title": "Language",
+    "english": "English",
+    "hindi": "हिंदी",
+    "modalTitle": "Choose your language",
+    "modalSubtitle": "You can change this anytime from your profile.",
+    "select": "Select language"
+  },
+  "brand": {
+    "name": "WaterFlow",
+    "tagline": "Pure water, delivered."
+  },
+  "auth": {
+    "login": "Login",
+    "loginSubtitle": "We'll send an OTP to your mobile number",
+    "mobileNumber": "Mobile number",
+    "sendOtp": "Send OTP",
+    "verifyTitle": "Enter OTP",
+    "verifySubtitle": "Enter the 6-digit code sent to your number",
+    "verify": "Verify",
+    "resend": "Resend OTP",
+    "invalidNumberTitle": "Invalid number",
+    "invalidNumberMsg": "Enter a valid 10-digit mobile number.",
+    "invalidOtpTitle": "Invalid OTP",
+    "invalidOtpMsg": "Enter the 6-digit code."
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "home": {
+    "outstandingBalance": "Outstanding Balance",
+    "quickActions": "Quick Actions",
+    "orderCamper": "Order Camper",
+    "myDeliveries": "My Deliveries",
+    "myBills": "My Bills",
+    "myProfile": "My Profile",
+    "paused": "Deliveries are paused. Resume them from your Profile."
+  },
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile",
+    "pauseDeliveries": "Pause Deliveries",
+    "pauseSub": "Temporarily stop regular deliveries",
+    "contactSupport": "Contact Support",
+    "logout": "Logout",
+    "saved": "Saved",
+    "savedMsg": "Your profile has been updated."
+  }
+}

@@ -81,6 +81,29 @@ export default function CustomerDetailsScreen() {
     catch (e) { Alert.alert('Error', errorMessage(e)); }
   };
 
+  const removeCustomer = () => {
+    if (!customer) return;
+    Alert.alert(
+      'Remove customer?',
+      `${customer.name} will be removed and blocked from logging in. Billing history is kept and they can be restored later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminCustomerApi.remove(id);
+              navigation.goBack();
+            } catch (e) {
+              Alert.alert('Error', errorMessage(e));
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading || !customer) return <Loader />;
 
   return (
@@ -165,6 +188,9 @@ export default function CustomerDetailsScreen() {
         <View style={{ height: 12 }} />
         <PrimaryButton title="Save Unavailable Days" onPress={saveSkips} />
       </View>
+
+      <View style={{ height: 20 }} />
+      <PrimaryButton title="Remove Customer" variant="outline" onPress={removeCustomer} />
     </ScrollView>
   );
 }

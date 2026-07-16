@@ -34,6 +34,8 @@ class DriverService {
   // ===================== ADMIN =====================
   async list(query: { skip: number; take: number; search?: string; status?: DriverStatus; zone?: string }) {
     const where: Prisma.DriverWhereInput = {
+      // Removed (soft-deleted) drivers never appear in listings.
+      blockedAt: null,
       ...(query.status ? { status: query.status } : {}),
       ...(query.zone ? { zone: { equals: query.zone, mode: 'insensitive' } } : {}),
       ...(query.search
@@ -91,10 +93,29 @@ class DriverService {
     return prisma.driver.update({ where: { id }, data: dto, select: driverPublicSelect });
   }
 
+  /**
+   * Soft-remove a driver: unassign their customers and free their vehicle, mark
+   * them blocked (hidden from lists, blocked from logging in), and revoke their
+   * sessions. History (deliveries etc.) is preserved.
+   */
   async remove(id: string) {
     await this.getById(id);
     await prisma.customer.updateMany({ where: { driverId: id }, data: { driverId: null } });
-    await prisma.driver.delete({ where: { id } });
+    await prisma.driver.update({
+      where: { id },
+      data: { blockedAt: new Date(), status: 'INACTIVE', vehicleId: null, isOnDuty: false },
+    });
+    await prisma.refreshToken.updateMany({ where: { driverId: id }, data: { revoked: true } });
+    return { id };
+  }
+
+  /** Restore a previously removed driver (re-enables login + listings). */
+  async restore(id: string) {
+    await this.getById(id);
+    await prisma.driver.update({
+      where: { id },
+      data: { blockedAt: null, status: 'ACTIVE' },
+    });
     return { id };
   }
 

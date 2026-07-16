@@ -1,0 +1,63 @@
+{
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "ok": "ठीक है",
+    "loading": "लोड हो रहा है…",
+    "retry": "पुनः प्रयास करें",
+    "name": "नाम",
+    "email": "ईमेल",
+    "address": "पता",
+    "error": "कुछ गलत हो गया"
+  },
+  "language": {
+    "title": "भाषा",
+    "english": "English",
+    "hindi": "हिंदी",
+    "modalTitle": "अपनी भाषा चुनें",
+    "modalSubtitle": "आप इसे कभी भी अपनी प्रोफ़ाइल से बदल सकते हैं।",
+    "select": "भाषा चुनें"
+  },
+  "brand": {
+    "name": "WaterFlow",
+    "tagline": "शुद्ध पानी, आपके द्वार।"
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "loginSubtitle": "हम आपके मोबाइल नंबर पर एक OTP भेजेंगे",
+    "mobileNumber": "मोबाइल नंबर",
+    "sendOtp": "OTP भेजें",
+    "verifyTitle": "OTP दर्ज करें",
+    "verifySubtitle": "आपके नंबर पर भेजा गया 6 अंकों का कोड दर्ज करें",
+    "verify": "सत्यापित करें",
+    "resend": "OTP फिर से भेजें",
+    "invalidNumberTitle": "अमान्य नंबर",
+    "invalidNumberMsg": "मान्य 10 अंकों का मोबाइल नंबर दर्ज करें।",
+    "invalidOtpTitle": "अमान्य OTP",
+    "invalidOtpMsg": "6 अंकों का कोड दर्ज करें।"
+  },
+  "greeting": {
+    "morning": "सुप्रभात",
+    "afternoon": "नमस्कार",
+    "evening": "शुभ संध्या"
+  },
+  "home": {
+    "outstandingBalance": "बकाया राशि",
+    "quickActions": "त्वरित क्रियाएं",
+    "orderCamper": "कैंपर ऑर्डर करें",
+    "myDeliveries": "मेरी डिलीवरी",
+    "myBills": "मेरे बिल",
+    "myProfile": "मेरी प्रोफ़ाइल",
+    "paused": "डिलीवरी रोकी गई है। इसे अपनी प्रोफ़ाइल से फिर से शुरू करें।"
+  },
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "pauseDeliveries": "डिलीवरी रोकें",
+    "pauseSub": "नियमित डिलीवरी अस्थायी रूप से रोकें",
+    "contactSupport": "सहायता से संपर्क करें",
+    "logout": "लॉग आउट",
+    "saved": "सहेजा गया",
+    "savedMsg": "आपकी प्रोफ़ाइल अपडेट हो गई है।"
+  }
+}

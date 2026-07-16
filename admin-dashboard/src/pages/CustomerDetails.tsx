@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Card, CardContent, Grid, Typography, Stack, Button, Chip, Divider,
-  FormControlLabel, Switch, TextField,
+  FormControlLabel, Switch, TextField, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
@@ -21,6 +21,7 @@ export default function CustomerDetails() {
   const [schedules, setSchedules] = useState<Partial<CustomerSchedule>[]>([]);
   const [skips, setSkips] = useState<string[]>([]);
   const [newDate, setNewDate] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const { data: customer } = useQuery({ queryKey: ['customer', id], queryFn: () => customerApi.get(id!) });
   const { data: skipData } = useQuery({ queryKey: ['customer-skips', id], queryFn: () => customerApi.skipDates(id!) });
@@ -46,6 +47,17 @@ export default function CustomerDetails() {
   const saveSkips = useMutation({
     mutationFn: () => customerApi.setSkipDates(id!, skips),
     onSuccess: (data) => { setSkips(data); enqueueSnackbar('Unavailable days saved', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['customer-skips', id] }); },
+  });
+
+  // Soft-remove: hides the customer and blocks them from logging in (history kept).
+  const removeCustomer = useMutation({
+    mutationFn: () => customerApi.remove(id!),
+    onSuccess: () => {
+      enqueueSnackbar('Customer removed', { variant: 'success' });
+      qc.invalidateQueries({ queryKey: ['customers'] });
+      navigate('/customers');
+    },
+    onError: () => enqueueSnackbar('Could not remove customer', { variant: 'error' }),
   });
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -76,9 +88,26 @@ export default function CustomerDetails() {
             <Button variant="contained" color={customer.isPaused ? 'success' : 'warning'} onClick={() => togglePause.mutate()}>
               {customer.isPaused ? 'Resume Deliveries' : 'Pause Deliveries'}
             </Button>
+            <Button variant="outlined" color="error" onClick={() => setConfirmRemove(true)}>Remove</Button>
           </Stack>
         }
       />
+
+      <Dialog open={confirmRemove} onClose={() => setConfirmRemove(false)}>
+        <DialogTitle>Remove customer?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {customer.name} will be removed and will no longer be able to log in. Their billing
+            history is preserved and they can be restored later. Continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmRemove(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => removeCustomer.mutate()} disabled={removeCustomer.isPending}>
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Grid container spacing={2}>
         <Grid item xs={12} md={5}>
           <Card><CardContent>

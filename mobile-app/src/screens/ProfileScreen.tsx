@@ -3,16 +3,20 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Alert, Switch, Touchable
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Card, PrimaryButton } from '../components/ui';
 import { meApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
 import { useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
+import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../theme/ThemeContext';
 import type { AppColors } from '../theme/colors';
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const { current: lang, change: changeLanguage } = useLanguage();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const onPrimary = '#FFFFFF';
   const dispatch = useAppDispatch();
@@ -32,8 +36,8 @@ export default function ProfileScreen() {
       await meApi.updateProfile({
         name: profile.name, email: profile.email, address: profile.address, area: profile.area, landmark: profile.landmark, altMobile: profile.altMobile,
       });
-      Alert.alert('Saved', 'Your profile has been updated.');
-    } catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setSaving(false); }
+      Alert.alert(t('profile.saved'), t('profile.savedMsg'));
+    } catch (e) { Alert.alert(t('common.error'), errorMessage(e)); } finally { setSaving(false); }
   };
 
   const togglePause = async () => {
@@ -41,7 +45,7 @@ export default function ProfileScreen() {
       if (profile.isPaused) await meApi.resume();
       else await meApi.pause();
       load();
-    } catch (e) { Alert.alert('Error', errorMessage(e)); }
+    } catch (e) { Alert.alert(t('common.error'), errorMessage(e)); }
   };
 
   const doLogout = async () => {
@@ -69,31 +73,51 @@ export default function ProfileScreen() {
       <Card>
         <View style={styles.pauseRow}>
           <View>
-            <Text style={styles.pauseTitle}>Pause Deliveries</Text>
-            <Text style={styles.pauseSub}>Temporarily stop regular deliveries</Text>
+            <Text style={styles.pauseTitle}>{t('profile.pauseDeliveries')}</Text>
+            <Text style={styles.pauseSub}>{t('profile.pauseSub')}</Text>
           </View>
           <Switch value={!!profile.isPaused} onValueChange={togglePause} trackColor={{ true: colors.primary }} />
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.section}>Edit Profile</Text>
-        <Field label="Name" value={profile.name} onChange={(v) => setProfile({ ...profile, name: v })} />
-        <Field label="Email" value={profile.email} onChange={(v) => setProfile({ ...profile, email: v })} />
+        <Text style={styles.section}>{t('language.title')}</Text>
+        <View style={styles.langRow}>
+          {(['en', 'hi'] as const).map((code) => {
+            const active = lang === code;
+            return (
+              <TouchableOpacity
+                key={code}
+                onPress={() => changeLanguage(code)}
+                style={[styles.langBtn, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary : 'transparent' }]}
+              >
+                <Text style={{ color: active ? onPrimary : colors.text, fontWeight: '700' }}>
+                  {code === 'en' ? 'English' : 'हिंदी'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Card>
+
+      <Card>
+        <Text style={styles.section}>{t('profile.editProfile')}</Text>
+        <Field label={t('common.name')} value={profile.name} onChange={(v) => setProfile({ ...profile, name: v })} />
+        <Field label={t('common.email')} value={profile.email} onChange={(v) => setProfile({ ...profile, email: v })} />
         <Field label="Alternate Mobile" value={profile.altMobile} onChange={(v) => setProfile({ ...profile, altMobile: v })} />
-        <Field label="Address" value={profile.address} onChange={(v) => setProfile({ ...profile, address: v })} />
+        <Field label={t('common.address')} value={profile.address} onChange={(v) => setProfile({ ...profile, address: v })} />
         <Field label="Area" value={profile.area} onChange={(v) => setProfile({ ...profile, area: v })} />
         <Field label="Landmark" value={profile.landmark} onChange={(v) => setProfile({ ...profile, landmark: v })} />
-        <PrimaryButton title="Save Changes" onPress={save} loading={saving} />
+        <PrimaryButton title={t('common.save')} onPress={save} loading={saving} />
       </Card>
 
       <TouchableOpacity style={styles.supportRow} onPress={() => navigation.navigate('Support')}>
         <Icon name="headset" size={22} color={colors.primary} />
-        <Text style={styles.supportText}>Contact Support</Text>
+        <Text style={styles.supportText}>{t('profile.contactSupport')}</Text>
         <Icon name="chevron-right" size={22} color={colors.textMuted} />
       </TouchableOpacity>
 
-      <PrimaryButton title="Logout" variant="outline" onPress={doLogout} />
+      <PrimaryButton title={t('profile.logout')} variant="outline" onPress={doLogout} />
     </ScrollView>
   );
 }
@@ -107,6 +131,8 @@ const makeStyles = (colors: AppColors) =>
     pauseRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pauseTitle: { fontWeight: '700', color: colors.text },
     pauseSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+    langRow: { flexDirection: 'row', gap: 12 },
+    langBtn: { flex: 1, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
     section: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 12 },
     label: { color: colors.textMuted, fontSize: 12, marginBottom: 4 },
     input: { backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, color: colors.text },

@@ -131,8 +131,9 @@ class BillingService {
     await notificationService.notify({
       audience: NotificationAudience.CUSTOMER,
       type: NotificationType.BILL_GENERATED,
-      title: 'New bill generated',
-      body: `Invoice ${invoiceNumber} for ₹${totalAmount.toFixed(2)} is ready.`,
+      titleKey: 'notify.billGenerated.title',
+      bodyKey: 'notify.billGenerated.body',
+      vars: { invoiceNumber, amount: totalAmount.toFixed(2) },
       customerId: dto.customerId,
       data: { invoiceId: invoice.id },
     });
@@ -194,8 +195,9 @@ class BillingService {
     await notificationService.notify({
       audience: NotificationAudience.CUSTOMER,
       type: NotificationType.BILL_GENERATED,
-      title: 'New bill generated',
-      body: `Invoice ${invoiceNumber} for ₹${totalAmount.toFixed(2)} is ready to pay.`,
+      titleKey: 'notify.billReadyToPay.title',
+      bodyKey: 'notify.billReadyToPay.body',
+      vars: { invoiceNumber, amount: totalAmount.toFixed(2) },
       customerId: order.customerId,
       data: { invoiceId: invoice.id },
     });
@@ -283,8 +285,9 @@ class BillingService {
       await notificationService.notify({
         audience: NotificationAudience.CUSTOMER,
         type: NotificationType.GENERAL,
-        title: 'Bill fully paid',
-        body: `Invoice ${invoice.invoiceNumber} is now fully paid. Thank you!`,
+        titleKey: 'notify.paid.title',
+        bodyKey: 'notify.paid.body',
+        vars: { invoiceNumber: invoice.invoiceNumber },
         customerId: invoice.customerId,
         data: { invoiceId },
       });
@@ -292,8 +295,9 @@ class BillingService {
       await notificationService.notify({
         audience: NotificationAudience.CUSTOMER,
         type: NotificationType.GENERAL,
-        title: 'Partial payment received',
-        body: `Invoice ${invoice.invoiceNumber}: ₹${(dueAmount.lt(0) ? dec(0) : dueAmount).toFixed(2)} still due.`,
+        titleKey: 'notify.partialPaid.title',
+        bodyKey: 'notify.partialPaid.body',
+        vars: { invoiceNumber: invoice.invoiceNumber, amount: (dueAmount.lt(0) ? dec(0) : dueAmount).toFixed(2) },
         customerId: invoice.customerId,
         data: { invoiceId },
       });
@@ -332,8 +336,9 @@ class BillingService {
       await notificationService.notify({
         audience: NotificationAudience.CUSTOMER,
         type: NotificationType.PAYMENT_DUE_REMINDER,
-        title: 'Payment overdue',
-        body: `Invoice ${inv.invoiceNumber} of ₹${inv.dueAmount.toFixed(2)} is overdue. Please pay at your earliest convenience.`,
+        titleKey: 'notify.dueReminder.title',
+        bodyKey: 'notify.dueReminder.body',
+        vars: { invoiceNumber: inv.invoiceNumber, amount: inv.dueAmount.toFixed(2) },
         customerId: inv.customerId,
         data: { invoiceId: inv.id },
       });

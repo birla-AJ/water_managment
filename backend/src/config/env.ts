@@ -56,6 +56,21 @@ export const env = {
     },
   },
 
+  whatsapp: {
+    // WhatsApp gateway (whatsapp-web.js). Off unless WHATSAPP_ENABLED=true.
+    enabled: process.env.WHATSAPP_ENABLED === 'true',
+    gatewayUrl: (process.env.WHATSAPP_GATEWAY_URL ?? '').replace(/\/$/, ''), // e.g. http://127.0.0.1:4001
+    apiKey: process.env.WHATSAPP_API_KEY ?? '',
+    // Fallback sender (a reserved linked number) used for OTP when the
+    // customer's own distributor has no connected number.
+    systemTenantId: process.env.WHATSAPP_SYSTEM_TENANT_ID ?? 'system',
+  },
+
+  billing: {
+    // Day-of-month (1-28) the monthly auto-billing cron generates invoices.
+    monthlyBillingDay: parseInt(process.env.MONTHLY_BILLING_DAY ?? '1', 10),
+  },
+
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID ?? '',
     keySecret: process.env.RAZORPAY_KEY_SECRET ?? '',

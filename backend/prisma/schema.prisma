@@ -19,6 +19,12 @@ enum AdminRole {
   ADMIN
 }
 
+// UI + message language preference (per user). en = English, hi = Hindi.
+enum Language {
+  en
+  hi
+}
+
 enum DriverStatus {
   ACTIVE
   INACTIVE
@@ -138,6 +144,7 @@ model Admin {
   avatarUrl    String?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
+  language     Language  @default(en) // preferred UI + message language
 
   // ── Distributor service definition ──────────────────────────────────────
   // A regular ADMIN acts as a distributor for an area. Customers are matched to
@@ -195,6 +202,10 @@ model Driver {
   zone          String?
   status        DriverStatus @default(ACTIVE)
   fcmToken      String?
+  language      Language     @default(en) // preferred UI + message language
+  // Set when an admin removes the driver (soft delete). Non-null = removed:
+  // hidden from lists and blocked from logging in.
+  blockedAt     DateTime?
   vehicleId     String?      @unique
   isOnDuty      Boolean      @default(false)
   dutyStartedAt DateTime?
@@ -303,11 +314,15 @@ model Customer {
   longitude       Float?
   customerType    CustomerType   @default(DAILY)
   status          CustomerStatus @default(ACTIVE)
+  // Set when an admin removes the customer (soft delete). Non-null = removed:
+  // hidden from lists and blocked from logging in. Data is preserved.
+  blockedAt       DateTime?
   securityDeposit Decimal        @default(0) @db.Decimal(10, 2)
   ratePerCamper   Decimal        @default(0) @db.Decimal(10, 2)
   allocatedCampers Int           @default(0)
   notes           String?
   fcmToken        String?
+  language        Language       @default(en) // preferred UI + message language
   // Pause feature
   isPaused        Boolean        @default(false)
   pausedFrom      DateTime?

@@ -42,3 +42,8 @@ export const updateFcm = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.updateFcmToken(req.user!.sub, req.body.fcmToken);
   ok(res, result, 'FCM token updated');
 });
+
+export const setLanguage = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.setLanguage(req.user!, req.body.language);
+  ok(res, result, 'Language updated');
+});

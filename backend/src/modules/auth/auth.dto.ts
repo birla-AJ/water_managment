@@ -26,6 +26,10 @@ export const updateFcmSchema = z.object({
   fcmToken: z.string().min(1),
 });
 
+export const setLanguageSchema = z.object({
+  language: z.enum(['en', 'hi']),
+});
+
 export const firebaseLoginSchema = z.object({
   firebaseToken: z.string().min(10),
   fcmToken: z.string().optional(),
@@ -35,3 +39,4 @@ export type AdminLoginDto = z.infer<typeof adminLoginSchema>;
 export type RequestOtpDto = z.infer<typeof requestOtpSchema>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpSchema>;
 export type FirebaseLoginDto = z.infer<typeof firebaseLoginSchema>;
+export type SetLanguageDto = z.infer<typeof setLanguageSchema>;

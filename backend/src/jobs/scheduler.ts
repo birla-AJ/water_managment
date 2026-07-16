@@ -42,5 +42,29 @@ export function startSchedulers(): void {
   setTimeout(runDueReminders, 10_000);
   setInterval(runDueReminders, ONE_HOUR);
 
+  // Monthly auto-billing: on the configured day-of-month, generate invoices for
+  // all active MONTHLY-plan customers (each emits BILL_GENERATED → WhatsApp).
+  // The hourly tick is idempotent via an in-memory month guard so a restart or
+  // multiple ticks on the billing day don't double-bill.
+  let lastBilledMonth = '';
+  const runMonthlyBilling = async () => {
+    const now = new Date();
+    if (now.getDate() !== env.billing.monthlyBillingDay) return;
+    const monthKey = `${now.getFullYear()}-${now.getMonth()}`;
+    if (monthKey === lastBilledMonth) return;
+    lastBilledMonth = monthKey;
+    try {
+      const res = await billingService.autoGenerate('MONTHLY', now);
+      const made = res.results.filter((r) => r.invoiceId).length;
+      logger.info(`📅 Monthly billing: generated ${made} invoice(s) for ${res.periodStart}–${res.periodEnd}`);
+    } catch (err) {
+      lastBilledMonth = ''; // allow a retry on the next tick if it failed
+      logger.error(`Monthly billing job failed: ${(err as Error).message}`);
+    }
+  };
+
+  setTimeout(runMonthlyBilling, 15_000);
+  setInterval(runMonthlyBilling, ONE_HOUR);
+
   logger.info(`⏱️  Schedulers started (inventory low threshold = ${env.inventory.lowThreshold})`);
 }

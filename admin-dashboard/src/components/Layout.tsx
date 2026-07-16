@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AppBar, Box, Drawer, IconButton, List, ListItemButton,
   ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem, Badge, Tooltip,
@@ -21,48 +22,69 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
+import TranslateIcon from '@mui/icons-material/Translate';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import { useQuery } from '@tanstack/react-query';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { logout } from '../features/auth/authSlice';
 import { notificationApi } from '../api/endpoints';
+import { useLanguage } from '../hooks/useLanguage';
+import LanguageSelectModal from './LanguageSelectModal';
 import { BRAND_GRADIENT, BRAND_GRADIENT_SOFT } from '../theme/theme';
 import AdminAiChat from './ai/AdminAiChat';
 
 const DRAWER_WIDTH = 260;
 
+// labelKey → i18n key under the "nav" namespace.
 const NAV = [
-  { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Customers', path: '/customers', icon: <PeopleIcon /> },
-  { label: 'Drivers', path: '/drivers', icon: <LocalShippingIcon /> },
-  { label: 'Vehicles', path: '/vehicles', icon: <DirectionsCarIcon /> },
-  { label: 'Live Tracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
-  { label: 'Orders', path: '/orders', icon: <ShoppingCartIcon /> },
-  { label: 'Inventory', path: '/inventory', icon: <Inventory2Icon /> },
-  { label: 'Billing', path: '/billing', icon: <ReceiptIcon /> },
-  { label: 'Payments', path: '/payments', icon: <PaymentsIcon /> },
-  { label: 'Notifications', path: '/notifications', icon: <NotificationsIcon /> },
-  { label: 'Reports', path: '/reports', icon: <AssessmentIcon /> },
-  { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+  { labelKey: 'nav.dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+  { labelKey: 'nav.customers', path: '/customers', icon: <PeopleIcon /> },
+  { labelKey: 'nav.drivers', path: '/drivers', icon: <LocalShippingIcon /> },
+  { labelKey: 'nav.vehicles', path: '/vehicles', icon: <DirectionsCarIcon /> },
+  { labelKey: 'nav.liveTracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
+  { labelKey: 'nav.orders', path: '/orders', icon: <ShoppingCartIcon /> },
+  { labelKey: 'nav.inventory', path: '/inventory', icon: <Inventory2Icon /> },
+  { labelKey: 'nav.billing', path: '/billing', icon: <ReceiptIcon /> },
+  { labelKey: 'nav.payments', path: '/payments', icon: <PaymentsIcon /> },
+  { labelKey: 'nav.notifications', path: '/notifications', icon: <NotificationsIcon /> },
+  { labelKey: 'nav.reports', path: '/reports', icon: <AssessmentIcon /> },
+  { labelKey: 'nav.settings', path: '/settings', icon: <SettingsIcon /> },
 ];
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [langModalOpen, setLangModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
+  const { current: lang, change: changeLanguage } = useLanguage();
   const user = useAppSelector((s) => s.auth.user);
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   // Super admins only manage admins; regular admins get the operational nav.
   const nav = isSuperAdmin
     ? [
-        { label: 'Admins', path: '/admins', icon: <AdminPanelSettingsIcon /> },
-        { label: 'Service Areas', path: '/service-areas', icon: <PlaceOutlinedIcon /> },
-        { label: 'Live Tracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
+        { labelKey: 'nav.admins', path: '/admins', icon: <AdminPanelSettingsIcon /> },
+        { labelKey: 'nav.serviceAreas', path: '/service-areas', icon: <PlaceOutlinedIcon /> },
+        { labelKey: 'nav.liveTracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
       ]
     : NAV;
   const softGrad = BRAND_GRADIENT_SOFT;
+
+  // Apply the saved language and prompt once (first login on this device/account).
+  useEffect(() => {
+    if (!user) return;
+    if (user.language && user.language !== lang) changeLanguage(user.language);
+    const flag = `wf_lang_chosen:${user.id}`;
+    if (!localStorage.getItem(flag)) setLangModalOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const closeLangModal = () => {
+    if (user) localStorage.setItem(`wf_lang_chosen:${user.id}`, '1');
+    setLangModalOpen(false);
+  };
 
   const { data: unread } = useQuery({
     queryKey: ['unread'],
@@ -71,7 +93,8 @@ export default function Layout() {
     enabled: !isSuperAdmin, // super admins don't use notifications
   });
 
-  const activeLabel = nav.find((n) => location.pathname.startsWith(n.path))?.label ?? 'Dashboard';
+  const activeKey = nav.find((n) => location.pathname.startsWith(n.path))?.labelKey ?? 'nav.dashboard';
+  const activeLabel = t(activeKey);
   const drawerBg = '#FFFDF9';
 
   const drawer = (
@@ -146,13 +169,13 @@ export default function Layout() {
               }}
             >
               <ListItemIcon sx={{ color: active ? 'primary.main' : 'text.secondary', minWidth: 40 }}>
-                {item.label === 'Notifications' ? (
+                {item.path === '/notifications' ? (
                   <Badge color="error" badgeContent={unread ?? 0}>{item.icon}</Badge>
                 ) : (
                   item.icon
                 )}
               </ListItemIcon>
-              <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14.5 }} />
+              <ListItemText primary={t(item.labelKey)} primaryTypographyProps={{ fontSize: 14.5 }} />
             </ListItemButton>
           );
         })}
@@ -197,8 +220,16 @@ export default function Layout() {
             {activeLabel}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
+          <Tooltip title={`${t('language.label')}: ${lang === 'hi' ? 'हिंदी' : 'English'}`}>
+            <IconButton onClick={() => changeLanguage(lang === 'hi' ? 'en' : 'hi')} sx={{ mr: 0.5 }}>
+              <TranslateIcon />
+              <Typography component="span" variant="caption" sx={{ ml: 0.5, fontWeight: 700 }}>
+                {lang === 'hi' ? 'हि' : 'EN'}
+              </Typography>
+            </IconButton>
+          </Tooltip>
           {!isSuperAdmin && (
-            <Tooltip title="Notifications">
+            <Tooltip title={t('nav.notifications')}>
               <IconButton onClick={() => navigate('/notifications')} sx={{ mr: 0.5 }}>
                 <Badge color="error" badgeContent={unread ?? 0}>
                   <NotificationsIcon />
@@ -254,7 +285,7 @@ export default function Layout() {
               onClick={() => { setAnchorEl(null); navigate('/profile'); }}
               sx={{ borderRadius: 2, py: 1, mb: 0.25, '&:hover .MuiListItemIcon-root': { color: 'primary.main' } }}
             >
-              <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> Profile
+              <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> {t('nav.profile')}
             </MenuItem>
             <MenuItem
               onClick={() => dispatch(logout())}
@@ -269,7 +300,7 @@ export default function Layout() {
                 },
               }}
             >
-              <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> Logout
+              <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> {t('nav.logout')}
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -302,6 +333,7 @@ export default function Layout() {
         <Outlet />
       </Box>
       <AdminAiChat />
+      <LanguageSelectModal open={langModalOpen} onClose={closeLangModal} />
     </Box>
   );
 }

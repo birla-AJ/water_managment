@@ -1,0 +1,21 @@
+{
+  "name": "sanskriti-whatsapp-gateway",
+  "version": "0.1.0",
+  "description": "Standalone multi-account WhatsApp gateway (whatsapp-web.js) with a safe-sender layer for The Sanskriti International School ERP. Each school links its own number(s) via QR; the ERP sends messages over HTTP.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.26.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3"
+  }
+}

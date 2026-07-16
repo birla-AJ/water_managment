@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, NativeSyntheticEvent, TextInputKeyPressEventData } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { authApi, meApi } from '../api/endpoints';
 import { confirmPhoneOtp } from '../services/phoneAuth';
 import { errorMessage } from '../api/client';
@@ -20,6 +21,7 @@ const LENGTH = 6;
 export default function OtpVerifyScreen({ route }: Props) {
   const { mobile } = route.params;
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [digits, setDigits] = useState<string[]>(Array(LENGTH).fill(''));
   const [focused, setFocused] = useState<number>(0);
@@ -29,7 +31,7 @@ export default function OtpVerifyScreen({ route }: Props) {
 
   const submit = async (code: string) => {
     if (code.length !== LENGTH) {
-      Alert.alert('Invalid OTP', 'Enter the 6-digit OTP.');
+      Alert.alert(t('auth.invalidOtpTitle'), t('auth.invalidOtpMsg'));
       return;
     }
     setLoading(true);
@@ -71,7 +73,7 @@ export default function OtpVerifyScreen({ route }: Props) {
       dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));
       setupNotifications('CUSTOMER');
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -115,8 +117,8 @@ export default function OtpVerifyScreen({ route }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter OTP</Text>
-      <Text style={styles.subtitle}>Sent to +91 {mobile}</Text>
+      <Text style={styles.title}>{t('auth.verifyTitle')}</Text>
+      <Text style={styles.subtitle}>+91 {mobile}</Text>
 
       <View style={styles.boxRow}>
         {digits.map((d, i) => (
@@ -142,7 +144,7 @@ export default function OtpVerifyScreen({ route }: Props) {
         ))}
       </View>
 
-      <PrimaryButton title="Verify & Continue" onPress={() => submit(digits.join(''))} loading={loading} />
+      <PrimaryButton title={t('auth.verify')} onPress={() => submit(digits.join(''))} loading={loading} />
     </View>
   );
 }

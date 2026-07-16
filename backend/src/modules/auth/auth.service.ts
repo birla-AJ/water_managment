@@ -13,6 +13,8 @@ import {
 } from '../../utils/jwt';
 import { generateOtp } from '../../utils/generators';
 import { sendOtpSms } from '../../config/sms';
+import { waSendPriority, toWaNumber } from '../../config/whatsapp';
+import { t } from '../../config/i18n';
 import { notificationService } from '../notification/notification.service';
 import { getFirebaseAdmin } from '../../config/firebase';
 import { logger } from '../../config/logger';
@@ -43,6 +45,21 @@ class AuthService {
    * falls back to the customer flow. This is what makes one OTP screen route to
    * either the driver or the customer dashboard automatically.
    */
+  /**
+   * Reject login for a number whose customer or driver record was removed by an
+   * admin (soft delete). Prevents both re-login of a removed account and the
+   * silent re-creation of a removed customer via auto-registration.
+   */
+  private async assertNotRemoved(mobile: string) {
+    const [driver, customer] = await Promise.all([
+      prisma.driver.findUnique({ where: { mobile }, select: { blockedAt: true } }),
+      prisma.customer.findUnique({ where: { mobile }, select: { blockedAt: true } }),
+    ]);
+    if (driver?.blockedAt || customer?.blockedAt) {
+      throw ApiError.forbidden('This account has been removed. Please contact support.');
+    }
+  }
+
   private async loginAsDriverIfRegistered(mobile: string, fcmToken?: string) {
     const driver = await prisma.driver.findUnique({ where: { mobile } });
     if (!driver || driver.status !== 'ACTIVE') return null;
@@ -55,7 +72,7 @@ class AuthService {
     return {
       ...tokens,
       isNew: false,
-      user: { id: driver.id, name: driver.name, mobile: driver.mobile, role: 'DRIVER' as const },
+      user: { id: driver.id, name: driver.name, mobile: driver.mobile, role: 'DRIVER' as const, language: driver.language },
     };
   }
 
@@ -77,7 +94,7 @@ class AuthService {
     return {
       ...tokens,
       isNew: false,
-      user: { id: admin.id, name: admin.name, email: admin.email, mobile: admin.mobile, role: admin.role, avatarUrl: admin.avatarUrl },
+      user: { id: admin.id, name: admin.name, email: admin.email, mobile: admin.mobile, role: admin.role, avatarUrl: admin.avatarUrl, language: admin.language },
     };
   }
 
@@ -97,7 +114,7 @@ class AuthService {
     );
     return {
       ...tokens,
-      user: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, avatarUrl: admin.avatarUrl },
+      user: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, avatarUrl: admin.avatarUrl, language: admin.language },
     };
   }
 
@@ -112,13 +129,47 @@ class AuthService {
 
     await prisma.otpCode.create({ data: { mobile: dto.mobile, code, expiresAt } });
 
-    if (!testMode) await sendOtpSms(dto.mobile, code);
+    if (!testMode) await this.deliverOtp(dto.mobile, code);
 
     return {
       mobile: dto.mobile,
       expiresInMinutes: env.otp.expiresMinutes,
       ...(testMode ? { devOtp: code } : {}),
     };
+  }
+
+  /**
+   * Deliver an OTP over the best available channel:
+   *   1. The customer's own distributor (admin) WhatsApp number (instant/priority).
+   *   2. The system fallback WhatsApp number (for new/unassigned customers or
+   *      when the distributor's number is offline).
+   *   3. SMS (existing provider) as a last-resort safety net so login never breaks.
+   * WhatsApp is only attempted when enabled; otherwise it goes straight to SMS.
+   */
+  private async deliverOtp(mobile: string, code: string): Promise<void> {
+    if (env.whatsapp.enabled) {
+      const to = toWaNumber(mobile);
+      const customer = await prisma.customer.findUnique({
+        where: { mobile },
+        select: { distributorId: true, language: true },
+      });
+      // OTP text in the customer's chosen language (defaults to English).
+      const text = t(customer?.language, 'auth.otp', { code, mins: env.otp.expiresMinutes });
+
+      // 1) owning admin's number
+      if (customer?.distributorId) {
+        const r = await waSendPriority({ to, text, tenantId: customer.distributorId });
+        if (r.sent) return;
+      }
+      // 2) system fallback number
+      const sys = await waSendPriority({ to, text, tenantId: env.whatsapp.systemTenantId });
+      if (sys.sent) return;
+
+      logger.warn(`[Auth/otp] WhatsApp delivery failed for ${mobile} — falling back to SMS`);
+    }
+
+    // 3) SMS fallback
+    await sendOtpSms(mobile, code);
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
@@ -136,6 +187,9 @@ class AuthService {
     }
 
     await prisma.otpCode.update({ where: { id: otp.id }, data: { consumed: true } });
+
+    // Removed accounts (customer or driver) can't log in or be re-created.
+    await this.assertNotRemoved(dto.mobile);
 
     // Registered driver numbers log in as drivers (no customer record created).
     const asDriver = await this.loginAsDriverIfRegistered(dto.mobile, dto.fcmToken);
@@ -155,8 +209,9 @@ class AuthService {
       await notificationService.notify({
         audience: NotificationAudience.ADMIN,
         type: NotificationType.NEW_CUSTOMER,
-        title: 'New customer registered',
-        body: `${customer.name} (${customer.mobile}) signed up.`,
+        titleKey: 'notify.newCustomer.title',
+        bodyKey: 'notify.newCustomer.body',
+        vars: { name: customer.name, mobile: customer.mobile },
         data: { customerId: customer.id },
       });
     } else if (dto.fcmToken) {
@@ -164,7 +219,7 @@ class AuthService {
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
-    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const } };
+    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
   }
 
   // ---------------- FIREBASE PHONE AUTH ----------------
@@ -197,6 +252,9 @@ class AuthService {
       throw ApiError.badRequest('Unsupported phone number');
     }
 
+    // Removed accounts (customer or driver) can't log in or be re-created.
+    await this.assertNotRemoved(mobile);
+
     // Registered driver numbers log in as drivers (no customer record created).
     const asDriver = await this.loginAsDriverIfRegistered(mobile, dto.fcmToken);
     if (asDriver) logger.info(`[Auth/firebase-login] Logged in as driver mobile=${mobile}`);
@@ -218,8 +276,9 @@ class AuthService {
       await notificationService.notify({
         audience: NotificationAudience.ADMIN,
         type: NotificationType.NEW_CUSTOMER,
-        title: 'New customer registered',
-        body: `${customer.name} (${customer.mobile}) signed up.`,
+        titleKey: 'notify.newCustomer.title',
+        bodyKey: 'notify.newCustomer.body',
+        vars: { name: customer.name, mobile: customer.mobile },
         data: { customerId: customer.id },
       });
     } else if (dto.fcmToken) {
@@ -231,7 +290,7 @@ class AuthService {
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
     logger.info(`[Auth/firebase-login] Issued customer tokens mobile=${mobile} isNew=${isNew}`);
-    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const } };
+    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
   }
 
   // ---------------- REFRESH / LOGOUT ----------------
@@ -265,11 +324,23 @@ class AuthService {
     return { success: true };
   }
 
+  /** Persist the logged-in user's preferred language (works for any principal). */
+  async setLanguage(user: JwtPayload, language: 'en' | 'hi') {
+    if (user.principal === 'admin') {
+      await prisma.admin.update({ where: { id: user.sub }, data: { language } });
+    } else if (user.principal === 'driver') {
+      await prisma.driver.update({ where: { id: user.sub }, data: { language } });
+    } else {
+      await prisma.customer.update({ where: { id: user.sub }, data: { language } });
+    }
+    return { language };
+  }
+
   async me(payload: JwtPayload) {
     if (payload.principal === 'admin') {
       const admin = await prisma.admin.findUnique({
         where: { id: payload.sub },
-        select: { id: true, name: true, email: true, role: true, phone: true, mobile: true, avatarUrl: true, lastLoginAt: true },
+        select: { id: true, name: true, email: true, role: true, phone: true, mobile: true, avatarUrl: true, lastLoginAt: true, language: true },
       });
       if (!admin) throw ApiError.notFound('Admin not found');
       return { principal: 'admin', ...admin };
@@ -284,6 +355,7 @@ class AuthService {
           email: true,
           zone: true,
           status: true,
+          language: true,
           vehicle: { select: { id: true, number: true, type: true, capacity: true } },
         },
       });
@@ -292,7 +364,7 @@ class AuthService {
     }
     const customer = await prisma.customer.findUnique({
       where: { id: payload.sub },
-      select: { id: true, name: true, mobile: true, email: true, area: true, address: true, status: true, customerType: true },
+      select: { id: true, name: true, mobile: true, email: true, area: true, address: true, status: true, customerType: true, language: true },
     });
     if (!customer) throw ApiError.notFound('Customer not found');
     return { principal: 'customer', role: 'CUSTOMER', ...customer };

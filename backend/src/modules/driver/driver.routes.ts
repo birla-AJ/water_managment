@@ -32,6 +32,7 @@ router.post('/', ...admin, validate(createDriverSchema), ctrl.create);
 router.get('/:id', ...admin, ctrl.getOne);
 router.put('/:id', ...admin, validate(updateDriverSchema), ctrl.update);
 router.delete('/:id', authenticate('admin'), authorize('SUPER_ADMIN', 'ADMIN'), ctrl.remove);
+router.post('/:id/restore', authenticate('admin'), authorize('SUPER_ADMIN', 'ADMIN'), ctrl.restore);
 
 // Assignment
 router.post('/:id/assign-vehicle', ...admin, validate(assignVehicleSchema), ctrl.assignVehicle);

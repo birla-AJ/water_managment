@@ -32,6 +32,7 @@ export default function DriverDetails() {
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const [noteTitle, setNoteTitle] = useState('');
@@ -72,6 +73,17 @@ export default function DriverDetails() {
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
+  // Soft-remove: unassigns customers, hides the driver and blocks their login.
+  const removeDriver = useMutation({
+    mutationFn: () => driverApi.remove(id!),
+    onSuccess: () => {
+      enqueueSnackbar('Driver removed', { variant: 'success' });
+      qc.invalidateQueries({ queryKey: ['drivers'] });
+      navigate('/drivers');
+    },
+    onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
+  });
+
   if (isLoading || !driver) return <Box sx={{ p: 3 }}>Loading…</Box>;
 
   const assignedIds = new Set((driver.customers ?? []).map((c) => c.id));
@@ -85,9 +97,26 @@ export default function DriverDetails() {
           <Stack direction="row" spacing={1}>
             <Button variant="outlined" startIcon={<CampaignIcon />} onClick={() => setNotifyOpen(true)}>Notify</Button>
             <Button variant="contained" startIcon={<EditIcon />} onClick={() => navigate(`/drivers/${id}/edit`)}>Edit</Button>
+            <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setConfirmRemove(true)}>Remove</Button>
           </Stack>
         }
       />
+
+      <Dialog open={confirmRemove} onClose={() => setConfirmRemove(false)}>
+        <DialogTitle>Remove driver?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {driver.name} will be unassigned from all customers, removed, and blocked from logging
+            in. They can be restored later. Continue?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmRemove(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => removeDriver.mutate()} disabled={removeDriver.isPending}>
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Grid container spacing={2}>
         <Grid item xs={12} md={5}>

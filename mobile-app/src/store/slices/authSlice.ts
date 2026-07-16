@@ -9,6 +9,7 @@ interface User {
   role?: UserRole;
   email?: string;
   avatarUrl?: string;
+  language?: 'en' | 'hi';
 }
 
 interface AuthState {

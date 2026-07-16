@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SnackbarProvider } from 'notistack';
 import { store } from './app/store';
 import { ColorModeProvider } from './theme/ColorModeContext';
+import './i18n';
 import App from './App';
 
 const queryClient = new QueryClient({

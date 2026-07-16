@@ -35,6 +35,10 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
   noContent(res);
 });
 
+export const restore = asyncHandler(async (req: Request, res: Response) => {
+  ok(res, await driverService.restore(req.params.id), 'Driver restored');
+});
+
 // ---- Admin assignment ----
 export const assignVehicle = asyncHandler(async (req: Request, res: Response) => {
   ok(res, await driverService.assignVehicle(req.params.id, req.body.vehicleId), 'Vehicle assigned');

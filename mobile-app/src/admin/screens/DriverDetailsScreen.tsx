@@ -70,6 +70,29 @@ export default function DriverDetailsScreen() {
     catch (e) { Alert.alert('Error', errorMessage(e)); }
   };
 
+  const removeDriver = () => {
+    if (!driver) return;
+    Alert.alert(
+      'Remove driver?',
+      `${driver.name} will be unassigned from all customers, removed, and blocked from logging in. They can be restored later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminDriverApi.remove(id);
+              navigation.goBack();
+            } catch (e) {
+              Alert.alert('Error', errorMessage(e));
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading || !driver) return <Loader />;
   const assignedIds = new Set((driver.customers ?? []).map((c) => c.id));
 
@@ -116,6 +139,9 @@ export default function DriverDetailsScreen() {
           </View>
         ))}
       </View>
+
+      <View style={{ height: 20 }} />
+      <PrimaryButton title="Remove Driver" variant="outline" onPress={removeDriver} />
 
       {/* Assign modal */}
       <Modal visible={assignOpen} animationType="slide" transparent onRequestClose={() => setAssignOpen(false)}>

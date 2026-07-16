@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from 'i18next';
 import { config } from '../config';
 import { store } from '../store';
 import { setTokens, logout } from '../store/slices/authSlice';
@@ -9,6 +10,8 @@ export const api = axios.create({ baseURL: config.apiUrl, timeout: 15000 });
 api.interceptors.request.use(async (cfg) => {
   const token = store.getState().auth.accessToken;
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  // Tell the backend which language to localize server messages in.
+  cfg.headers['Accept-Language'] = i18n.language || 'en';
   if (__DEV__) {
     const method = (cfg.method ?? 'get').toUpperCase();
     const url = `${cfg.baseURL ?? config.apiUrl}${cfg.url ?? ''}`;

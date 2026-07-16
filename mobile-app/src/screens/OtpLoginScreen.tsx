@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Animated, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { sendPhoneOtp } from '../services/phoneAuth';
 import { errorMessage } from '../api/client';
 import { PrimaryButton, GradientView } from '../components/ui';
@@ -14,6 +15,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OtpLogin'>;
 
 export default function OtpLoginScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,7 @@ export default function OtpLoginScreen({ navigation }: Props) {
 
   const sendOtp = async () => {
     if (!/^[6-9]\d{9}$/.test(mobile)) {
-      Alert.alert('Invalid number', 'Enter a valid 10-digit mobile number.');
+      Alert.alert(t('auth.invalidNumberTitle'), t('auth.invalidNumberMsg'));
       return;
     }
     setLoading(true);
@@ -37,7 +39,7 @@ export default function OtpLoginScreen({ navigation }: Props) {
       await sendPhoneOtp(mobile);
       navigation.navigate('OtpVerify', { mobile });
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -56,18 +58,18 @@ export default function OtpLoginScreen({ navigation }: Props) {
           <GradientView style={styles.logoBadge}>
             <Icon name="water" size={56} color="#FFFFFF" />
           </GradientView>
-          <Text style={styles.brand}>WaterFlow</Text>
-          <Text style={styles.tagline}>Pure water, delivered.</Text>
+          <Text style={styles.brand}>{t('brand.name')}</Text>
+          <Text style={styles.tagline}>{t('brand.tagline')}</Text>
         </View>
 
         <Animated.View style={[styles.sheet, { opacity: fade, transform: [{ translateY: slide }] }]}>
-          <Text style={styles.title}>Login</Text>
-          <Text style={styles.subtitle}>We'll send an OTP to your mobile number</Text>
+          <Text style={styles.title}>{t('auth.login')}</Text>
+          <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
           <View style={styles.inputRow}>
             <Text style={styles.prefix}>+91</Text>
             <TextInput
               style={styles.input}
-              placeholder="Mobile number"
+              placeholder={t('auth.mobileNumber')}
               placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
               maxLength={10}
@@ -77,7 +79,7 @@ export default function OtpLoginScreen({ navigation }: Props) {
               blurOnSubmit
             />
           </View>
-          <PrimaryButton title="Send OTP" onPress={sendOtp} loading={loading} />
+          <PrimaryButton title={t('auth.sendOtp')} onPress={sendOtp} loading={loading} />
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>

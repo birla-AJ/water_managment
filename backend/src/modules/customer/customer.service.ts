@@ -28,6 +28,8 @@ class CustomerService {
     distributorId?: string;
   }) {
     const where: Prisma.CustomerWhereInput = {
+      // Removed (soft-deleted) customers never appear in listings.
+      blockedAt: null,
       // Per-distributor scoping: a regular admin sees only their customers.
       ...(query.distributorId ? { distributorId: query.distributorId } : {}),
       ...(query.status ? { status: query.status as Prisma.EnumCustomerStatusFilter } : {}),
@@ -100,9 +102,28 @@ class CustomerService {
     return this.getById(id);
   }
 
+  /**
+   * Soft-remove a customer: mark them blocked (hidden from lists, blocked from
+   * logging in) and revoke their sessions. Orders/invoices/payments are kept.
+   */
   async remove(id: string) {
     await this.getById(id);
-    await customerRepository.delete(id);
+    await prisma.customer.update({
+      where: { id },
+      data: { blockedAt: new Date(), status: 'INACTIVE' },
+    });
+    // Kick any existing sessions so they can't keep using the app.
+    await prisma.refreshToken.updateMany({ where: { customerId: id }, data: { revoked: true } });
+    return { id };
+  }
+
+  /** Restore a previously removed customer (re-enables login + listings). */
+  async restore(id: string) {
+    await this.getById(id);
+    await prisma.customer.update({
+      where: { id },
+      data: { blockedAt: null, status: 'ACTIVE' },
+    });
     return { id };
   }
 

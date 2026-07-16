@@ -44,6 +44,10 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
   noContent(res);
 });
 
+export const restore = asyncHandler(async (req: Request, res: Response) => {
+  ok(res, await customerService.restore(req.params.id), 'Customer restored');
+});
+
 export const getSchedules = asyncHandler(async (req: Request, res: Response) => {
   ok(res, await customerService.getSchedules(req.params.id));
 });

@@ -29,6 +29,8 @@ export const authApi = {
     api.post('/auth/otp/verify', { mobile, otp }).then((r) => r.data.data),
   me: () => api.get('/auth/me').then((r) => r.data.data),
   logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
+  setLanguage: (language: 'en' | 'hi') =>
+    api.patch('/auth/language', { language }).then((r) => r.data.data),
 };
 
 // ---- Dashboard ----
@@ -176,6 +178,30 @@ export const reportApi = {
     const base = import.meta.env.VITE_API_URL ?? 'http://13.235.27.138:4000/api/v1';
     return `${base}/reports/${type}/export?format=${format}`;
   },
+};
+
+// ---- WhatsApp (per-admin number linking) ----
+export interface WhatsAppAccount {
+  id: string;
+  label?: string;
+  status?: string;
+  live?: string;
+}
+export interface WhatsAppStatus {
+  connected: boolean;
+  accounts: WhatsAppAccount[];
+}
+export interface WhatsAppQr {
+  accountId: string;
+  status: string;
+  qr: string | null;
+}
+export const whatsappApi = {
+  status: () => api.get<ApiResponse<WhatsAppStatus>>('/whatsapp/status').then((r) => r.data.data),
+  connect: () => api.post<ApiResponse<WhatsAppQr>>('/whatsapp/connect', {}).then((r) => r.data.data),
+  qr: (accountId: string) =>
+    api.get<ApiResponse<{ status: string; qr: string | null }>>(`/whatsapp/qr/${accountId}`).then((r) => r.data.data),
+  logout: () => api.post('/whatsapp/logout', {}).then((r) => r.data.data),
 };
 
 // ---- Settings ----

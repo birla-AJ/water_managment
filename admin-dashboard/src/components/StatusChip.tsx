@@ -25,9 +25,11 @@ const MAP: Record<string, Tone> = {
   SUCCESS: GREEN,
   FAILED: RED,
   REFUNDED: GREY,
+  CONNECTED: GREEN,
+  OFFLINE: GREY,
 };
 
-export default function StatusChip({ status }: { status: string }) {
+export default function StatusChip({ status, label }: { status: string; label?: string }) {
   const tone = MAP[status] ?? GREY;
   return (
     <Box
@@ -49,7 +51,7 @@ export default function StatusChip({ status }: { status: string }) {
       }}
     >
       <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: tone.fg, flexShrink: 0 }} />
-      {status.replace(/_/g, ' ')}
+      {label ?? status.replace(/_/g, ' ')}
     </Box>
   );
 }

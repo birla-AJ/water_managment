@@ -8,6 +8,7 @@ import { useAppSelector } from '../store/hooks';
 import PillTabBar from '../components/PillTabBar';
 import AppHeader from '../components/AppHeader';
 import FloatingAiChat from '../components/ai/FloatingAiChat';
+import FirstLoginLanguageGate from '../components/FirstLoginLanguageGate';
 
 import SplashScreen from '../screens/SplashScreen';
 import OtpLoginScreen from '../screens/OtpLoginScreen';
@@ -93,6 +94,7 @@ export default function RootNavigator() {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
   return (
+    <>
     <Stack.Navigator
       screenOptions={{
         header: (props) => <AppHeader {...props} />,
@@ -131,5 +133,7 @@ export default function RootNavigator() {
         </>
       )}
     </Stack.Navigator>
+    <FirstLoginLanguageGate />
+    </>
   );
 }

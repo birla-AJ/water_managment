@@ -36,6 +36,7 @@ router.post('/', ...admin, validate(createCustomerSchema), ctrl.create);
 router.get('/:id', ...admin, ctrl.getOne);
 router.put('/:id', ...admin, validate(updateCustomerSchema), ctrl.update);
 router.delete('/:id', authenticate('admin'), authorize('SUPER_ADMIN', 'ADMIN'), ctrl.remove);
+router.post('/:id/restore', authenticate('admin'), authorize('SUPER_ADMIN', 'ADMIN'), ctrl.restore);
 
 router.get('/:id/schedules', ...admin, ctrl.getSchedules);
 router.put('/:id/schedules', ...admin, validate(updateScheduleSchema), ctrl.updateSchedules);

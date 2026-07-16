@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCredentials, setBootstrapped, setProfileComplete, isProfileComplete } from '../store/slices/authSlice';
 import { authApi, meApi } from '../api/endpoints';
 import { setupNotifications } from '../services/notifications';
+import { applyStoredLanguage, setAppLanguage } from '../i18n';
 
 export default function SplashScreen() {
   const dispatch = useAppDispatch();
@@ -24,6 +25,8 @@ export default function SplashScreen() {
   // ── Bootstrap auth in the background (does NOT auto-navigate) ──────────────
   useEffect(() => {
     (async () => {
+      // Apply the locally-saved language before anything renders.
+      await applyStoredLanguage();
       try {
         const raw = await AsyncStorage.getItem('wf_tokens');
         if (raw) {
@@ -32,7 +35,9 @@ export default function SplashScreen() {
           const me = await authApi.me();
           const isAdmin = me.role === 'ADMIN' || me.role === 'SUPER_ADMIN';
           const role = me.role === 'DRIVER' ? 'DRIVER' : isAdmin ? me.role : 'CUSTOMER';
-          dispatch(setCredentials({ user: { id: me.id, name: me.name, mobile: me.mobile, role, email: me.email }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
+          // Sync language from the server (may have changed on another device).
+          if (me.language === 'en' || me.language === 'hi') await setAppLanguage(me.language);
+          dispatch(setCredentials({ user: { id: me.id, name: me.name, mobile: me.mobile, role, email: me.email, language: me.language }, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
           if (role === 'DRIVER') {
             // Drivers have no customer onboarding step.
             dispatch(setProfileComplete(true));

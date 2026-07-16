@@ -8,6 +8,7 @@ export const authApi = {
     api.post('/auth/firebase-login', { firebaseToken, fcmToken }).then((r) => r.data.data),
   me: () => api.get('/auth/me').then((r) => r.data.data),
   updateFcm: (fcmToken: string) => api.patch('/auth/fcm-token', { fcmToken }),
+  setLanguage: (language: 'en' | 'hi') => api.patch('/auth/language', { language }).then((r) => r.data.data),
   logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
 };
 

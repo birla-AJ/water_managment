@@ -6,6 +6,7 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
@@ -26,17 +27,18 @@ export default function Login() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation();
   const token = useAppSelector((s) => s.auth.accessToken);
   if (token) navigate('/');
 
   const finishLogin = (res: { accessToken: string; refreshToken: string; user: { role?: string } }) => {
     // Only admins may use this dashboard — reject customer/driver tokens.
     if (res.user?.role !== 'ADMIN' && res.user?.role !== 'SUPER_ADMIN') {
-      enqueueSnackbar('This number is not registered as an admin.', { variant: 'error' });
+      enqueueSnackbar(t('login.notAdmin'), { variant: 'error' });
       return;
     }
     dispatch(setCredentials({ accessToken: res.accessToken, refreshToken: res.refreshToken, user: res.user as never }));
-    enqueueSnackbar('Welcome back!', { variant: 'success' });
+    enqueueSnackbar(t('login.welcomeBack'), { variant: 'success' });
     // Super admins land on the Admins screen; regular admins on the dashboard.
     navigate(res.user?.role === 'SUPER_ADMIN' ? '/admins' : '/dashboard');
   };
@@ -60,7 +62,7 @@ export default function Login() {
     try {
       const res = await authApi.requestOtp(mobile);
       setOtpSent(true);
-      enqueueSnackbar(res?.devOtp ? `OTP: ${res.devOtp} (dev mode)` : 'OTP sent', { variant: 'success' });
+      enqueueSnackbar(res?.devOtp ? `OTP: ${res.devOtp} (dev mode)` : t('login.otpSent'), { variant: 'success' });
     } catch (err) {
       enqueueSnackbar(apiErrorMessage(err), { variant: 'error' });
     } finally {
@@ -114,8 +116,8 @@ export default function Login() {
             >
               <WaterDropIcon sx={{ fontSize: 36 }} />
             </Box>
-            <Typography variant="h5" fontWeight={800}>WaterFlow ERP</Typography>
-            <Typography variant="body2" color="text.secondary">Sign in to your admin dashboard</Typography>
+            <Typography variant="h5" fontWeight={800}>{t('login.appName')}</Typography>
+            <Typography variant="body2" color="text.secondary">{t('login.subtitle')}</Typography>
           </Stack>
 
           {mode === 'email' ? (
@@ -123,7 +125,7 @@ export default function Login() {
               <form onSubmit={submit}>
                 <Stack spacing={2.25}>
                   <TextField
-                    label="Email"
+                    label={t('login.email')}
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -133,7 +135,7 @@ export default function Login() {
                     InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" /></InputAdornment> }}
                   />
                   <PasswordField
-                    label="Password"
+                    label={t('login.password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     fullWidth
@@ -141,19 +143,19 @@ export default function Login() {
                     InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" /></InputAdornment> }}
                   />
                   <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ py: 1.3, mt: 0.5 }}>
-                    {loading ? 'Signing in…' : 'Sign In'}
+                    {loading ? t('login.signingIn') : t('login.signIn')}
                   </Button>
                 </Stack>
               </form>
 
-              <Divider sx={{ my: 2.5 }}>or</Divider>
+              <Divider sx={{ my: 2.5 }}>{t('login.or')}</Divider>
               <Button
                 fullWidth
                 variant="outlined"
                 startIcon={<PhoneIphoneIcon fontSize="small" />}
                 onClick={() => { setMode('otp'); setOtpSent(false); }}
               >
-                Login with mobile OTP
+                {t('login.loginWithOtp')}
               </Button>
             </>
           ) : (
@@ -161,47 +163,47 @@ export default function Login() {
               <form onSubmit={otpSent ? verifyOtp : sendOtp}>
                 <Stack spacing={2.25}>
                   <TextField
-                    label="Mobile Number"
+                    label={t('login.mobileNumber')}
                     type="tel"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     fullWidth
                     required
                     disabled={otpSent}
-                    placeholder="10-digit mobile"
+                    placeholder={t('login.mobilePlaceholder')}
                     InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
                   />
                   {otpSent && (
                     <TextField
-                      label="OTP"
+                      label={t('login.otp')}
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       fullWidth
                       required
                       autoFocus
-                      placeholder="Enter the code"
+                      placeholder={t('login.enterCode')}
                       InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" /></InputAdornment> }}
                     />
                   )}
                   <Button type="submit" variant="contained" size="large" disabled={loading || mobile.length !== 10} sx={{ py: 1.3, mt: 0.5 }}>
-                    {loading ? 'Please wait…' : otpSent ? 'Verify & Sign In' : 'Send OTP'}
+                    {loading ? t('login.pleaseWait') : otpSent ? t('login.verifySignIn') : t('login.sendOtp')}
                   </Button>
                   {otpSent && (
                     <Button variant="text" size="small" onClick={() => setOtpSent(false)} disabled={loading}>
-                      Change number
+                      {t('login.changeNumber')}
                     </Button>
                   )}
                 </Stack>
               </form>
 
-              <Divider sx={{ my: 2.5 }}>or</Divider>
+              <Divider sx={{ my: 2.5 }}>{t('login.or')}</Divider>
               <Button
                 fullWidth
                 variant="outlined"
                 startIcon={<EmailOutlinedIcon fontSize="small" />}
                 onClick={() => { setMode('email'); setOtpSent(false); }}
               >
-                Back to email login
+                {t('login.backToEmail')}
               </Button>
             </>
           )}
