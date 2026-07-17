@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { NotificationAudience, NotificationType } from '@prisma/client';
+import { CustomerStatus, DriverStatus } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
@@ -15,7 +15,6 @@ import { generateOtp } from '../../utils/generators';
 import { sendOtpSms } from '../../config/sms';
 import { waSendPriority, toWaNumber } from '../../config/whatsapp';
 import { t } from '../../config/i18n';
-import { notificationService } from '../notification/notification.service';
 import { getFirebaseAdmin } from '../../config/firebase';
 import { logger } from '../../config/logger';
 import { AdminLoginDto, RequestOtpDto, VerifyOtpDto, FirebaseLoginDto } from './auth.dto';
@@ -47,8 +46,7 @@ class AuthService {
    */
   /**
    * Reject login for a number whose customer or driver record was removed by an
-   * admin (soft delete). Prevents both re-login of a removed account and the
-   * silent re-creation of a removed customer via auto-registration.
+   * admin (soft delete).
    */
   private async assertNotRemoved(mobile: string) {
     const [driver, customer] = await Promise.all([
@@ -58,6 +56,35 @@ class AuthService {
     if (driver?.blockedAt || customer?.blockedAt) {
       throw ApiError.forbidden('This account has been removed. Please contact support.');
     }
+  }
+
+  /**
+   * Mobile access is invitation-only: a Super Admin/Admin must first create
+   * the customer, driver, or admin record. This check runs before OTP delivery
+   * as well as token issuance, so unregistered numbers cannot consume OTPs or
+   * be auto-created through either the native or Firebase auth path.
+   */
+  private async assertMobileLoginAllowed(mobile: string) {
+    await this.assertNotRemoved(mobile);
+
+    const [customer, driver, admin] = await Promise.all([
+      prisma.customer.findUnique({ where: { mobile }, select: { status: true } }),
+      prisma.driver.findUnique({ where: { mobile }, select: { status: true } }),
+      prisma.admin.findUnique({ where: { mobile }, select: { isActive: true } }),
+    ]);
+
+    const hasActiveAccount =
+      customer?.status === CustomerStatus.ACTIVE ||
+      driver?.status === DriverStatus.ACTIVE ||
+      admin?.isActive === true;
+    if (hasActiveAccount) return;
+
+    if (customer || driver || admin) {
+      throw ApiError.forbidden('This account is inactive. Please contact your administrator.');
+    }
+    throw ApiError.forbidden(
+      'This mobile number has not been added by an administrator. Please contact your administrator.'
+    );
   }
 
   private async loginAsDriverIfRegistered(mobile: string, fcmToken?: string) {
@@ -120,10 +147,11 @@ class AuthService {
 
   // ---------------- CUSTOMER OTP ----------------
   async requestOtp(dto: RequestOtpDto) {
-    // Test mode (or non-prod): use the fixed dev code and return it in the
-    // response so login works without a real SMS gateway. Otherwise generate a
-    // random code and deliver it via the configured SMS provider.
-    const testMode = !env.isProd || env.otp.testMode;
+    // Test mode uses the fixed development code and returns it in the response.
+    // When a real provider is configured it can be tested from development too.
+    await this.assertMobileLoginAllowed(dto.mobile);
+
+    const testMode = env.otp.testMode || (!env.isProd && env.sms.provider === 'console');
     const code = testMode ? env.otp.devCode : generateOtp();
     const expiresAt = dayjs().add(env.otp.expiresMinutes, 'minute').toDate();
 
@@ -188,8 +216,7 @@ class AuthService {
 
     await prisma.otpCode.update({ where: { id: otp.id }, data: { consumed: true } });
 
-    // Removed accounts (customer or driver) can't log in or be re-created.
-    await this.assertNotRemoved(dto.mobile);
+    await this.assertMobileLoginAllowed(dto.mobile);
 
     // Registered driver numbers log in as drivers (no customer record created).
     const asDriver = await this.loginAsDriverIfRegistered(dto.mobile, dto.fcmToken);
@@ -200,26 +227,15 @@ class AuthService {
     if (asAdmin) return asAdmin;
 
     let customer = await prisma.customer.findUnique({ where: { mobile: dto.mobile } });
-    let isNew = false;
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: { name: dto.name?.trim() || `Customer ${dto.mobile.slice(-4)}`, mobile: dto.mobile, fcmToken: dto.fcmToken },
-      });
-      isNew = true;
-      await notificationService.notify({
-        audience: NotificationAudience.ADMIN,
-        type: NotificationType.NEW_CUSTOMER,
-        titleKey: 'notify.newCustomer.title',
-        bodyKey: 'notify.newCustomer.body',
-        vars: { name: customer.name, mobile: customer.mobile },
-        data: { customerId: customer.id },
-      });
-    } else if (dto.fcmToken) {
+    // assertMobileLoginAllowed guarantees one of the three account types exists.
+    // Driver/admin matches returned above take precedence, so this must be a customer.
+    if (!customer) throw ApiError.forbidden('This mobile number is not authorized for customer login.');
+    if (dto.fcmToken) {
       customer = await prisma.customer.update({ where: { id: customer.id }, data: { fcmToken: dto.fcmToken } });
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
-    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
+    return { ...tokens, isNew: false, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
   }
 
   // ---------------- FIREBASE PHONE AUTH ----------------
@@ -252,8 +268,7 @@ class AuthService {
       throw ApiError.badRequest('Unsupported phone number');
     }
 
-    // Removed accounts (customer or driver) can't log in or be re-created.
-    await this.assertNotRemoved(mobile);
+    await this.assertMobileLoginAllowed(mobile);
 
     // Registered driver numbers log in as drivers (no customer record created).
     const asDriver = await this.loginAsDriverIfRegistered(mobile, dto.fcmToken);
@@ -266,22 +281,8 @@ class AuthService {
     if (asAdmin) return asAdmin;
 
     let customer = await prisma.customer.findUnique({ where: { mobile } });
-    let isNew = false;
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: { name: `Customer ${mobile.slice(-4)}`, mobile, fcmToken: dto.fcmToken },
-      });
-      isNew = true;
-      logger.info(`[Auth/firebase-login] Created customer mobile=${mobile} customerId=${customer.id}`);
-      await notificationService.notify({
-        audience: NotificationAudience.ADMIN,
-        type: NotificationType.NEW_CUSTOMER,
-        titleKey: 'notify.newCustomer.title',
-        bodyKey: 'notify.newCustomer.body',
-        vars: { name: customer.name, mobile: customer.mobile },
-        data: { customerId: customer.id },
-      });
-    } else if (dto.fcmToken) {
+    if (!customer) throw ApiError.forbidden('This mobile number is not authorized for customer login.');
+    if (dto.fcmToken) {
       customer = await prisma.customer.update({ where: { id: customer.id }, data: { fcmToken: dto.fcmToken } });
       logger.info(`[Auth/firebase-login] Updated customer FCM mobile=${mobile} customerId=${customer.id}`);
     } else {
@@ -289,8 +290,8 @@ class AuthService {
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
-    logger.info(`[Auth/firebase-login] Issued customer tokens mobile=${mobile} isNew=${isNew}`);
-    return { ...tokens, isNew, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
+    logger.info(`[Auth/firebase-login] Issued customer tokens mobile=${mobile}`);
+    return { ...tokens, isNew: false, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
   }
 
   // ---------------- REFRESH / LOGOUT ----------------

@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platfor
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { sendPhoneOtp } from '../services/phoneAuth';
+import { authApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
 import { PrimaryButton, GradientView } from '../components/ui';
 import WaterDrops from '../components/WaterDrops';
@@ -36,7 +36,9 @@ export default function OtpLoginScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      await sendPhoneOtp(mobile);
+      // The backend checks that this mobile belongs to a customer, driver, or
+      // admin created by an administrator before it sends an APITxT OTP.
+      await authApi.requestOtp(mobile);
       navigation.navigate('OtpVerify', { mobile });
     } catch (e) {
       Alert.alert(t('common.error'), errorMessage(e));

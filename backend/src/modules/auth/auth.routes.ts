@@ -42,7 +42,7 @@ router.post('/admin/login', authLimiter, validate(adminLoginSchema), ctrl.adminL
  * /auth/otp/request:
  *   post:
  *     tags: [Auth]
- *     summary: Request an OTP for customer login
+ *     summary: Request an OTP for an administrator-created customer, driver, or admin account
  *     requestBody:
  *       required: true
  *       content:
@@ -62,7 +62,7 @@ router.post('/otp/request', authLimiter, validate(requestOtpSchema), ctrl.reques
  * /auth/otp/verify:
  *   post:
  *     tags: [Auth]
- *     summary: Verify OTP and log the customer in (auto-registers new numbers)
+ *     summary: Verify OTP and log in an administrator-created account
  *     responses:
  *       200: { description: OTP verified }
  */
@@ -73,7 +73,7 @@ router.post('/otp/verify', authLimiter, validate(verifyOtpSchema), ctrl.verifyOt
  * /auth/firebase-login:
  *   post:
  *     tags: [Auth]
- *     summary: Log in with a Firebase phone-auth ID token (auto-registers new numbers)
+ *     summary: Log in an administrator-created account with a Firebase phone-auth ID token
  *     responses:
  *       200: { description: Login successful }
  */

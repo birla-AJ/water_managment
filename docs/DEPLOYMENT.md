@@ -47,6 +47,7 @@ export JWT_ACCESS_SECRET=$(openssl rand -hex 32)
 export JWT_REFRESH_SECRET=$(openssl rand -hex 32)
 export GOOGLE_MAPS_API_KEY=your_google_maps_key
 export OPENAI_API_KEY=your_openai_key_optional
+export AI_CUSTOMER_DAILY_LIMIT=20
 docker compose up --build -d
 ```
 - DB: localhost:5432

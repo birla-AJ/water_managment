@@ -8,11 +8,11 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: waterflow
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,8 +34,16 @@ services:
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      AI_CUSTOMER_DAILY_LIMIT: ${AI_CUSTOMER_DAILY_LIMIT:-3}
+      SMS_PROVIDER: ${SMS_PROVIDER:-console}
+      APITXT_AUTH_KEY: ${APITXT_AUTH_KEY:-}
+      APITXT_API_URL: ${APITXT_API_URL:-https://apitxt.com/api/sendOTP}
     ports:
-      - "4000:4000"
+      - '4000:4000'
     volumes:
       - uploads:/app/uploads
 
@@ -49,7 +57,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - '8080:80'
 
 volumes:
   db_data:

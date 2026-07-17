@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { authApi, meApi } from '../api/endpoints';
-import { confirmPhoneOtp } from '../services/phoneAuth';
 import { errorMessage } from '../api/client';
 import { PrimaryButton } from '../components/ui';
 import { useAppDispatch } from '../store/hooks';
@@ -36,9 +35,9 @@ export default function OtpVerifyScreen({ route }: Props) {
     }
     setLoading(true);
     try {
-      // Verify the code with Firebase, then exchange the Firebase token for our JWT.
-      const firebaseToken = await confirmPhoneOtp(code);
-      const res = await authApi.firebaseLogin(firebaseToken);
+      // APITxT delivers the code; our backend verifies its locally stored OTP
+      // and returns the role-specific WaterFlow session.
+      const res = await authApi.verifyOtp(mobile, code);
       await AsyncStorage.setItem('wf_tokens', JSON.stringify({ accessToken: res.accessToken, refreshToken: res.refreshToken }));
 
       // Drivers skip the customer onboarding entirely and go straight to the
@@ -57,17 +56,14 @@ export default function OtpVerifyScreen({ route }: Props) {
         return;
       }
 
-      // Decide up-front whether to force the onboarding screen, so the navigator
-      // never flashes the main tabs first. New signups always onboard; returning
-      // users only if their profile is still incomplete.
-      let complete = !res.isNew;
-      if (!res.isNew) {
-        dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));
-        try {
-          complete = isProfileComplete(await meApi.profile());
-        } catch {
-          complete = true; // don't block login if the profile fetch fails
-        }
+      // Customers are created by an administrator. Check whether the assigned
+      // profile is complete before choosing the first customer screen.
+      let complete = true;
+      dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));
+      try {
+        complete = isProfileComplete(await meApi.profile());
+      } catch {
+        complete = true; // don't block login if the profile fetch fails
       }
       dispatch(setProfileComplete(complete));
       dispatch(setCredentials({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken }));

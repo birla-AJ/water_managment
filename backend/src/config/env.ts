@@ -38,9 +38,13 @@ export const env = {
   },
 
   sms: {
-    // 'msg91' | 'fast2sms' | 'twilio' | 'console' (console = log only, no real SMS)
+    // 'apitxt' | 'msg91' | 'fast2sms' | 'twilio' | 'console' (console = log only, no real SMS)
     provider: (process.env.SMS_PROVIDER ?? 'console').toLowerCase(),
     senderId: process.env.SMS_SENDER_ID ?? '',
+    apitxt: {
+      authKey: process.env.APITXT_AUTH_KEY ?? '',
+      apiUrl: process.env.APITXT_API_URL ?? 'https://apitxt.com/api/sendOTP',
+    },
     msg91: {
       authKey: process.env.MSG91_AUTH_KEY ?? '',
       templateId: process.env.MSG91_TEMPLATE_ID ?? '',

@@ -3,7 +3,8 @@ import { logger } from './logger';
 
 // ── SMS gateway ─────────────────────────────────────────────────────────────
 // Provider-agnostic OTP sender. Choose the provider via SMS_PROVIDER:
-//   'msg91' | 'fast2sms' | 'twilio' | 'console' (default: console = log only)
+//   'apitxt' | 'msg91' | 'fast2sms' | 'twilio' | 'console'
+// (default: console = log only)
 // Each provider reads its own credentials from env (see src/config/env.ts).
 //
 // All send functions throw on failure; sendOtpSms() catches and logs so the
@@ -22,6 +23,24 @@ async function postForm(url: string, body: Record<string, string>, headers: Reco
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
   return res.json().catch(() => ({}));
+}
+
+// APITxT OTP API. The application generates and stores the code locally; APITxT
+// is used only to deliver it, so verification remains in our existing auth flow.
+async function sendViaApiTxt(mobile: string, otp: string) {
+  const { authKey, apiUrl } = env.sms.apitxt;
+  if (!authKey) throw new Error('APITXT_AUTH_KEY not set');
+
+  const result = await postForm(apiUrl, {
+    authkey: authKey,
+    mobile: `91${mobile}`,
+    otp,
+  });
+
+  const status = String(result?.status ?? '').toLowerCase();
+  if (status && status !== 'success' && status !== '200') {
+    throw new Error(result?.message ?? 'APITxT rejected the OTP request');
+  }
 }
 
 // MSG91 OTP API — India's most common transactional/OTP provider (DLT compliant).
@@ -69,6 +88,9 @@ export async function sendOtpSms(mobile: string, otp: string): Promise<SmsResult
   const provider = env.sms.provider;
   try {
     switch (provider) {
+      case 'apitxt':
+        await sendViaApiTxt(mobile, otp);
+        break;
       case 'msg91':
         await sendViaMsg91(mobile, otp);
         break;

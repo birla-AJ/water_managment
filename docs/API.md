@@ -17,7 +17,7 @@ Authenticated endpoints require `Authorization: Bearer <accessToken>`.
 |--------|----------|------|-------------|
 | POST | `/auth/admin/login` | — | Admin email+password login |
 | POST | `/auth/otp/request` | — | Send OTP to a mobile (dev OTP `123456`) |
-| POST | `/auth/otp/verify` | — | Verify OTP, auto-register, return tokens |
+| POST | `/auth/otp/verify` | — | Verify OTP for an administrator-created account and return tokens |
 | POST | `/auth/refresh` | — | Rotate refresh token |
 | POST | `/auth/logout` | — | Revoke refresh token |
 | GET | `/auth/me` | any | Current principal |
@@ -133,4 +133,4 @@ AI chat returns a short answer plus optional visual data for app screens:
 }
 ```
 
-Customer AI chat is limited by `AI_CUSTOMER_DAILY_LIMIT` (`3` by default). If `OPENAI_API_KEY` is blank, the backend still returns local ERP summaries; with the key, it polishes the answer in the same language/script as the question.
+WaterFlow AI chat is limited by `AI_CUSTOMER_DAILY_LIMIT` (`3` by default) for both admin and customer accounts. If `OPENAI_API_KEY` is blank, the backend still returns local ERP summaries; with the key, it polishes the answer in the same language/script as the question.

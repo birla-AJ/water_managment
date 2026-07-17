@@ -50,7 +50,7 @@ Cross-cutting concerns live in `middlewares/` (auth, validation, rate-limit, err
 ## Auth
 
 - **Admins** authenticate with email + password → bcrypt verify → JWT access (15m) + refresh (30d).
-- **Customers** authenticate with mobile + OTP (auto-registration on first verify) → JWT access + refresh.
+- **Customers, drivers, and admins** authenticate with mobile + OTP only after an administrator has created their account → JWT access + refresh.
 - Refresh tokens are persisted (`refresh_tokens` table), rotated on use, and revocable.
 - `authenticate(principal?)` guards routes; `authorize(...roles)` restricts admin role.
 
