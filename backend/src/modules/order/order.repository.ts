@@ -11,7 +11,7 @@ class OrderRepository {
   findById(id: string) {
     return prisma.order.findUnique({
       where: { id },
-      include: { customer: { select: { id: true, name: true, mobile: true, area: true } }, items: true, delivery: true },
+      include: { customer: { select: { id: true, name: true, mobile: true, area: true, distributorId: true } }, items: true, delivery: true },
     });
   }
   create(data: Prisma.OrderCreateInput) {

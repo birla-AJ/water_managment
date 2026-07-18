@@ -4,17 +4,18 @@ import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
 import { notificationService } from '../notification/notification.service';
 
-const INV_ID = 'default';
-
 class InventoryService {
-  async get() {
-    let inv = await prisma.inventory.findUnique({ where: { id: INV_ID } });
-    if (!inv) inv = await prisma.inventory.create({ data: { id: INV_ID } });
+  async get(adminId?: string) {
+    // Legacy inventory is reserved for super-admin. Every regular admin gets a
+    // lazily-created, independent stock record keyed by their admin id.
+    const where = adminId ? { adminId } : { id: 'default' };
+    let inv = await prisma.inventory.findUnique({ where });
+    if (!inv) inv = await prisma.inventory.create({ data: adminId ? { id: adminId, adminId } : { id: 'default' } });
     return inv;
   }
 
-  async logs(params: { skip: number; take: number; action?: InventoryAction }) {
-    const where = params.action ? { action: params.action } : {};
+  async logs(params: { skip: number; take: number; action?: InventoryAction; adminId?: string }) {
+    const where = { ...(params.action ? { action: params.action } : {}), ...(params.adminId ? { adminId: params.adminId } : {}) };
     const [items, total] = await Promise.all([
       prisma.inventoryLog.findMany({
         where,
@@ -52,22 +53,24 @@ class InventoryService {
       (updateData as Record<string, unknown>)[key] = { increment: val };
     }
 
+    const inventory = await this.get(adminId);
     const [inv] = await prisma.$transaction([
-      prisma.inventory.update({ where: { id: INV_ID }, data: updateData }),
+      prisma.inventory.update({ where: { id: inventory.id }, data: updateData }),
       prisma.inventoryLog.create({ data: { action, quantity, adminId, remarks } }),
     ]);
 
-    await this.checkLowStock(inv.filledCampers);
+    await this.checkLowStock(inv.filledCampers, adminId);
     return inv;
   }
 
-  private async checkLowStock(filled: number) {
+  private async checkLowStock(filled: number, adminId?: string) {
     if (filled <= env.inventory.lowThreshold) {
       await notificationService.notify({
         audience: NotificationAudience.ADMIN,
         type: NotificationType.INVENTORY_LOW,
         title: 'Low inventory alert',
         body: `Only ${filled} filled campers remaining (threshold ${env.inventory.lowThreshold}).`,
+        adminId,
       });
     }
   }

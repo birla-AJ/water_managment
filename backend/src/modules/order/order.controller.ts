@@ -23,17 +23,28 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getOne = asyncHandler(async (req: Request, res: Response) => {
-  ok(res, await orderService.getById(req.params.id));
+  const order = await orderService.getById(req.params.id);
+  const adminId = scopedDistributorId(req.user);
+  if (adminId && order.customer.distributorId !== adminId) throw ApiError.forbidden('This order is not assigned to you');
+  ok(res, order);
 });
 
 // Admin creates an order on behalf of a customer.
 export const create = asyncHandler(async (req: Request, res: Response) => {
   if (!req.body.customerId) throw ApiError.badRequest('customerId is required');
+  const adminId = scopedDistributorId(req.user);
+  if (adminId) {
+    const customer = await orderService.list({ skip: 0, take: 1, customerId: req.body.customerId, distributorId: adminId });
+    if (!customer.total) throw ApiError.forbidden('This customer is not assigned to you');
+  }
   const order = await orderService.create(req.body, { customerId: req.body.customerId, bySelf: false });
   created(res, order, 'Order created');
 });
 
 export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
+  const order = await orderService.getById(req.params.id);
+  const adminId = scopedDistributorId(req.user);
+  if (adminId && order.customer.distributorId !== adminId) throw ApiError.forbidden('This order is not assigned to you');
   ok(res, await orderService.updateStatus(req.params.id, req.body.status, req.body.remarks), 'Order updated');
 });
 

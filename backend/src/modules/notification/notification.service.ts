@@ -5,6 +5,7 @@ import { env } from '../../config/env';
 import { waSend, toWaNumber } from '../../config/whatsapp';
 import { t } from '../../config/i18n';
 import { logger } from '../../config/logger';
+import { ApiError } from '../../utils/apiError';
 
 interface NotifyInput {
   audience: NotificationAudience;
@@ -18,6 +19,7 @@ interface NotifyInput {
   body?: string;
   customerId?: string;
   driverId?: string;
+  adminId?: string;
   data?: Record<string, string>;
 }
 
@@ -57,6 +59,7 @@ class NotificationService {
         body,
         customerId: input.customerId,
         driverId: input.driverId,
+        adminId: input.adminId,
         data: input.data ?? undefined,
       },
     });
@@ -108,11 +111,12 @@ class NotificationService {
     }
   }
 
-  async list(params: { audience?: NotificationAudience; customerId?: string; driverId?: string; skip: number; take: number }) {
+  async list(params: { audience?: NotificationAudience; customerId?: string; driverId?: string; adminId?: string; skip: number; take: number }) {
     const where = {
       ...(params.audience ? { audience: params.audience } : {}),
       ...(params.customerId ? { customerId: params.customerId } : {}),
       ...(params.driverId ? { driverId: params.driverId } : {}),
+      ...(params.adminId ? { adminId: params.adminId } : {}),
     };
     const [items, total] = await Promise.all([
       prisma.notification.findMany({ where, orderBy: { createdAt: 'desc' }, skip: params.skip, take: params.take }),
@@ -121,15 +125,18 @@ class NotificationService {
     return { items, total };
   }
 
-  async markRead(id: string) {
+  async markRead(id: string, scope: { audience: NotificationAudience; customerId?: string; driverId?: string; adminId?: string }) {
+    const notification = await prisma.notification.findFirst({ where: { id, ...scope } });
+    if (!notification) throw ApiError.notFound('Notification not found');
     return prisma.notification.update({ where: { id }, data: { isRead: true } });
   }
 
-  async markAllRead(opts: { customerId?: string; driverId?: string; audience?: NotificationAudience }) {
+  async markAllRead(opts: { customerId?: string; driverId?: string; adminId?: string; audience?: NotificationAudience }) {
     return prisma.notification.updateMany({
       where: {
         ...(opts.customerId ? { customerId: opts.customerId } : {}),
         ...(opts.driverId ? { driverId: opts.driverId } : {}),
+        ...(opts.adminId ? { adminId: opts.adminId } : {}),
         ...(opts.audience ? { audience: opts.audience } : {}),
         isRead: false,
       },
@@ -137,13 +144,14 @@ class NotificationService {
     });
   }
 
-  async unreadCount(params: { audience?: NotificationAudience; customerId?: string; driverId?: string }) {
+  async unreadCount(params: { audience?: NotificationAudience; customerId?: string; driverId?: string; adminId?: string }) {
     return prisma.notification.count({
       where: {
         isRead: false,
         ...(params.audience ? { audience: params.audience } : {}),
         ...(params.customerId ? { customerId: params.customerId } : {}),
         ...(params.driverId ? { driverId: params.driverId } : {}),
+        ...(params.adminId ? { adminId: params.adminId } : {}),
       },
     });
   }

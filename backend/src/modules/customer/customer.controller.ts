@@ -19,7 +19,7 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getOne = asyncHandler(async (req: Request, res: Response) => {
-  const customer = await customerService.getById(req.params.id);
+  const customer = await assertCustomerAccess(req);
   // A scoped (non-super) admin may only open their own distributor's customers.
   const scope = scopedDistributorId(req.user);
   if (scope && (customer as { distributorId?: string | null }).distributorId !== scope) {
@@ -27,6 +27,15 @@ export const getOne = asyncHandler(async (req: Request, res: Response) => {
   }
   ok(res, customer);
 });
+
+async function assertCustomerAccess(req: Request) {
+  const customer = await customerService.getById(req.params.id);
+  const scope = scopedDistributorId(req.user);
+  if (scope && (customer as { distributorId?: string | null }).distributorId !== scope) {
+    throw ApiError.forbidden('This customer is not assigned to you');
+  }
+  return customer;
+}
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
   // Tag the customer with the admin who created it (audit) and, for a regular
@@ -36,39 +45,48 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.update(req.params.id, req.body), 'Customer updated');
 });
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   await customerService.remove(req.params.id);
   noContent(res);
 });
 
 export const restore = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.restore(req.params.id), 'Customer restored');
 });
 
 export const getSchedules = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.getSchedules(req.params.id));
 });
 
 export const updateSchedules = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.updateSchedules(req.params.id, req.body.schedules), 'Schedule updated');
 });
 
 export const pause = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.pause(req.params.id, req.body.pausedFrom, req.body.pausedTo), 'Deliveries paused');
 });
 
 export const resume = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.resume(req.params.id), 'Deliveries resumed');
 });
 
 export const getSkipDates = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.getSkipDates(req.params.id));
 });
 
 export const setSkipDates = asyncHandler(async (req: Request, res: Response) => {
+  await assertCustomerAccess(req);
   ok(res, await customerService.setSkipDates(req.params.id, req.body.dates), 'Unavailable days updated');
 });
 

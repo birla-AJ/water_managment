@@ -107,6 +107,7 @@ class OrderService {
         type: NotificationType.NEW_ORDER_REQUEST,
         title: 'New order request',
         body: `${customer.name} requested ${dto.quantity} camper(s).`,
+        adminId: customer.distributorId ?? undefined,
         data: { orderId: order.id },
       });
     }

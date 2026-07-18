@@ -4,6 +4,7 @@ import { ok } from '../../utils/apiResponse';
 import { ApiError } from '../../utils/apiError';
 import { reportService, ReportType } from './report.service';
 import { exportExcel, exportCsv, exportPdf } from './report.export';
+import { scopedDistributorId } from '../../utils/scope';
 
 const VALID: ReportType[] = ['daily', 'weekly', 'monthly', 'yearly', 'revenue', 'customer', 'inventory', 'order', 'payment'];
 
@@ -18,12 +19,13 @@ export const getReport = asyncHandler(async (req: Request, res: Response) => {
   const report = await reportService.build(type, {
     from: req.query.from ? new Date(req.query.from as string) : undefined,
     to: req.query.to ? new Date(req.query.to as string) : undefined,
+    adminId: scopedDistributorId(req.user),
   });
   ok(res, report);
 });
 
 export const summary = asyncHandler(async (req: Request, res: Response) => {
-  ok(res, await reportService.summary(parseType(req.params.type)));
+  ok(res, await reportService.summary(parseType(req.params.type), scopedDistributorId(req.user)));
 });
 
 export const exportReport = asyncHandler(async (req: Request, res: Response) => {
@@ -32,6 +34,7 @@ export const exportReport = asyncHandler(async (req: Request, res: Response) => 
   const report = await reportService.build(type, {
     from: req.query.from ? new Date(req.query.from as string) : undefined,
     to: req.query.to ? new Date(req.query.to as string) : undefined,
+    adminId: scopedDistributorId(req.user),
   });
 
   if (format === 'csv') return exportCsv(res, report);

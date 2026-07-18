@@ -4,11 +4,17 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok } from '../../utils/apiResponse';
 import { getPagination, buildMeta } from '../../utils/pagination';
 import { notificationService } from './notification.service';
+import { scopedDistributorId } from '../../utils/scope';
 
 /** Admin: list admin-audience notifications. */
 export const listAdminNotifications = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip } = getPagination(req.query);
-  const { items, total } = await notificationService.list({ audience: NotificationAudience.ADMIN, skip, take: limit });
+  const { items, total } = await notificationService.list({
+    audience: NotificationAudience.ADMIN,
+    adminId: scopedDistributorId(req.user),
+    skip,
+    take: limit,
+  });
   ok(res, items, 'Notifications', buildMeta(total, page, limit));
 });
 
@@ -40,7 +46,7 @@ export const listDriverNotifications = asyncHandler(async (req: Request, res: Re
 function scopeFor(req: Request) {
   switch (req.user!.principal) {
     case 'admin':
-      return { audience: NotificationAudience.ADMIN };
+      return { audience: NotificationAudience.ADMIN, adminId: scopedDistributorId(req.user) };
     case 'driver':
       return { audience: NotificationAudience.DRIVER, driverId: req.user!.sub };
     default:
@@ -54,7 +60,7 @@ export const unreadCount = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const markRead = asyncHandler(async (req: Request, res: Response) => {
-  const n = await notificationService.markRead(req.params.id);
+  const n = await notificationService.markRead(req.params.id, scopeFor(req));
   ok(res, n, 'Marked read');
 });
 

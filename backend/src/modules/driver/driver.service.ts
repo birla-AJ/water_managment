@@ -23,6 +23,7 @@ const driverPublicSelect = {
   zone: true,
   status: true,
   vehicleId: true,
+  adminId: true,
   isOnDuty: true,
   dutyStartedAt: true,
   lastSeenAt: true,
@@ -32,10 +33,11 @@ const driverPublicSelect = {
 
 class DriverService {
   // ===================== ADMIN =====================
-  async list(query: { skip: number; take: number; search?: string; status?: DriverStatus; zone?: string }) {
+  async list(query: { skip: number; take: number; search?: string; status?: DriverStatus; zone?: string; adminId?: string }) {
     const where: Prisma.DriverWhereInput = {
       // Removed (soft-deleted) drivers never appear in listings.
       blockedAt: null,
+      ...(query.adminId ? { adminId: query.adminId } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.zone ? { zone: { equals: query.zone, mode: 'insensitive' } } : {}),
       ...(query.search
@@ -60,7 +62,7 @@ class DriverService {
     return { items, total };
   }
 
-  async getById(id: string) {
+  async getById(id: string, adminId?: string) {
     const driver = await prisma.driver.findUnique({
       where: { id },
       select: {
@@ -72,24 +74,24 @@ class DriverService {
         _count: { select: { customers: true } },
       },
     });
-    if (!driver) throw ApiError.notFound('Driver not found');
+    if (!driver || (adminId && (driver as { adminId?: string | null }).adminId !== adminId)) throw ApiError.notFound('Driver not found');
     return driver;
   }
 
-  async create(dto: CreateDriverDto) {
+  async create(dto: CreateDriverDto, adminId?: string) {
     const existing = await prisma.driver.findUnique({ where: { mobile: dto.mobile } });
     if (existing) throw ApiError.conflict('A driver with this mobile already exists');
     // Also block numbers already used by a customer to avoid login ambiguity.
     const asCustomer = await prisma.customer.findUnique({ where: { mobile: dto.mobile } });
     if (asCustomer) throw ApiError.conflict('This mobile is already registered as a customer');
 
-    if (dto.vehicleId) await this.assertVehicleFree(dto.vehicleId);
-    return prisma.driver.create({ data: dto, select: driverPublicSelect });
+    if (dto.vehicleId) await this.assertVehicleFree(dto.vehicleId, undefined, adminId);
+    return prisma.driver.create({ data: { ...dto, ...(adminId ? { adminId } : {}) }, select: driverPublicSelect });
   }
 
-  async update(id: string, dto: UpdateDriverDto) {
-    await this.getById(id);
-    if (dto.vehicleId) await this.assertVehicleFree(dto.vehicleId, id);
+  async update(id: string, dto: UpdateDriverDto, adminId?: string) {
+    await this.getById(id, adminId);
+    if (dto.vehicleId) await this.assertVehicleFree(dto.vehicleId, id, adminId);
     return prisma.driver.update({ where: { id }, data: dto, select: driverPublicSelect });
   }
 
@@ -98,8 +100,8 @@ class DriverService {
    * them blocked (hidden from lists, blocked from logging in), and revoke their
    * sessions. History (deliveries etc.) is preserved.
    */
-  async remove(id: string) {
-    await this.getById(id);
+  async remove(id: string, adminId?: string) {
+    await this.getById(id, adminId);
     await prisma.customer.updateMany({ where: { driverId: id }, data: { driverId: null } });
     await prisma.driver.update({
       where: { id },
@@ -110,8 +112,8 @@ class DriverService {
   }
 
   /** Restore a previously removed driver (re-enables login + listings). */
-  async restore(id: string) {
-    await this.getById(id);
+  async restore(id: string, adminId?: string) {
+    await this.getById(id, adminId);
     await prisma.driver.update({
       where: { id },
       data: { blockedAt: null, status: 'ACTIVE' },
@@ -119,24 +121,26 @@ class DriverService {
     return { id };
   }
 
-  private async assertVehicleFree(vehicleId: string, exceptDriverId?: string) {
+  private async assertVehicleFree(vehicleId: string, exceptDriverId?: string, adminId?: string) {
     const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId }, include: { driver: true } });
     if (!vehicle) throw ApiError.notFound('Vehicle not found');
+    if (adminId && vehicle.adminId !== adminId) throw ApiError.forbidden('This vehicle is not assigned to you');
     if (vehicle.driver && vehicle.driver.id !== exceptDriverId) {
       throw ApiError.conflict(`Vehicle ${vehicle.number} is already assigned to ${vehicle.driver.name}`);
     }
   }
 
-  async assignVehicle(id: string, vehicleId: string | null) {
-    await this.getById(id);
-    if (vehicleId) await this.assertVehicleFree(vehicleId, id);
+  async assignVehicle(id: string, vehicleId: string | null, adminId?: string) {
+    await this.getById(id, adminId);
+    if (vehicleId) await this.assertVehicleFree(vehicleId, id, adminId);
     return prisma.driver.update({ where: { id }, data: { vehicleId }, select: driverPublicSelect });
   }
 
   /** Assign a set of customers to this driver (overwrites their previous driver). */
-  async assignCustomers(id: string, customerIds: string[]) {
-    const driver = await this.getById(id);
-    await prisma.customer.updateMany({ where: { id: { in: customerIds } }, data: { driverId: id } });
+  async assignCustomers(id: string, customerIds: string[], adminId?: string) {
+    const driver = await this.getById(id, adminId);
+    const assigned = await prisma.customer.updateMany({ where: { id: { in: customerIds }, ...(adminId ? { distributorId: adminId } : {}) }, data: { driverId: id } });
+    if (assigned.count !== customerIds.length) throw ApiError.forbidden('One or more customers are not assigned to you');
 
     await notificationService.notify({
       audience: NotificationAudience.DRIVER,
@@ -149,14 +153,15 @@ class DriverService {
     return { driverId: driver.id, assigned: customerIds.length };
   }
 
-  async unassignCustomer(driverId: string, customerId: string) {
-    await prisma.customer.updateMany({ where: { id: customerId, driverId }, data: { driverId: null } });
+  async unassignCustomer(driverId: string, customerId: string, adminId?: string) {
+    await this.getById(driverId, adminId);
+    await prisma.customer.updateMany({ where: { id: customerId, driverId, ...(adminId ? { distributorId: adminId } : {}) }, data: { driverId: null } });
     return { driverId, customerId };
   }
 
   /** Admin sends an ad-hoc notification to a driver. */
-  async notifyDriver(id: string, title: string, body: string) {
-    await this.getById(id);
+  async notifyDriver(id: string, title: string, body: string, adminId?: string) {
+    await this.getById(id, adminId);
     await notificationService.notify({
       audience: NotificationAudience.DRIVER,
       type: NotificationType.GENERAL,
@@ -265,7 +270,7 @@ class DriverService {
   async markDelivered(driverId: string, dto: MarkDeliveryDto) {
     const order = await prisma.order.findUnique({
       where: { id: dto.orderId },
-      include: { customer: { select: { id: true, name: true, driverId: true } } },
+      include: { customer: { select: { id: true, name: true, driverId: true, distributorId: true } } },
     });
     if (!order) throw ApiError.notFound('Order not found');
     if (order.customer.driverId !== driverId) {
@@ -286,6 +291,7 @@ class DriverService {
         dto.status === 'DELIVERED' ? NotificationType.ORDER_DELIVERED : NotificationType.GENERAL,
       title: dto.status === 'DELIVERED' ? 'Delivery completed' : 'Delivery updated',
       body: `${order.customer.name}: order ${order.orderNumber} marked ${dto.status.toLowerCase()}.`,
+      adminId: order.customer.distributorId ?? undefined,
       data: { orderId: order.id, driverId },
     });
     return delivery;

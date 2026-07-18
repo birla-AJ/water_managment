@@ -157,6 +157,9 @@ model Admin {
 
   refreshTokens RefreshToken[]
   inventoryLogs InventoryLog[]
+  ownedDrivers Driver[] @relation("AdminDrivers")
+  ownedVehicles Vehicle[] @relation("AdminVehicles")
+  notifications Notification[] @relation("AdminNotifications")
   customers     Customer[]     @relation("AdminCustomers")          // created by this admin (audit)
   distributedCustomers Customer[] @relation("DistributorCustomers") // customers who chose this distributor
   areaLinks     ServiceArea[]  @relation("AdminServiceAreas")        // areas assigned from the master list
@@ -207,11 +210,14 @@ model Driver {
   // hidden from lists and blocked from logging in.
   blockedAt     DateTime?
   vehicleId     String?      @unique
+  // The regular admin/distributor who owns this driver.
+  adminId       String?
   isOnDuty      Boolean      @default(false)
   dutyStartedAt DateTime?
   lastSeenAt    DateTime?
 
   vehicle       Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  admin         Admin?         @relation("AdminDrivers", fields: [adminId], references: [id], onDelete: SetNull)
   customers     Customer[]
   deliveries    Delivery[]
   notifications Notification[]
@@ -225,6 +231,7 @@ model Driver {
   @@index([status])
   @@index([zone])
   @@index([isOnDuty])
+  @@index([adminId])
   @@map("drivers")
 }
 
@@ -290,13 +297,17 @@ model Vehicle {
   capacity Int?
   isActive Boolean @default(true)
   notes    String?
+  // The regular admin/distributor who owns this vehicle.
+  adminId  String?
 
   driver Driver?
+  admin  Admin? @relation("AdminVehicles", fields: [adminId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("vehicles")
+  @@index([adminId])
 }
 
 model Customer {
@@ -490,7 +501,8 @@ model Delivery {
   @@map("deliveries")
 }
 
-// Single-row inventory snapshot (id = "default")
+// Each admin/distributor has an independent inventory snapshot. The nullable
+// legacy row (adminId = NULL) remains visible only to super admins.
 model Inventory {
   id              String @id @default("default")
   totalCampers    Int    @default(0)
@@ -500,6 +512,7 @@ model Inventory {
   lostCampers     Int    @default(0)
   returnedCampers Int    @default(0)
   allocatedCampers Int   @default(0)
+  adminId         String? @unique
 
   updatedAt DateTime @updatedAt
 
@@ -601,16 +614,21 @@ model Notification {
   data       Json?
   customerId String?
   driverId   String?
+  // Admin notifications are addressed to one admin, never broadcast to all
+  // tenant administrators. Null is reserved for legacy/super-admin notices.
+  adminId    String?
   isRead     Boolean              @default(false)
 
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
   driver   Driver?   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  admin    Admin?    @relation("AdminNotifications", fields: [adminId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
   @@index([audience])
   @@index([customerId])
   @@index([driverId])
+  @@index([adminId])
   @@index([isRead])
   @@map("notifications")
 }

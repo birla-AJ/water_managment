@@ -42,7 +42,7 @@ class DashboardService {
       prisma.order.count({ where: { status: OrderStatus.DELIVERED, ...crf(distributorId) } }),
       prisma.order.count({ where: { status: OrderStatus.PENDING, ...crf(distributorId) } }),
       prisma.order.count({ where: { status: OrderStatus.CANCELLED, ...crf(distributorId) } }),
-      prisma.inventory.findUnique({ where: { id: 'default' } }),
+      prisma.inventory.findUnique({ where: distributorId ? { adminId: distributorId } : { id: 'default' } }),
       prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, ...crf(distributorId) }, _sum: { amount: true } }),
       prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, createdAt: { gte: monthStart }, ...crf(distributorId) }, _sum: { amount: true } }),
       prisma.invoice.aggregate({ where: { status: { in: [InvoiceStatus.PENDING, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE] }, ...crf(distributorId) }, _sum: { dueAmount: true } }),
@@ -137,8 +137,8 @@ class DashboardService {
       .map(([month, count]) => ({ month, count }));
   }
 
-  async inventoryChart() {
-    const inv = await prisma.inventory.findUnique({ where: { id: 'default' } });
+  async inventoryChart(distributorId?: string) {
+    const inv = await prisma.inventory.findUnique({ where: distributorId ? { adminId: distributorId } : { id: 'default' } });
     return [
       { name: 'Filled', value: inv?.filledCampers ?? 0 },
       { name: 'Empty', value: inv?.emptyCampers ?? 0 },

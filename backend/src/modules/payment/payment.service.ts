@@ -143,12 +143,14 @@ class PaymentService {
       customerId,
     });
     if (success) {
+      const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { distributorId: true } });
       await notificationService.notify({
         audience: NotificationAudience.ADMIN,
         type: NotificationType.PAYMENT_RECEIVED,
         title: 'Payment received',
         body: `₹${amount?.toFixed(2)} received from a customer.`,
         data: { customerId },
+        adminId: customer?.distributorId ?? undefined,
       });
     }
   }

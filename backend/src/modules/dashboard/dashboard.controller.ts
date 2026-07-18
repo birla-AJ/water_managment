@@ -14,7 +14,7 @@ export const charts = asyncHandler(async (req: Request, res: Response) => {
     dashboardService.revenueChart(Number(req.query.months ?? 6), dist),
     dashboardService.ordersChart(Number(req.query.days ?? 14), dist),
     dashboardService.customerGrowthChart(Number(req.query.months ?? 6), dist),
-    dashboardService.inventoryChart(),
+    dashboardService.inventoryChart(dist),
   ]);
   ok(res, { revenue, orders, customerGrowth, inventory });
 });

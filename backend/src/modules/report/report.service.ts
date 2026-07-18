@@ -41,32 +41,32 @@ function rangeFor(type: ReportType, ref = new Date()): DateRange {
 }
 
 class ReportService {
-  async build(type: ReportType, opts: { from?: Date; to?: Date } = {}): Promise<ReportResult> {
+  async build(type: ReportType, opts: { from?: Date; to?: Date; adminId?: string } = {}): Promise<ReportResult> {
     const range = opts.from && opts.to ? { from: opts.from, to: opts.to } : rangeFor(type);
     const generatedAt = dayjs().format('YYYY-MM-DD HH:mm');
 
     switch (type) {
       case 'customer':
-        return this.customerReport(generatedAt);
+        return this.customerReport(generatedAt, opts.adminId);
       case 'inventory':
-        return this.inventoryReport(generatedAt);
+        return this.inventoryReport(generatedAt, opts.adminId);
       case 'payment':
-        return this.paymentReport(range, generatedAt);
+        return this.paymentReport(range, generatedAt, opts.adminId);
       case 'revenue':
-        return this.revenueReport(range, generatedAt);
+        return this.revenueReport(range, generatedAt, opts.adminId);
       case 'order':
       case 'daily':
       case 'weekly':
       case 'monthly':
       case 'yearly':
       default:
-        return this.orderReport(type, range, generatedAt);
+        return this.orderReport(type, range, generatedAt, opts.adminId);
     }
   }
 
-  private async orderReport(type: ReportType, range: DateRange, generatedAt: string): Promise<ReportResult> {
+  private async orderReport(type: ReportType, range: DateRange, generatedAt: string, adminId?: string): Promise<ReportResult> {
     const orders = await prisma.order.findMany({
-      where: { orderDate: { gte: range.from, lte: range.to } },
+      where: { orderDate: { gte: range.from, lte: range.to }, ...(adminId ? { customer: { distributorId: adminId } } : {}) },
       include: { customer: { select: { name: true, mobile: true, area: true } } },
       orderBy: { orderDate: 'desc' },
     });
@@ -87,8 +87,8 @@ class ReportService {
     };
   }
 
-  private async customerReport(generatedAt: string): Promise<ReportResult> {
-    const customers = await prisma.customer.findMany({ orderBy: { createdAt: 'desc' } });
+  private async customerReport(generatedAt: string, adminId?: string): Promise<ReportResult> {
+    const customers = await prisma.customer.findMany({ where: adminId ? { distributorId: adminId } : {}, orderBy: { createdAt: 'desc' } });
     return {
       title: 'Customer Report',
       columns: ['Name', 'Mobile', 'Area', 'Type', 'Status', 'Rate', 'Deposit', 'Allocated'],
@@ -106,9 +106,9 @@ class ReportService {
     };
   }
 
-  private async inventoryReport(generatedAt: string): Promise<ReportResult> {
+  private async inventoryReport(generatedAt: string, adminId?: string): Promise<ReportResult> {
     const logs = await prisma.inventoryLog.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: adminId ? { adminId } : {}, orderBy: { createdAt: 'desc' },
       take: 500,
       include: { admin: { select: { name: true } } },
     });
@@ -126,9 +126,9 @@ class ReportService {
     };
   }
 
-  private async paymentReport(range: DateRange, generatedAt: string): Promise<ReportResult> {
+  private async paymentReport(range: DateRange, generatedAt: string, adminId?: string): Promise<ReportResult> {
     const payments = await prisma.payment.findMany({
-      where: { createdAt: { gte: range.from, lte: range.to } },
+      where: { createdAt: { gte: range.from, lte: range.to }, ...(adminId ? { customer: { distributorId: adminId } } : {}) },
       include: { customer: { select: { name: true, mobile: true } }, invoice: { select: { invoiceNumber: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -148,9 +148,9 @@ class ReportService {
     };
   }
 
-  private async revenueReport(range: DateRange, generatedAt: string): Promise<ReportResult> {
+  private async revenueReport(range: DateRange, generatedAt: string, adminId?: string): Promise<ReportResult> {
     const payments = await prisma.payment.findMany({
-      where: { status: PaymentStatus.SUCCESS, createdAt: { gte: range.from, lte: range.to } },
+      where: { status: PaymentStatus.SUCCESS, createdAt: { gte: range.from, lte: range.to }, ...(adminId ? { customer: { distributorId: adminId } } : {}) },
       select: { amount: true, createdAt: true },
     });
     const byDay: Record<string, number> = {};
@@ -169,12 +169,12 @@ class ReportService {
   }
 
   // Quick summary endpoints for KPI tiles in the report screen.
-  async summary(type: ReportType) {
+  async summary(type: ReportType, adminId?: string) {
     const range = rangeFor(type === 'revenue' ? 'monthly' : (type as ReportType));
     const [orders, delivered, revenue] = await Promise.all([
-      prisma.order.count({ where: { orderDate: { gte: range.from, lte: range.to } } }),
-      prisma.order.count({ where: { status: OrderStatus.DELIVERED, orderDate: { gte: range.from, lte: range.to } } }),
-      prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, createdAt: { gte: range.from, lte: range.to } }, _sum: { amount: true } }),
+      prisma.order.count({ where: { orderDate: { gte: range.from, lte: range.to }, ...(adminId ? { customer: { distributorId: adminId } } : {}) } }),
+      prisma.order.count({ where: { status: OrderStatus.DELIVERED, orderDate: { gte: range.from, lte: range.to }, ...(adminId ? { customer: { distributorId: adminId } } : {}) } }),
+      prisma.payment.aggregate({ where: { status: PaymentStatus.SUCCESS, createdAt: { gte: range.from, lte: range.to }, ...(adminId ? { customer: { distributorId: adminId } } : {}) }, _sum: { amount: true } }),
     ]);
     return { orders, delivered, revenue: Number(revenue._sum.amount ?? 0) };
   }
