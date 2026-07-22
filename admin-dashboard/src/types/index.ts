@@ -84,6 +84,17 @@ export interface Vehicle {
   createdAt?: string;
 }
 
+export type ExpenseCategory = 'FUEL' | 'VEHICLE_MAINTENANCE' | 'SALARY' | 'RENT' | 'UTILITIES' | 'SUPPLIES' | 'DELIVERY' | 'OTHER';
+export interface Expense {
+  id: string;
+  title: string;
+  category: ExpenseCategory;
+  amount: number | string;
+  expenseDate: string;
+  paymentMode: 'CASH' | 'UPI' | 'CARD' | 'ADJUSTMENT';
+  notes?: string | null;
+}
+
 export interface Driver {
   id: string;
   name: string;

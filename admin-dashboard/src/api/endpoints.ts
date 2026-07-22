@@ -16,6 +16,7 @@ import type {
   ServiceArea,
   ServiceAreaPolygon,
   Vehicle,
+  Expense,
 } from '../types';
 
 // ---- Auth ----
@@ -82,6 +83,13 @@ export const vehicleApi = {
   create: (body: Partial<Vehicle>) => api.post('/vehicles', body).then((r) => r.data.data),
   update: (id: string, body: Partial<Vehicle>) => api.put(`/vehicles/${id}`, body).then((r) => r.data.data),
   remove: (id: string) => api.delete(`/vehicles/${id}`),
+};
+
+export const expenseApi = {
+  list: (params: Record<string, unknown>) => api.get<ApiResponse<{ items: Expense[]; totalAmount: number }>>('/expenses', { params }).then((r) => r.data),
+  create: (body: Record<string, unknown>) => api.post('/expenses', body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/expenses/${id}`),
+  exportExcel: (params: Record<string, unknown>) => api.get('/expenses/export', { params, responseType: 'blob' }),
 };
 
 // ---- Drivers ----

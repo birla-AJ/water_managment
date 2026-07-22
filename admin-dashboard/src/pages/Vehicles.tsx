@@ -18,7 +18,7 @@ import type { Vehicle } from '../types';
 
 type FormValues = Partial<Vehicle>;
 
-export default function Vehicles() {
+export default function Vehicles({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [page, setPage] = useState(0);
@@ -76,11 +76,18 @@ export default function Vehicles() {
 
   return (
     <Box>
-      <PageHeader
-        title="Vehicles"
-        subtitle="Delivery vehicles you can assign to drivers"
-        action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Vehicle</Button>}
-      />
+      {!embedded && (
+        <PageHeader
+          title="Drivers & Vehicles"
+          subtitle="Manage delivery vehicles and their driver assignments"
+          action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Vehicle</Button>}
+        />
+      )}
+      {embedded && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Vehicle</Button>
+        </Box>
+      )}
       <Card>
         <DataGrid
           autoHeight

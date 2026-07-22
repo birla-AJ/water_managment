@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AppBar, Box, Drawer, IconButton, List, ListItemButton,
-  ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem, Badge, Tooltip,
+  ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Badge, Tooltip, Button,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -12,21 +12,17 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import PaymentsIcon from '@mui/icons-material/Payments';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import SettingsIcon from '@mui/icons-material/Settings';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
-import PersonIcon from '@mui/icons-material/Person';
-import TranslateIcon from '@mui/icons-material/Translate';
+import LanguageIcon from '@mui/icons-material/Language';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import { useQuery } from '@tanstack/react-query';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { logout } from '../features/auth/authSlice';
+import { useAppSelector } from '../app/hooks';
 import { notificationApi } from '../api/endpoints';
 import { useLanguage } from '../hooks/useLanguage';
 import LanguageSelectModal from './LanguageSelectModal';
@@ -39,25 +35,20 @@ const DRAWER_WIDTH = 260;
 const NAV = [
   { labelKey: 'nav.dashboard', path: '/dashboard', icon: <DashboardIcon /> },
   { labelKey: 'nav.customers', path: '/customers', icon: <PeopleIcon /> },
-  { labelKey: 'nav.drivers', path: '/drivers', icon: <LocalShippingIcon /> },
-  { labelKey: 'nav.vehicles', path: '/vehicles', icon: <DirectionsCarIcon /> },
+  { labelKey: 'nav.driversVehicles', path: '/drivers', icon: <LocalShippingIcon /> },
   { labelKey: 'nav.liveTracking', path: '/live-tracking', icon: <MapOutlinedIcon /> },
   { labelKey: 'nav.orders', path: '/orders', icon: <ShoppingCartIcon /> },
   { labelKey: 'nav.inventory', path: '/inventory', icon: <Inventory2Icon /> },
   { labelKey: 'nav.billing', path: '/billing', icon: <ReceiptIcon /> },
   { labelKey: 'nav.payments', path: '/payments', icon: <PaymentsIcon /> },
-  { labelKey: 'nav.notifications', path: '/notifications', icon: <NotificationsIcon /> },
-  { labelKey: 'nav.reports', path: '/reports', icon: <AssessmentIcon /> },
-  { labelKey: 'nav.settings', path: '/settings', icon: <SettingsIcon /> },
+  { labelKey: 'nav.expenses', path: '/expenses', icon: <AccountBalanceWalletOutlinedIcon /> },
 ];
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [langModalOpen, setLangModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const { current: lang, change: changeLanguage } = useLanguage();
   const user = useAppSelector((s) => s.auth.user);
@@ -93,7 +84,15 @@ export default function Layout() {
     enabled: !isSuperAdmin, // super admins don't use notifications
   });
 
-  const activeKey = nav.find((n) => location.pathname.startsWith(n.path))?.labelKey ?? 'nav.dashboard';
+  const utilityPathLabels: Record<string, string> = {
+    '/notifications': 'nav.notifications',
+    '/reports': 'nav.reports',
+    '/settings': 'nav.settings',
+    '/profile': 'nav.profile',
+  };
+  const activeKey = nav.find((n) => location.pathname.startsWith(n.path))?.labelKey
+    ?? utilityPathLabels[location.pathname]
+    ?? 'nav.dashboard';
   const activeLabel = t(activeKey);
   const drawerBg = '#FFFDF9';
 
@@ -181,19 +180,6 @@ export default function Layout() {
         })}
       </List>
 
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ background: softGrad, border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 1.5, display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 36, height: 36, fontWeight: 800 }}>
-            {user?.name?.[0]?.toUpperCase() ?? 'A'}
-          </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" fontWeight={700} noWrap>{user?.name ?? 'Admin'}</Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-              {user?.email}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
     </Box>
   );
 
@@ -220,13 +206,15 @@ export default function Layout() {
             {activeLabel}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title={`${t('language.label')}: ${lang === 'hi' ? 'हिंदी' : 'English'}`}>
-            <IconButton onClick={() => changeLanguage(lang === 'hi' ? 'en' : 'hi')} sx={{ mr: 0.5 }}>
-              <TranslateIcon />
-              <Typography component="span" variant="caption" sx={{ ml: 0.5, fontWeight: 700 }}>
-                {lang === 'hi' ? 'हि' : 'EN'}
-              </Typography>
-            </IconButton>
+          <Tooltip title="Change language">
+            <Button
+              startIcon={<LanguageIcon />}
+              onClick={() => setLangModalOpen(true)}
+              size="small"
+              sx={{ mr: 0.75, borderRadius: 2, textTransform: 'none', fontWeight: 800, color: 'text.primary', px: 1.25 }}
+            >
+              Language · {lang === 'hi' ? 'हिंदी' : 'English'}
+            </Button>
           </Tooltip>
           {!isSuperAdmin && (
             <Tooltip title={t('nav.notifications')}>
@@ -237,72 +225,13 @@ export default function Layout() {
               </IconButton>
             </Tooltip>
           )}
-          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
-            <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 38, height: 38, fontWeight: 800 }}>
-              {user?.name?.[0]?.toUpperCase() ?? 'A'}
+          <Tooltip title="Open profile">
+          <IconButton onClick={() => navigate('/profile')} sx={{ p: 0.25 }}>
+            <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 40, height: 40 }}>
+              <AccountCircleOutlinedIcon fontSize="medium" />
             </Avatar>
           </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={!!anchorEl}
-            onClose={() => setAnchorEl(null)}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{
-              sx: {
-                mt: 1.2,
-                minWidth: 250,
-                borderRadius: 3,
-                overflow: 'hidden',
-                border: '1px solid',
-                borderColor: 'divider',
-                boxShadow: '0 18px 44px -18px rgba(5,81,82,0.35)',
-              },
-            }}
-            MenuListProps={{ sx: { p: 1 } }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.25,
-                p: 1.5,
-                mb: 0.5,
-                borderRadius: 2.5,
-                background: softGrad,
-              }}
-            >
-              <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 42, height: 42, fontWeight: 800 }}>
-                {user?.name?.[0]?.toUpperCase() ?? 'A'}
-              </Avatar>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" fontWeight={800} noWrap>{user?.name ?? 'Admin'}</Typography>
-                <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{user?.email}</Typography>
-              </Box>
-            </Box>
-
-            <MenuItem
-              onClick={() => { setAnchorEl(null); navigate('/profile'); }}
-              sx={{ borderRadius: 2, py: 1, mb: 0.25, '&:hover .MuiListItemIcon-root': { color: 'primary.main' } }}
-            >
-              <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> {t('nav.profile')}
-            </MenuItem>
-            <MenuItem
-              onClick={() => dispatch(logout())}
-              sx={{
-                borderRadius: 2,
-                py: 1,
-                color: 'error.main',
-                '&:hover': {
-                  bgcolor: 'rgba(211,47,47,0.09)',
-                  color: 'error.main',
-                  '& .MuiListItemIcon-root': { color: 'error.main' },
-                },
-              }}
-            >
-              <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> {t('nav.logout')}
-            </MenuItem>
-          </Menu>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 

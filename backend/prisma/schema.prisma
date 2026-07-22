@@ -104,6 +104,17 @@ enum PaymentMethod {
   ADJUSTMENT
 }
 
+enum ExpenseCategory {
+  FUEL
+  VEHICLE_MAINTENANCE
+  SALARY
+  RENT
+  UTILITIES
+  SUPPLIES
+  DELIVERY
+  OTHER
+}
+
 enum NotificationAudience {
   ADMIN
   CUSTOMER
@@ -160,6 +171,7 @@ model Admin {
   ownedDrivers Driver[] @relation("AdminDrivers")
   ownedVehicles Vehicle[] @relation("AdminVehicles")
   notifications Notification[] @relation("AdminNotifications")
+  expenses      Expense[]
   customers     Customer[]     @relation("AdminCustomers")          // created by this admin (audit)
   distributedCustomers Customer[] @relation("DistributorCustomers") // customers who chose this distributor
   areaLinks     ServiceArea[]  @relation("AdminServiceAreas")        // areas assigned from the master list
@@ -533,6 +545,27 @@ model InventoryLog {
   @@index([action])
   @@index([createdAt])
   @@map("inventory_logs")
+}
+
+// Operating expenses are owned by the admin/distributor who created them.
+model Expense {
+  id          String          @id @default(uuid())
+  adminId     String
+  title       String
+  category    ExpenseCategory @default(OTHER)
+  amount      Decimal         @db.Decimal(12, 2)
+  expenseDate DateTime        @db.Date
+  paymentMode PaymentMethod   @default(CASH)
+  notes       String?
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([adminId, expenseDate])
+  @@index([category])
+  @@map("expenses")
 }
 
 model Invoice {

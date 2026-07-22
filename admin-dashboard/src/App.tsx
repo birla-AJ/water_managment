@@ -9,11 +9,11 @@ import CustomerDetails from './pages/CustomerDetails';
 import Drivers from './pages/Drivers';
 import DriverForm from './pages/DriverForm';
 import DriverDetails from './pages/DriverDetails';
-import Vehicles from './pages/Vehicles';
 import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
 import Billing from './pages/Billing';
 import Payments from './pages/Payments';
+import Expenses from './pages/Expenses';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
@@ -81,11 +81,12 @@ export default function App() {
           <Route path="drivers/new" element={<DriverForm />} />
           <Route path="drivers/:id/edit" element={<DriverForm />} />
           <Route path="drivers/:id" element={<DriverDetails />} />
-          <Route path="vehicles" element={<Vehicles />} />
+          <Route path="vehicles" element={<Navigate to="/drivers" replace />} />
           <Route path="orders" element={<Orders />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="billing" element={<Billing />} />
           <Route path="payments" element={<Payments />} />
+          <Route path="expenses" element={<Expenses />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
