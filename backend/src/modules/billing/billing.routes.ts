@@ -34,6 +34,8 @@ billingRouter.post('/invoices/auto-generate', admin, validate(autoGenerateSchema
 billingRouter.get('/invoices/:id/pdf', admin, ctrl.downloadPdf);
 billingRouter.post('/invoices/:id/notify', admin, ctrl.sendNotification);
 
+
+
 // Customer-facing
 export const billingMeRouter = Router();
 const customer = authenticate('customer');
