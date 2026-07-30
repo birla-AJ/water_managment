@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import { FadeSlideIn } from '../components/anim';
 import { Loader } from '../components/ui';
@@ -29,6 +30,7 @@ function SectionLabel({ children }: { children: string }) {
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
 
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -48,13 +50,13 @@ export default function DashboardScreen() {
       // The /dashboard endpoints are admin-only; a non-admin token yields 401/403.
       setError(
         e?.response?.status === 401 || e?.response?.status === 403
-          ? 'This dashboard is only available to admin accounts.'
-          : 'Could not load the dashboard. Pull to refresh.',
+          ? t('admin.dashboard.adminOnly')
+          : t('admin.dashboard.loadError'),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,7 +71,7 @@ export default function DashboardScreen() {
     return (
       <View style={styles.errorWrap}>
         <Icon name="chart-box-outline" size={48} color={colors.textMuted} />
-        <Text style={styles.errorText}>{error ?? 'No data available.'}</Text>
+        <Text style={styles.errorText}>{error ?? t('admin.dashboard.noData')}</Text>
       </View>
     );
   }
@@ -78,22 +80,22 @@ export default function DashboardScreen() {
 
   // Mirrors the web dashboard's "Key metrics" row.
   const metrics = [
-    { title: 'Total Customers', value: o.customers.total, icon: 'account-group', subtitle: `${o.customers.active} active · ${o.customers.inactive} inactive`, color: '#0E8388' },
-    { title: 'Total Orders', value: o.orders.total, icon: 'cart', subtitle: `${o.orders.today} today`, color: '#0EA5B5' },
-    { title: 'Delivered', value: o.orders.delivered, icon: 'truck-check', subtitle: `${o.orders.pending} pending`, color: '#34D399' },
-    { title: 'Monthly Revenue', text: inr(o.revenue.monthly), icon: 'currency-inr', subtitle: `Total ${inr(o.revenue.total)}`, color: '#16A8AE' },
+    { title: t('admin.dashboard.totalCustomers'), value: o.customers.total, icon: 'account-group', subtitle: t('admin.dashboard.customersSubtitle', { active: o.customers.active, inactive: o.customers.inactive }), color: '#0E8388' },
+    { title: t('admin.dashboard.totalOrders'), value: o.orders.total, icon: 'cart', subtitle: t('admin.dashboard.ordersSubtitle', { n: o.orders.today }), color: '#0EA5B5' },
+    { title: t('admin.dashboard.delivered'), value: o.orders.delivered, icon: 'truck-check', subtitle: t('admin.dashboard.deliveredSubtitle', { n: o.orders.pending }), color: '#34D399' },
+    { title: t('admin.dashboard.monthlyRevenue'), text: inr(o.revenue.monthly), icon: 'currency-inr', subtitle: t('admin.dashboard.revenueSubtitle', { amount: inr(o.revenue.total) }), color: '#16A8AE' },
   ];
 
   // Mirrors the web dashboard's "Payments & inventory" row.
   const payInv = [
-    { title: 'Pending Payments', text: inr(o.payments.pending), icon: 'cash-clock', color: '#E0A92E' },
-    { title: 'Paid', text: inr(o.payments.paid), icon: 'cash-check', color: '#34D399' },
-    { title: 'Filled Campers', value: o.inventory.filled, icon: 'cup-water', subtitle: `${o.inventory.empty} empty`, color: '#1AA7B0' },
-    { title: 'Total Campers', value: o.inventory.total, icon: 'water', subtitle: `${o.orders.cancelled} cancelled orders`, color: '#2BB3B8' },
-    { title: 'Damaged', value: o.inventory.damaged, icon: 'alert-circle', color: '#E0A92E' },
-    { title: 'Lost', value: o.inventory.lost, icon: 'help-circle', color: '#F87171' },
-    { title: 'Returned', value: o.inventory.returned, icon: 'backup-restore', color: '#3FC1C9' },
-    { title: 'Cancelled', value: o.orders.cancelled, icon: 'close-circle', color: '#F87171' },
+    { title: t('admin.dashboard.pendingPayments'), text: inr(o.payments.pending), icon: 'cash-clock', color: '#E0A92E' },
+    { title: t('admin.dashboard.paid'), text: inr(o.payments.paid), icon: 'cash-check', color: '#34D399' },
+    { title: t('admin.dashboard.filledCampers'), value: o.inventory.filled, icon: 'cup-water', subtitle: t('admin.dashboard.filledSubtitle', { n: o.inventory.empty }), color: '#1AA7B0' },
+    { title: t('admin.dashboard.totalCampers'), value: o.inventory.total, icon: 'water', subtitle: t('admin.dashboard.totalCampersSubtitle', { n: o.orders.cancelled }), color: '#2BB3B8' },
+    { title: t('admin.dashboard.damaged'), value: o.inventory.damaged, icon: 'alert-circle', color: '#E0A92E' },
+    { title: t('admin.dashboard.lost'), value: o.inventory.lost, icon: 'help-circle', color: '#F87171' },
+    { title: t('admin.dashboard.returned'), value: o.inventory.returned, icon: 'backup-restore', color: '#3FC1C9' },
+    { title: t('admin.dashboard.cancelled'), value: o.orders.cancelled, icon: 'close-circle', color: '#F87171' },
   ];
 
   const inventoryDist = (charts?.inventory ?? []).map((it, i) => ({
@@ -120,11 +122,10 @@ export default function DashboardScreen() {
       }
     >
       <FadeSlideIn key={`head-${focusKey}`}>
-        <Text style={styles.title}>Dashboard</Text>
-        <Text style={styles.subtitle}>Overview of your water distribution business</Text>
+        <Text style={styles.subtitle}>{t('admin.dashboard.subtitle')}</Text>
       </FadeSlideIn>
 
-      <SectionLabel>KEY METRICS</SectionLabel>
+      <SectionLabel>{t('admin.dashboard.sectionKeyMetrics')}</SectionLabel>
       <View style={styles.grid}>
         {metrics.map((m, i) => (
           <FadeSlideIn key={`${m.title}-${focusKey}`} delay={i * 70} style={styles.gridItem}>
@@ -133,7 +134,7 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      <SectionLabel>PAYMENTS &amp; INVENTORY</SectionLabel>
+      <SectionLabel>{t('admin.dashboard.sectionPaymentsInventory')}</SectionLabel>
       <View style={styles.grid}>
         {payInv.map((m, i) => (
           <FadeSlideIn key={`${m.title}-${focusKey}`} delay={i * 50} style={styles.gridItem}>
@@ -142,10 +143,10 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      <SectionLabel>ANALYTICS</SectionLabel>
+      <SectionLabel>{t('admin.dashboard.sectionAnalytics')}</SectionLabel>
 
       <FadeSlideIn key={`rev-${focusKey}`}>
-        <ChartCard title="Revenue" subtitle="Last 6 months" accent="#0E8388">
+        <ChartCard title={t('admin.dashboard.chartRevenue')} subtitle={t('admin.dashboard.last6Months')} accent="#0E8388">
           <BarChart
             data={(charts?.revenue ?? []).map((r) => ({ label: r.month.split(' ')[0], value: r.revenue, color: '#0E8388' }))}
             formatValue={(n) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))}
@@ -154,13 +155,13 @@ export default function DashboardScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn key={`inv-${focusKey}`} delay={60}>
-        <ChartCard title="Inventory" subtitle="Current camper status" accent="#16A8AE">
+        <ChartCard title={t('admin.dashboard.chartInventory')} subtitle={t('admin.dashboard.currentCamperStatus')} accent="#16A8AE">
           <DistributionBar items={inventoryDist} />
         </ChartCard>
       </FadeSlideIn>
 
       <FadeSlideIn key={`ord-${focusKey}`} delay={120}>
-        <ChartCard title="Orders" subtitle="Last 14 days" accent="#34D399">
+        <ChartCard title={t('admin.dashboard.chartOrders')} subtitle={t('admin.dashboard.last14Days')} accent="#34D399">
           <BarChart
             barWidth={22}
             showValues={false}
@@ -175,9 +176,9 @@ export default function DashboardScreen() {
           />
           <View style={styles.legendInline}>
             {[
-              { name: 'Delivered', color: '#34D399' },
-              { name: 'Pending', color: '#E0A92E' },
-              { name: 'Cancelled', color: '#F87171' },
+              { name: t('admin.dashboard.delivered'), color: '#34D399' },
+              { name: t('admin.dashboard.pending'), color: '#E0A92E' },
+              { name: t('admin.dashboard.cancelled'), color: '#F87171' },
             ].map((l) => (
               <View key={l.name} style={styles.legendChip}>
                 <View style={[styles.legendDot, { backgroundColor: l.color }]} />
@@ -189,7 +190,7 @@ export default function DashboardScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn key={`growth-${focusKey}`} delay={180}>
-        <ChartCard title="Customer Growth" subtitle="New customers by month" accent="#0891B2">
+        <ChartCard title={t('admin.dashboard.chartCustomerGrowth')} subtitle={t('admin.dashboard.newCustomersByMonth')} accent="#0891B2">
           <BarChart
             data={(charts?.customerGrowth ?? []).map((g) => ({ label: g.month.split(' ')[0], value: g.count, color: '#0891B2' }))}
           />
@@ -201,8 +202,7 @@ export default function DashboardScreen() {
 
 const makeStyles = (colors: AppColors) =>
   StyleSheet.create({
-    title: { fontSize: 26, fontWeight: '800', color: colors.text },
-    subtitle: { fontSize: 13, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
+    subtitle: { fontSize: 15, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
 
     sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 12 },
     sectionBar: { width: 4, height: 16, borderRadius: 2, backgroundColor: colors.primary, marginRight: 8 },

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
 import { Card, Badge, Loader, EmptyState } from '../components/ui';
 import { deliveryApi } from '../api/endpoints';
@@ -10,6 +11,7 @@ import type { AppColors } from '../theme/colors';
 export default function DeliveriesScreen() {
   const { colors } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
+  const navigation = useNavigation<any>();
   const onPrimary = '#FFFFFF';
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const [items, setItems] = useState<any[]>([]);
@@ -48,6 +50,17 @@ export default function DeliveriesScreen() {
         </Card>
       )}
 
+      {/* Water is opt-in — the calendar is where the customer asks for it. */}
+      <TouchableOpacity
+        style={styles.manageRow}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('DeliveryCalendar', { view: period })}
+      >
+        <Icon name="calendar-check" size={20} color={colors.primary} />
+        <Text style={styles.manageText}>Pick the days you need water</Text>
+        <Icon name="chevron-right" size={20} color={colors.textMuted} />
+      </TouchableOpacity>
+
       {loading ? (
         <Loader />
       ) : (
@@ -81,6 +94,12 @@ const makeStyles = (colors: AppColors) =>
     sumItem: { alignItems: 'center' },
     sumNum: { fontSize: 26, fontWeight: '800', color: colors.primary },
     sumLabel: { color: colors.textMuted },
+    manageRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 12,
+      paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14,
+      backgroundColor: colors.primary + '14', borderWidth: 1, borderColor: colors.primary + '33',
+    },
+    manageText: { flex: 1, color: colors.text, fontWeight: '700', fontSize: 13.5 },
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     date: { fontWeight: '700', color: colors.text, fontSize: 15 },
     meta: { color: colors.textMuted, marginTop: 6 },

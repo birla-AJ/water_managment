@@ -233,11 +233,12 @@ class BillingService {
     // Delivery summary for the billing period — so the customer sees what they're billed for.
     const periodStartDate = dayjs(invoice.periodStart).startOf('day').toDate();
     const periodEndDate = dayjs(invoice.periodEnd).endOf('day').toDate();
-    const [deliveryDays, skippedDays] = await Promise.all([
+    const [deliveryDays, requestedDays] = await Promise.all([
       prisma.order.count({
         where: { customerId: invoice.customerId, status: OrderStatus.DELIVERED, orderDate: { gte: periodStartDate, lte: periodEndDate } },
       }),
-      prisma.deliverySkip.count({
+      // Days the customer asked for water in this period (deliveries are opt-in).
+      prisma.deliveryRequest.count({
         where: { customerId: invoice.customerId, date: { gte: periodStartDate, lte: periodEndDate } },
       }),
     ]);
@@ -259,7 +260,7 @@ class BillingService {
       summary: {
         campersReceived: invoice.quantity,
         deliveryDays: deliveryDays || (invoice.quantity > 0 ? 1 : 0),
-        skippedDays,
+        requestedDays,
         ratePerCamper: Number(invoice.rate),
       },
     });

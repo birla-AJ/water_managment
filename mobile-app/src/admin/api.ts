@@ -1,14 +1,20 @@
 import { api } from '../api/client';
+import { config } from '../config';
 import type {
+  AdminAccount,
   ApiResponse,
   Customer,
   CustomerSchedule,
   DashboardOverview,
   Driver,
+  Expense,
   Inventory,
   Invoice,
+  LiveTrackingSnapshot,
   Order,
   Payment,
+  ServiceArea,
+  ServiceAreaPolygon,
   Vehicle,
 } from './types';
 
@@ -34,9 +40,11 @@ export const adminCustomerApi = {
     api.put(`/customers/${id}/schedules`, { schedules }).then((r) => r.data.data),
   pause: (id: string) => api.post(`/customers/${id}/pause`, {}),
   resume: (id: string) => api.post(`/customers/${id}/resume`, {}),
-  skipDates: (id: string): Promise<string[]> => api.get(`/customers/${id}/skip-dates`).then((r) => r.data.data),
-  setSkipDates: (id: string, dates: string[]): Promise<string[]> =>
-    api.put(`/customers/${id}/skip-dates`, { dates }).then((r) => r.data.data),
+  // Days the customer wants water on (opt-in — any other day = no delivery).
+  deliveryDates: (id: string): Promise<string[]> =>
+    api.get(`/customers/${id}/delivery-dates`).then((r) => r.data.data),
+  setDeliveryDates: (id: string, dates: string[]): Promise<string[]> =>
+    api.put(`/customers/${id}/delivery-dates`, { dates }).then((r) => r.data.data),
 };
 
 export const adminVehicleApi = {
@@ -112,6 +120,65 @@ export const adminReportApi = {
 export const adminSettingsApi = {
   getAll: () => api.get('/settings').then((r) => r.data.data),
   update: (key: string, value: Record<string, unknown>) => api.put(`/settings/${key}`, value).then((r) => r.data.data),
+};
+
+// ---- Admin accounts (super-admin manages regular admins / distributors) ----
+export const adminManageApi = {
+  list: (params: Record<string, unknown>): Promise<ApiResponse<AdminAccount[]>> =>
+    api.get('/admins', { params }).then((r) => r.data),
+  get: (id: string): Promise<AdminAccount> => api.get(`/admins/${id}`).then((r) => r.data.data),
+  create: (body: Record<string, unknown>): Promise<AdminAccount> => api.post('/admins', body).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>): Promise<AdminAccount> =>
+    api.put(`/admins/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/admins/${id}`),
+  customers: (id: string): Promise<Customer[]> => api.get(`/admins/${id}/customers`).then((r) => r.data.data),
+};
+
+// ---- Service areas (master list; super-admin manages, any admin reads) ----
+export const adminServiceAreaApi = {
+  list: (): Promise<ServiceArea[]> => api.get('/service-areas').then((r) => r.data.data),
+  create: (body: Partial<ServiceArea>): Promise<ServiceArea> =>
+    api.post('/service-areas', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<ServiceArea>): Promise<ServiceArea> =>
+    api.put(`/service-areas/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/service-areas/${id}`),
+};
+
+// ---- Expenses ----
+export const adminExpenseApi = {
+  list: (params: Record<string, unknown>): Promise<ApiResponse<{ items: Expense[]; totalAmount: number }>> =>
+    api.get('/expenses', { params }).then((r) => r.data),
+  create: (body: Record<string, unknown>): Promise<Expense> => api.post('/expenses', body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/expenses/${id}`),
+};
+
+// ---- Live tracking / service polygons ----
+export const adminTrackingApi = {
+  live: (): Promise<LiveTrackingSnapshot> => api.get('/tracking/admin/live').then((r) => r.data.data),
+  createPolygon: (body: {
+    adminId?: string;
+    name: string;
+    color?: string;
+    geoJson: { type: 'Polygon'; coordinates: number[][][] };
+  }): Promise<ServiceAreaPolygon> => api.post('/tracking/polygons', body).then((r) => r.data.data),
+  removePolygon: (id: string) => api.delete(`/tracking/polygons/${id}`),
+};
+
+// ---- File exports (Excel/CSV/PDF) ----
+// The backend export routes require auth; since Linking opens them outside the
+// axios client, the access token is passed as a `?token=` query param (the
+// auth middleware accepts it as a fallback to the Bearer header).
+const buildQuery = (params: Record<string, unknown>): string =>
+  Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+
+export const adminExportApi = {
+  expensesUrl: (params: Record<string, unknown>, token: string) =>
+    `${config.apiUrl}/expenses/export?${buildQuery({ ...params, token })}`,
+  reportUrl: (type: string, format: string, token: string) =>
+    `${config.apiUrl}/reports/${type}/export?${buildQuery({ format, token })}`,
 };
 
 export const adminAiApi = {

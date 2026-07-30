@@ -3,6 +3,7 @@ import { View, FlatList, Text, StyleSheet, RefreshControl, TouchableOpacity } fr
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
 import { adminNotificationApi } from '../api';
@@ -20,6 +21,7 @@ function visualFor(type: string): { icon: string; color: string } {
 }
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<AdminNotification[]>([]);
@@ -46,12 +48,11 @@ export default function NotificationsScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListHeaderComponent={
           <PageHeader
-            title="Notifications"
-            subtitle={unread ? `${unread} unread` : 'You are all caught up'}
+            subtitle={unread ? t('admin.notifications.unread', { count: unread }) : t('admin.notifications.allCaughtUp')}
             action={
               unread ? (
                 <TouchableOpacity onPress={markAll} style={styles.markAll}>
-                  <Text style={styles.markAllText}>Mark all read</Text>
+                  <Text style={styles.markAllText}>{t('admin.notifications.markAllRead')}</Text>
                 </TouchableOpacity>
               ) : undefined
             }
@@ -75,7 +76,7 @@ export default function NotificationsScreen() {
             </TouchableOpacity>
           );
         }}
-        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="bell-off-outline" text="No notifications yet" />}
+        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="bell-off-outline" text={t('admin.notifications.empty')} />}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
       />
     </View>

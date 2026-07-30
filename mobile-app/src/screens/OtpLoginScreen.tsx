@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Animated, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, Animated, ScrollView, Modal, Pressable, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../api/endpoints';
-import { errorMessage } from '../api/client';
+import { errorMessage as apiErrorMessage } from '../api/client';
 import { PrimaryButton, GradientView } from '../components/ui';
 import WaterDrops from '../components/WaterDrops';
 import { useTheme } from '../theme/ThemeContext';
@@ -19,6 +19,7 @@ export default function OtpLoginScreen({ navigation }: Props) {
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const slide = useRef(new Animated.Value(40)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -31,7 +32,8 @@ export default function OtpLoginScreen({ navigation }: Props) {
 
   const sendOtp = async () => {
     if (!/^[6-9]\d{9}$/.test(mobile)) {
-      Alert.alert(t('auth.invalidNumberTitle'), t('auth.invalidNumberMsg'));
+      Keyboard.dismiss();
+      setLoginError(t('auth.invalidNumberMsg'));
       return;
     }
     setLoading(true);
@@ -41,7 +43,8 @@ export default function OtpLoginScreen({ navigation }: Props) {
       await authApi.requestOtp(mobile);
       navigation.navigate('OtpVerify', { mobile });
     } catch (e) {
-      Alert.alert(t('common.error'), errorMessage(e));
+      Keyboard.dismiss();
+      setLoginError(apiErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -84,6 +87,18 @@ export default function OtpLoginScreen({ navigation }: Props) {
           <PrimaryButton title={t('auth.sendOtp')} onPress={sendOtp} loading={loading} />
         </Animated.View>
       </ScrollView>
+      <Modal transparent visible={!!loginError} animationType="fade" onRequestClose={() => setLoginError(null)}>
+        <Pressable style={styles.dialogBackdrop} onPress={() => setLoginError(null)}>
+          <Pressable style={styles.dialogCard} onPress={(event) => event.stopPropagation()}>
+            <View style={styles.dialogIcon}><Icon name="shield-alert-outline" size={28} color={colors.error} /></View>
+            <Text style={styles.dialogTitle}>Access unavailable</Text>
+            <Text style={styles.dialogText}>{loginError}</Text>
+            <TouchableOpacity style={styles.dialogButton} onPress={() => setLoginError(null)} activeOpacity={0.85}>
+              <Text style={styles.dialogButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -112,4 +127,15 @@ const makeStyles = (colors: AppColors) =>
     },
     prefix: { fontSize: 16, fontWeight: '800', color: colors.primary, marginRight: 10 },
     input: { flex: 1, fontSize: 16, paddingVertical: 16, color: colors.text },
+    dialogBackdrop: { flex: 1, backgroundColor: 'rgba(4, 31, 31, 0.56)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+    dialogCard: {
+      width: '100%', maxWidth: 390, backgroundColor: colors.bgElevated, borderRadius: 24,
+      borderWidth: 1, borderColor: colors.cardBorder, padding: 24,
+      shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 12,
+    },
+    dialogIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: colors.error + '18', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    dialogTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
+    dialogText: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: colors.textMuted, marginTop: 8 },
+    dialogButton: { alignSelf: 'flex-end', backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12, marginTop: 24 },
+    dialogButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   });

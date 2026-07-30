@@ -3,6 +3,8 @@ import {
   Prisma,
   DriverStatus,
   DeliveryStatus,
+  OrderStatus,
+  OrderType,
   NotificationAudience,
   NotificationType,
 } from '@prisma/client';
@@ -208,8 +210,9 @@ class DriverService {
 
   /**
    * Today's delivery worklist for a driver: every assigned customer with the
-   * day's order (if generated), its delivery status, and a `skipped` flag so the
-   * driver knows not to visit paused / opted-out customers.
+   * day's order (if generated), its delivery status, a `requested` flag (the
+   * customer marked this day on their calendar — deliveries are opt-in) and a
+   * `skipped` flag so the driver knows not to visit paused / unmarked customers.
    */
   async todayDeliveries(driverId: string, dateStr?: string) {
     const day = dateStr ? dayjs(dateStr) : dayjs();
@@ -238,14 +241,19 @@ class DriverService {
             delivery: { select: { id: true, status: true, quantityDelivered: true, emptyCollected: true } },
           },
         },
-        deliverySkips: { where: { date: { gte: start, lte: end } }, select: { id: true } },
+        deliveryRequests: { where: { date: { gte: start, lte: end } }, select: { id: true } },
       },
       orderBy: { name: 'asc' },
     });
 
     return customers.map((c) => {
-      const order = c.orders[0] ?? null;
-      const skipped = c.isPaused || c.deliverySkips.length > 0;
+      const live = c.orders.filter((o) => o.status !== OrderStatus.CANCELLED);
+      const order = live[0] ?? c.orders[0] ?? null;
+      // Opt-in: the customer must have marked this date as "water needed".
+      const requested = c.deliveryRequests.length > 0;
+      // A one-off EXTRA order still counts — the customer asked for it explicitly.
+      const hasExtraOrder = live.some((o) => o.type !== OrderType.REGULAR);
+      const skipped = c.isPaused || (!requested && !hasExtraOrder);
       return {
         customer: {
           id: c.id,
@@ -260,9 +268,11 @@ class DriverService {
           ? { id: order.id, orderNumber: order.orderNumber, quantity: order.quantity, status: order.status, type: order.type }
           : null,
         delivery: order?.delivery ?? null,
+        requested,
         skipped,
-        // The driver should attempt this stop only if there's an order and it isn't skipped/already delivered.
-        deliverable: Boolean(order) && !skipped && order?.delivery?.status !== DeliveryStatus.DELIVERED,
+        // The driver should attempt this stop only if there's a live order and it isn't skipped/already delivered.
+        deliverable:
+          Boolean(live[0]) && !skipped && order?.delivery?.status !== DeliveryStatus.DELIVERED,
       };
     });
   }

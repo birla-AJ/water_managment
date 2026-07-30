@@ -63,6 +63,7 @@ export interface Driver {
   address?: string;
   zone?: string;
   status: DriverStatus;
+  isOnDuty?: boolean;
   vehicleId?: string | null;
   vehicle?: { id: string; number: string; type?: string; capacity?: number } | null;
   customers?: Array<{ id: string; name: string; mobile: string; area?: string; status: CustomerStatus; isPaused: boolean }>;
@@ -125,6 +126,121 @@ export interface AdminNotification {
   body: string;
   isRead: boolean;
   createdAt: string;
+}
+
+export type AdminRole = 'SUPER_ADMIN' | 'ADMIN';
+
+export interface AdminAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole;
+  phone?: string;
+  mobile?: string | null;
+  isActive?: boolean;
+  lastLoginAt?: string | null;
+  language?: 'en' | 'hi';
+  createdAt?: string;
+  _count?: { customers: number };
+  // Distributor service definition
+  latitude?: number | null;
+  longitude?: number | null;
+  serviceRadiusKm?: number | null;
+  pincodes?: string[];
+  serviceAreas?: string[];
+  areaLinks?: { id: string; name: string }[];
+}
+
+export interface ServiceArea {
+  id: string;
+  name: string;
+  city?: string | null;
+  pincode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  _count?: { admins: number };
+}
+
+export type ExpenseCategory =
+  | 'FUEL' | 'VEHICLE_MAINTENANCE' | 'SALARY' | 'RENT' | 'UTILITIES' | 'SUPPLIES' | 'DELIVERY' | 'OTHER';
+
+export interface Expense {
+  id: string;
+  title: string;
+  category: ExpenseCategory;
+  amount: number | string;
+  expenseDate: string;
+  paymentMode: 'CASH' | 'UPI' | 'CARD' | 'ADJUSTMENT';
+  notes?: string | null;
+}
+
+// ---- Live Tracking ----
+export interface DriverLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+  recordedAt: string;
+}
+
+export interface ServiceAreaPolygon {
+  id: string;
+  adminId: string;
+  name: string;
+  geoJson: { type: 'Polygon'; coordinates: number[][][] };
+  color: string;
+  isActive: boolean;
+  admin?: { id: string; name: string; email: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveTrackingDriver {
+  id: string;
+  name: string;
+  mobile: string;
+  zone?: string | null;
+  isOnDuty: boolean;
+  dutyStartedAt?: string | null;
+  lastSeenAt?: string | null;
+  vehicle?: { id: string; number: string; type?: string | null } | null;
+  assignedCustomers: number;
+  latestLocation?: DriverLocation | null;
+  isLocationFresh: boolean;
+  activeDeliveries: Array<{
+    id: string;
+    status: string;
+    customer: { id: string; name: string; mobile: string; area?: string | null; latitude?: number | null; longitude?: number | null };
+    order: { id: string; orderNumber: string; quantity: number; status: string };
+  }>;
+}
+
+export interface LiveTrackingSnapshot {
+  generatedAt: string;
+  drivers: LiveTrackingDriver[];
+  polygons: ServiceAreaPolygon[];
+  customers: Array<{
+    id: string;
+    name: string;
+    mobile: string;
+    area?: string | null;
+    address?: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    status: string;
+    allocatedCampers: number;
+    driver?: { id: string; name: string } | null;
+  }>;
+  hubs?: Array<{
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    mobile?: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    serviceRadiusKm?: number | null;
+    serviceAreas?: string[];
+  }>;
 }
 
 export interface DashboardOverview {

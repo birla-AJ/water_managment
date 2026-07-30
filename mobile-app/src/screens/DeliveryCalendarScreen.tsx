@@ -11,36 +11,30 @@ import type { AppColors } from '../theme/colors';
 import type { RootStackParamList } from '../navigation/types';
 
 const FMT = 'YYYY-MM-DD';
-// dayjs .day(): 0=Sun .. 6=Sat — map to the backend weekday enum.
-const WEEKDAY_ENUM = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const WEEKDAY_HEADER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-type ScheduleItem = { weekday: string; enabled: boolean; quantity: number };
-
-export default function SkipDeliveriesScreen() {
+/**
+ * Water is opt-in: every upcoming day starts as "no delivery" (red) and the
+ * customer taps the days they DO want water on (green). Saving syncs the whole
+ * upcoming selection and notifies the assigned driver and the distributor.
+ */
+export default function DeliveryCalendarScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const route = useRoute<RouteProp<RootStackParamList, 'SkipDeliveries'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'DeliveryCalendar'>>();
 
   const today = useMemo(() => dayjs().startOf('day'), []);
   const [view, setView] = useState<'week' | 'month'>(route.params?.view === 'month' ? 'month' : 'week');
   const [weekStart, setWeekStart] = useState(() => dayjs().startOf('week')); // Sunday
   const [month, setMonth] = useState(() => dayjs().startOf('month'));
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [scheduleMap, setScheduleMap] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [skips, schedules] = await Promise.all([
-        meApi.skipDates().catch(() => [] as string[]),
-        meApi.schedules().catch(() => [] as ScheduleItem[]),
-      ]);
-      setSelected(new Set(skips));
-      const map: Record<string, boolean> = {};
-      (schedules as ScheduleItem[]).forEach((s) => { map[s.weekday] = s.enabled; });
-      setScheduleMap(map);
+      const dates = await meApi.deliveryDates().catch(() => [] as string[]);
+      setSelected(new Set(dates));
     } finally {
       setLoading(false);
     }
@@ -48,12 +42,12 @@ export default function SkipDeliveriesScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const isDeliveryDay = (d: dayjs.Dayjs) => scheduleMap[WEEKDAY_ENUM[d.day()]] === true;
-  const isSkipped = (d: dayjs.Dayjs) => selected.has(d.format(FMT));
+  const isWanted = (d: dayjs.Dayjs) => selected.has(d.format(FMT));
 
-  // Skips persist by exact date, so a day toggled in Week view shows in Month view and vice-versa.
+  // Selections persist by exact date, so a day toggled in Week view shows in
+  // Month view and vice-versa. Past days can't be changed.
   const toggle = (d: dayjs.Dayjs) => {
-    if (d.isBefore(today) || !isDeliveryDay(d)) return;
+    if (d.isBefore(today)) return;
     const key = d.format(FMT);
     setSelected((prev) => {
       const next = new Set(prev);
@@ -65,9 +59,12 @@ export default function SkipDeliveriesScreen() {
   const save = async () => {
     setSaving(true);
     try {
-      const saved = await meApi.setSkipDates(Array.from(selected));
+      const saved = await meApi.setDeliveryDates(Array.from(selected));
       setSelected(new Set(saved));
-      Alert.alert('Saved', "Your delivery days are updated. We won't deliver on the days you skipped.");
+      Alert.alert(
+        'Saved',
+        "Your delivery days are updated. We'll deliver only on the days you marked, and your driver has been informed.",
+      );
     } catch (e) {
       Alert.alert('Error', errorMessage(e));
     } finally {
@@ -75,7 +72,7 @@ export default function SkipDeliveriesScreen() {
     }
   };
 
-  const skipCount = useMemo(
+  const wantedCount = useMemo(
     () => Array.from(selected).filter((d) => !dayjs(d).isBefore(today)).length,
     [selected, today],
   );
@@ -95,17 +92,25 @@ export default function SkipDeliveriesScreen() {
         ))}
       </View>
 
+      {/* How it works */}
+      <View style={styles.infoBanner}>
+        <Icon name="information-outline" size={18} color={colors.primary} />
+        <Text style={styles.infoText}>
+          Tap the days you need water. Days you don't mark stay red — no water is delivered on those days.
+        </Text>
+      </View>
+
       {/* Legend */}
       <View style={styles.legend}>
-        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.success }]} /><Text style={styles.legendText}>Delivery</Text></View>
-        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.error }]} /><Text style={styles.legendText}>Skipped</Text></View>
-        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.textMuted, opacity: 0.5 }]} /><Text style={styles.legendText}>No delivery</Text></View>
+        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.success }]} /><Text style={styles.legendText}>Water needed</Text></View>
+        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.error }]} /><Text style={styles.legendText}>No delivery</Text></View>
+        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.textMuted, opacity: 0.5 }]} /><Text style={styles.legendText}>Past</Text></View>
       </View>
 
       {view === 'week' ? (
         <WeekView
           colors={colors} styles={styles} weekStart={weekStart} today={today}
-          isDeliveryDay={isDeliveryDay} isSkipped={isSkipped} toggle={toggle}
+          isWanted={isWanted} toggle={toggle}
           onPrev={() => setWeekStart((w) => w.subtract(1, 'week'))}
           onNext={() => setWeekStart((w) => w.add(1, 'week'))}
           canPrev={weekStart.isAfter(dayjs().startOf('week'), 'day')}
@@ -113,7 +118,7 @@ export default function SkipDeliveriesScreen() {
       ) : (
         <MonthView
           colors={colors} styles={styles} month={month} today={today}
-          isDeliveryDay={isDeliveryDay} isSkipped={isSkipped} toggle={toggle}
+          isWanted={isWanted} toggle={toggle}
           onPrev={() => setMonth((m) => m.subtract(1, 'month'))}
           onNext={() => setMonth((m) => m.add(1, 'month'))}
           canPrev={month.isAfter(dayjs().startOf('month'), 'day')}
@@ -121,7 +126,10 @@ export default function SkipDeliveriesScreen() {
       )}
 
       <Text style={styles.footNote}>
-        {skipCount ? `${skipCount} upcoming day${skipCount > 1 ? 's' : ''} skipped.` : 'No upcoming days skipped.'} Tap a delivery day to toggle.
+        {wantedCount
+          ? `${wantedCount} upcoming day${wantedCount > 1 ? 's' : ''} marked for water.`
+          : 'No upcoming days marked — you will not receive water.'}{' '}
+        Tap a day to toggle.
       </Text>
       <PrimaryButton title="Save changes" onPress={save} loading={saving} />
     </ScrollView>
@@ -129,35 +137,35 @@ export default function SkipDeliveriesScreen() {
 }
 
 // ---------------- Week ----------------
-function WeekView({ colors, styles, weekStart, today, isDeliveryDay, isSkipped, toggle, onPrev, onNext, canPrev }: any) {
+function WeekView({ colors, styles, weekStart, today, isWanted, toggle, onPrev, onNext, canPrev }: any) {
   const days = Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day'));
   return (
     <Card style={{ paddingVertical: 6 }}>
       <Nav title={`${weekStart.format('MMM D')} – ${weekStart.add(6, 'day').format('MMM D')}`} styles={styles} colors={colors} onPrev={onPrev} onNext={onNext} canPrev={canPrev} />
       {days.map((d: dayjs.Dayjs) => {
         const past = d.isBefore(today);
-        const delivery = isDeliveryDay(d);
-        const skipped = isSkipped(d);
-        const interactive = !past && delivery;
-        const accent = skipped ? colors.error : colors.success;
+        const wanted = isWanted(d);
+        const accent = wanted ? colors.success : colors.error;
         return (
-          <TouchableOpacity key={d.format(FMT)} disabled={!interactive} activeOpacity={0.7} onPress={() => toggle(d)} style={[styles.dayRow, past && { opacity: 0.45 }]}>
+          <TouchableOpacity key={d.format(FMT)} disabled={past} activeOpacity={0.7} onPress={() => toggle(d)} style={[styles.dayRow, past && { opacity: 0.45 }]}>
             <View style={[styles.dateBlock, { backgroundColor: d.isSame(today, 'day') ? colors.primary + '22' : 'transparent' }]}>
               <Text style={styles.dow}>{d.format('ddd')}</Text>
               <Text style={styles.dateNum}>{d.format('D')}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>{!delivery ? 'No delivery' : skipped ? 'Skipped' : 'Water delivery'}</Text>
+              <Text style={styles.rowTitle}>{wanted ? 'Water delivery' : 'No delivery'}</Text>
               <Text style={styles.rowSub}>
-                {past ? 'Past' : !delivery ? 'Not a scheduled day' : skipped ? "You won't receive water" : 'Tap to skip this day'}
+                {past
+                  ? 'Past'
+                  : wanted
+                    ? "You'll receive water — tap to cancel"
+                    : 'Tap if you need water this day'}
               </Text>
             </View>
-            {delivery && !past ? (
+            {!past ? (
               <View style={[styles.statusCircle, { backgroundColor: accent }]}>
-                <Icon name={skipped ? 'close' : 'check'} size={18} color="#FFFFFF" />
+                <Icon name={wanted ? 'check' : 'close'} size={18} color="#FFFFFF" />
               </View>
-            ) : !delivery && !past ? (
-              <Icon name="minus-circle-outline" size={22} color={colors.textMuted} />
             ) : null}
           </TouchableOpacity>
         );
@@ -167,7 +175,7 @@ function WeekView({ colors, styles, weekStart, today, isDeliveryDay, isSkipped, 
 }
 
 // ---------------- Month ----------------
-function MonthView({ colors, styles, month, today, isDeliveryDay, isSkipped, toggle, onPrev, onNext, canPrev }: any) {
+function MonthView({ colors, styles, month, today, isWanted, toggle, onPrev, onNext, canPrev }: any) {
   const cells: (dayjs.Dayjs | null)[] = [];
   const offset = month.day();
   for (let i = 0; i < offset; i++) cells.push(null);
@@ -183,27 +191,27 @@ function MonthView({ colors, styles, month, today, isDeliveryDay, isSkipped, tog
         {cells.map((d, i) => {
           if (!d) return <View key={`b-${i}`} style={styles.cell} />;
           const past = d.isBefore(today);
-          const delivery = isDeliveryDay(d);
-          const skipped = isSkipped(d);
+          const wanted = isWanted(d);
           const isToday = d.isSame(today, 'day');
-          const interactive = !past && delivery;
           return (
-            <TouchableOpacity key={d.format(FMT)} disabled={!interactive} activeOpacity={0.7} onPress={() => toggle(d)} style={styles.cell}>
+            <TouchableOpacity key={d.format(FMT)} disabled={past} activeOpacity={0.7} onPress={() => toggle(d)} style={styles.cell}>
               <View style={[
                 styles.day,
-                isToday && !skipped && styles.dayToday,
-                skipped && { backgroundColor: colors.error },
+                // Upcoming days default to "no delivery" (red); marked days go green.
+                !past && (wanted
+                  ? { backgroundColor: colors.success }
+                  : { backgroundColor: colors.error + '1F', borderWidth: 1, borderColor: colors.error + '66' }),
+                isToday && styles.dayToday,
               ]}>
                 <Text style={[
                   styles.dayText,
-                  (past || !delivery) && styles.dayTextMuted,
-                  skipped && styles.dayTextSelected,
+                  past && styles.dayTextMuted,
+                  !past && !wanted && { color: colors.error },
+                  wanted && styles.dayTextSelected,
                 ]}>
                   {d.date()}
                 </Text>
               </View>
-              {/* delivery indicator dot */}
-              {delivery && !skipped && !past && <View style={[styles.deliveryDot, { backgroundColor: colors.success }]} />}
             </TouchableOpacity>
           );
         })}
@@ -236,6 +244,13 @@ const makeStyles = (colors: AppColors) =>
     segmentText: { fontWeight: '700', color: colors.textMuted },
     segmentTextActive: { color: '#FFFFFF' },
 
+    infoBanner: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+      padding: 12, borderRadius: 12, backgroundColor: colors.primary + '14',
+      borderWidth: 1, borderColor: colors.primary + '33',
+    },
+    infoText: { flex: 1, color: colors.text, fontSize: 12.5, fontWeight: '600', lineHeight: 18 },
+
     legend: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginBottom: 12 },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     dot: { width: 9, height: 9, borderRadius: 5 },
@@ -260,11 +275,10 @@ const makeStyles = (colors: AppColors) =>
     grid: { flexDirection: 'row', flexWrap: 'wrap' },
     cell: { width: `${100 / 7}%`, height: 50, alignItems: 'center', justifyContent: 'center' },
     day: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-    dayToday: { borderWidth: 1.5, borderColor: colors.primary },
+    dayToday: { borderWidth: 2, borderColor: colors.primary },
     dayText: { fontSize: 15, fontWeight: '700', color: colors.text },
     dayTextMuted: { color: colors.textMuted, opacity: 0.45, fontWeight: '500' },
     dayTextSelected: { color: '#FFFFFF', fontWeight: '800' },
-    deliveryDot: { width: 5, height: 5, borderRadius: 3, marginTop: 3 },
 
     footNote: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginVertical: 14 },
   });

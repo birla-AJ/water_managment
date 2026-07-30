@@ -11,7 +11,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   TrackDelivery: undefined;
   Support: undefined;
-  SkipDeliveries: { view?: 'week' | 'month' } | undefined;
+  DeliveryCalendar: { view?: 'week' | 'month' } | undefined;
   // Driver area
   DriverMain: undefined;
   DriverNotifications: undefined;

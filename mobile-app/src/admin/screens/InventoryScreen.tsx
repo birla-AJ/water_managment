@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, RefreshControl, Alert } from 'react-native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
@@ -17,6 +18,7 @@ interface LogRow { id: string; action: string; quantity: number; remarks?: strin
 
 export default function InventoryScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [inv, setInv] = useState<Inventory | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
@@ -46,20 +48,20 @@ export default function InventoryScreen() {
       await adminInventoryApi.adjust(action, Number(quantity) || 0, remarks || undefined);
       setRemarks('');
       await load();
-      Alert.alert('Updated', 'Inventory movement recorded.');
-    } catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setSaving(false); }
+      Alert.alert(t('admin.inventory.updatedTitle'), t('admin.inventory.movementRecorded'));
+    } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); } finally { setSaving(false); }
   };
 
   if (loading || !inv) return <Loader />;
 
   const tiles = [
-    { title: 'Total', value: inv.totalCampers, icon: 'water', color: '#0E8388' },
-    { title: 'Filled', value: inv.filledCampers, icon: 'cup-water', color: '#16A8AE' },
-    { title: 'Empty', value: inv.emptyCampers, icon: 'cup-outline', color: '#3FC1C9' },
-    { title: 'Allocated', value: inv.allocatedCampers, icon: 'account-arrow-right', color: '#0891B2' },
-    { title: 'Returned', value: inv.returnedCampers, icon: 'backup-restore', color: '#34D399' },
-    { title: 'Damaged', value: inv.damagedCampers, icon: 'alert-circle', color: '#E5544B' },
-    { title: 'Lost', value: inv.lostCampers, icon: 'help-circle', color: '#F87171' },
+    { key: 'total', title: t('admin.inventory.tiles.total'), value: inv.totalCampers, icon: 'water', color: '#0E8388' },
+    { key: 'filled', title: t('admin.inventory.tiles.filled'), value: inv.filledCampers, icon: 'cup-water', color: '#16A8AE' },
+    { key: 'empty', title: t('admin.inventory.tiles.empty'), value: inv.emptyCampers, icon: 'cup-outline', color: '#3FC1C9' },
+    { key: 'allocated', title: t('admin.inventory.tiles.allocated'), value: inv.allocatedCampers, icon: 'account-arrow-right', color: '#0891B2' },
+    { key: 'returned', title: t('admin.inventory.tiles.returned'), value: inv.returnedCampers, icon: 'backup-restore', color: '#34D399' },
+    { key: 'damaged', title: t('admin.inventory.tiles.damaged'), value: inv.damagedCampers, icon: 'alert-circle', color: '#E5544B' },
+    { key: 'lost', title: t('admin.inventory.tiles.lost'), value: inv.lostCampers, icon: 'help-circle', color: '#F87171' },
   ];
 
   return (
@@ -68,35 +70,35 @@ export default function InventoryScreen() {
       contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
       refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
     >
-      <PageHeader title="Inventory" subtitle="Track campers across their lifecycle" />
+      <PageHeader subtitle={t('admin.inventory.subtitle')} />
 
       <View style={styles.grid}>
-        {tiles.map((t) => (
-          <View key={t.title} style={styles.gridItem}><StatTile {...t} /></View>
+        {tiles.map((tile) => (
+          <View key={tile.key} style={styles.gridItem}><StatTile title={tile.title} value={tile.value} icon={tile.icon} color={tile.color} /></View>
         ))}
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Record Stock Movement</Text>
+        <Text style={styles.cardTitle}>{t('admin.inventory.recordMovement')}</Text>
         <Segmented
-          label="Action"
-          options={ACTIONS.map((a) => ({ label: a.replace('_', ' '), value: a }))}
+          label={t('admin.inventory.action')}
+          options={ACTIONS.map((a) => ({ label: t(`admin.inventory.actions.${a}`), value: a }))}
           value={action}
           onChange={setAction}
         />
-        <FormInput label="Quantity" value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
-        <FormInput label="Remarks" value={remarks} onChangeText={setRemarks} placeholder="Optional note" />
-        <PrimaryButton title="Apply" onPress={apply} loading={saving} />
+        <FormInput label={t('admin.inventory.quantity')} value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
+        <FormInput label={t('admin.inventory.remarks')} value={remarks} onChangeText={setRemarks} placeholder={t('admin.inventory.optionalNote')} />
+        <PrimaryButton title={t('admin.inventory.apply')} onPress={apply} loading={saving} />
       </View>
 
-      <Text style={styles.section}>Inventory Logs</Text>
+      <Text style={styles.section}>{t('admin.inventory.logs')}</Text>
       {logs.length === 0 ? (
-        <Text style={styles.empty}>No movements yet.</Text>
+        <Text style={styles.empty}>{t('admin.inventory.noMovements')}</Text>
       ) : logs.map((l) => (
         <View key={l.id} style={styles.logRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.logAction}>{l.action.replace('_', ' ')} · {l.quantity}</Text>
-            <Text style={styles.logMeta}>{dayjs(l.createdAt).format('DD MMM YYYY HH:mm')} · {l.admin?.name ?? 'System'}</Text>
+            <Text style={styles.logAction}>{t(`admin.inventory.actions.${l.action}`, { defaultValue: l.action.replace('_', ' ') })} · {l.quantity}</Text>
+            <Text style={styles.logMeta}>{dayjs(l.createdAt).format('DD MMM YYYY HH:mm')} · {l.admin?.name ?? t('admin.inventory.system')}</Text>
             {!!l.remarks && <Text style={styles.logMeta}>{l.remarks}</Text>}
           </View>
         </View>

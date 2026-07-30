@@ -19,20 +19,21 @@ export default function CustomerDetails() {
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [schedules, setSchedules] = useState<Partial<CustomerSchedule>[]>([]);
-  const [skips, setSkips] = useState<string[]>([]);
+  // Days the customer asked for water on — deliveries are opt-in.
+  const [waterDays, setWaterDays] = useState<string[]>([]);
   const [newDate, setNewDate] = useState('');
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const { data: customer } = useQuery({ queryKey: ['customer', id], queryFn: () => customerApi.get(id!) });
-  const { data: skipData } = useQuery({ queryKey: ['customer-skips', id], queryFn: () => customerApi.skipDates(id!) });
+  const { data: waterDayData } = useQuery({ queryKey: ['customer-water-days', id], queryFn: () => customerApi.deliveryDates(id!) });
 
   useEffect(() => {
     if (customer?.schedules) setSchedules(customer.schedules);
   }, [customer]);
 
   useEffect(() => {
-    if (skipData) setSkips(skipData);
-  }, [skipData]);
+    if (waterDayData) setWaterDays(waterDayData);
+  }, [waterDayData]);
 
   const saveSchedule = useMutation({
     mutationFn: () => customerApi.updateSchedules(id!, schedules.map((s) => ({ weekday: s.weekday, enabled: s.enabled, quantity: s.quantity ?? 1 }))),
@@ -44,9 +45,13 @@ export default function CustomerDetails() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer', id] }); enqueueSnackbar('Updated', { variant: 'success' }); },
   });
 
-  const saveSkips = useMutation({
-    mutationFn: () => customerApi.setSkipDates(id!, skips),
-    onSuccess: (data) => { setSkips(data); enqueueSnackbar('Unavailable days saved', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['customer-skips', id] }); },
+  const saveWaterDays = useMutation({
+    mutationFn: () => customerApi.setDeliveryDates(id!, waterDays),
+    onSuccess: (data) => {
+      setWaterDays(data);
+      enqueueSnackbar('Water days saved — customer and driver notified', { variant: 'success' });
+      qc.invalidateQueries({ queryKey: ['customer-water-days', id] });
+    },
   });
 
   // Soft-remove: hides the customer and blocks them from logging in (history kept).
@@ -62,8 +67,8 @@ export default function CustomerDetails() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  const addSkip = () => {
-    if (newDate && !skips.includes(newDate)) setSkips([...skips, newDate].sort());
+  const addWaterDay = () => {
+    if (newDate && !waterDays.includes(newDate)) setWaterDays([...waterDays, newDate].sort());
     setNewDate('');
   };
 
@@ -127,8 +132,11 @@ export default function CustomerDetails() {
         </Grid>
         <Grid item xs={12} md={7}>
           <Card><CardContent>
-            <Typography variant="h6" mb={1}>Delivery Schedule</Typography>
-            <Typography variant="body2" color="text.secondary" mb={2}>Enable/disable delivery and set quantity per weekday.</Typography>
+            <Typography variant="h6" mb={1}>Weekday Quantity</Typography>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Default campers per weekday. Which days get a delivery is decided by the customer's
+              water days below, not by these toggles.
+            </Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack spacing={1.5}>
               {DAYS.map((d) => {
@@ -157,9 +165,10 @@ export default function CustomerDetails() {
 
         <Grid item xs={12}>
           <Card><CardContent>
-            <Typography variant="h6" mb={1}>Unavailable Days (Skips)</Typography>
+            <Typography variant="h6" mb={1}>Water Days (Requested)</Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Dates the customer marked as away. No delivery is generated on these days.
+              Dates the customer asked for water. Water is delivered only on these days — any date not
+              listed here means no delivery. Changes notify the customer's driver.
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack direction="row" spacing={1} alignItems="center" mb={2}>
@@ -168,20 +177,20 @@ export default function CustomerDetails() {
                 InputLabelProps={{ shrink: true }} inputProps={{ min: todayStr }}
                 value={newDate} onChange={(e) => setNewDate(e.target.value)}
               />
-              <Button variant="outlined" onClick={addSkip} disabled={!newDate}>Add</Button>
+              <Button variant="outlined" onClick={addWaterDay} disabled={!newDate}>Add</Button>
             </Stack>
-            {skips.length ? (
+            {waterDays.length ? (
               <Stack direction="row" flexWrap="wrap" gap={1}>
-                {skips.map((d) => (
-                  <Chip key={d} color="warning" variant="outlined" label={fmtDate(d)} onDelete={() => setSkips(skips.filter((x) => x !== d))} />
+                {waterDays.map((d) => (
+                  <Chip key={d} color="success" variant="outlined" label={fmtDate(d)} onDelete={() => setWaterDays(waterDays.filter((x) => x !== d))} />
                 ))}
               </Stack>
             ) : (
-              <Typography color="text.secondary">No upcoming skipped days.</Typography>
+              <Typography color="text.secondary">No upcoming water days selected — this customer receives nothing.</Typography>
             )}
             <Box>
-              <Button variant="contained" sx={{ mt: 3 }} onClick={() => saveSkips.mutate()} disabled={saveSkips.isPending}>
-                Save Unavailable Days
+              <Button variant="contained" sx={{ mt: 3 }} onClick={() => saveWaterDays.mutate()} disabled={saveWaterDays.isPending}>
+                Save Water Days
               </Button>
             </Box>
           </CardContent></Card>

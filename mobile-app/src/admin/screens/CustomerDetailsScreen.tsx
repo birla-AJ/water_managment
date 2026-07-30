@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Switch, TextInput, TouchableOpacity, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../theme/ThemeContext';
@@ -14,10 +15,10 @@ import type { AdminStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'CustomerDetails'>;
 const DAYS: Weekday[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-const cap = (d: string) => d.charAt(0) + d.slice(1).toLowerCase();
 
 export default function CustomerDetailsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<AdminStackParamList, 'CustomerDetails'>>();
@@ -25,7 +26,7 @@ export default function CustomerDetailsScreen() {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [schedules, setSchedules] = useState<Partial<CustomerSchedule>[]>([]);
-  const [skips, setSkips] = useState<string[]>([]);
+  const [waterDays, setWaterDays] = useState<string[]>([]);
   const [newDate, setNewDate] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -33,13 +34,13 @@ export default function CustomerDetailsScreen() {
     try {
       const [c, s] = await Promise.all([
         adminCustomerApi.get(id),
-        adminCustomerApi.skipDates(id).catch(() => [] as string[]),
+        adminCustomerApi.deliveryDates(id).catch(() => [] as string[]),
       ]);
       setCustomer(c);
       setSchedules(c.schedules ?? []);
-      setSkips(s);
-    } catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setLoading(false); }
-  }, [id]);
+      setWaterDays(s);
+    } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); } finally { setLoading(false); }
+  }, [id, t]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -57,8 +58,8 @@ export default function CustomerDetailsScreen() {
         const day = getDay(d);
         return { weekday: d, enabled: !!day.enabled, quantity: day.quantity ?? 1 };
       }));
-      Alert.alert('Saved', 'Delivery schedule updated.');
-    } catch (e) { Alert.alert('Error', errorMessage(e)); }
+      Alert.alert(t('admin.customerDetails.saved'), t('admin.customerDetails.scheduleUpdated'));
+    } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
   const togglePause = async () => {
@@ -67,36 +68,36 @@ export default function CustomerDetailsScreen() {
       if (customer.isPaused) await adminCustomerApi.resume(id);
       else await adminCustomerApi.pause(id);
       load();
-    } catch (e) { Alert.alert('Error', errorMessage(e)); }
+    } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
-  const addSkip = () => {
+  const addWaterDay = () => {
     const d = newDate.trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { Alert.alert('Invalid date', 'Use the format YYYY-MM-DD.'); return; }
-    if (!skips.includes(d)) setSkips([...skips, d].sort());
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { Alert.alert(t('admin.customerDetails.invalidDate'), t('admin.customerDetails.invalidDateMsg')); return; }
+    if (!waterDays.includes(d)) setWaterDays([...waterDays, d].sort());
     setNewDate('');
   };
-  const saveSkips = async () => {
-    try { const r = await adminCustomerApi.setSkipDates(id, skips); setSkips(r); Alert.alert('Saved', 'Unavailable days updated.'); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); }
+  const saveWaterDays = async () => {
+    try { const r = await adminCustomerApi.setDeliveryDates(id, waterDays); setWaterDays(r); Alert.alert(t('admin.customerDetails.saved'), t('admin.customerDetails.waterDaysUpdated')); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
   const removeCustomer = () => {
     if (!customer) return;
     Alert.alert(
-      'Remove customer?',
-      `${customer.name} will be removed and blocked from logging in. Billing history is kept and they can be restored later.`,
+      t('admin.customerDetails.removeTitle'),
+      t('admin.customerDetails.removeMsg', { name: customer.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('admin.common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('admin.common.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
               await adminCustomerApi.remove(id);
               navigation.goBack();
             } catch (e) {
-              Alert.alert('Error', errorMessage(e));
+              Alert.alert(t('admin.common.error'), errorMessage(e));
             }
           },
         },
@@ -119,27 +120,27 @@ export default function CustomerDetailsScreen() {
       />
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile</Text>
-        <View style={styles.fieldInline}><Text style={styles.fieldLabel}>Status</Text><StatusChip status={customer.status} /></View>
-        <Field label="Type" value={customer.customerType} />
-        <Field label="Area" value={customer.area} />
-        <Field label="Address" value={customer.address} />
-        <Field label="Landmark" value={customer.landmark} />
-        <Field label="Rate / Camper" value={`₹${customer.ratePerCamper}`} />
-        <Field label="Security Deposit" value={`₹${customer.securityDeposit}`} />
-        <Field label="Allocated Campers" value={customer.allocatedCampers} />
-        <Field label="Paused" value={customer.isPaused ? 'Yes' : 'No'} />
+        <Text style={styles.cardTitle}>{t('admin.customerDetails.profile')}</Text>
+        <View style={styles.fieldInline}><Text style={styles.fieldLabel}>{t('admin.customerDetails.status')}</Text><StatusChip status={customer.status} /></View>
+        <Field label={t('admin.customerDetails.type')} value={customer.customerType} />
+        <Field label={t('admin.customerDetails.area')} value={customer.area} />
+        <Field label={t('admin.customerDetails.address')} value={customer.address} />
+        <Field label={t('admin.customerDetails.landmark')} value={customer.landmark} />
+        <Field label={t('admin.customerDetails.ratePerCamper')} value={`₹${customer.ratePerCamper}`} />
+        <Field label={t('admin.customerDetails.securityDeposit')} value={`₹${customer.securityDeposit}`} />
+        <Field label={t('admin.customerDetails.allocatedCampers')} value={customer.allocatedCampers} />
+        <Field label={t('admin.customerDetails.paused')} value={customer.isPaused ? t('admin.common.yes') : t('admin.common.no')} />
       </View>
 
       <PrimaryButton
-        title={customer.isPaused ? 'Resume Deliveries' : 'Pause Deliveries'}
+        title={customer.isPaused ? t('admin.customerDetails.resumeDeliveries') : t('admin.customerDetails.pauseDeliveries')}
         variant={customer.isPaused ? 'primary' : 'outline'}
         onPress={togglePause}
       />
 
       <View style={[styles.card, { marginTop: 16 }]}>
-        <Text style={styles.cardTitle}>Delivery Schedule</Text>
-        <Text style={styles.cardSub}>Enable delivery and set quantity per weekday.</Text>
+        <Text style={styles.cardTitle}>{t('admin.customerDetails.deliverySchedule')}</Text>
+        <Text style={styles.cardSub}>{t('admin.customerDetails.scheduleHint')}</Text>
         {DAYS.map((d) => {
           const day = getDay(d);
           return (
@@ -149,7 +150,7 @@ export default function CustomerDetailsScreen() {
                 onValueChange={(v) => updateDay(d, { enabled: v })}
                 trackColor={{ true: colors.primary }}
               />
-              <Text style={styles.dayLabel}>{cap(d)}</Text>
+              <Text style={styles.dayLabel}>{t(`admin.customerDetails.weekdays.${d}`)}</Text>
               <TextInput
                 style={styles.qtyInput}
                 keyboardType="numeric"
@@ -161,36 +162,36 @@ export default function CustomerDetailsScreen() {
           );
         })}
         <View style={{ height: 12 }} />
-        <PrimaryButton title="Save Schedule" onPress={saveSchedule} />
+        <PrimaryButton title={t('admin.customerDetails.saveSchedule')} onPress={saveSchedule} />
       </View>
 
       <View style={[styles.card, { marginTop: 16 }]}>
-        <Text style={styles.cardTitle}>Unavailable Days (Skips)</Text>
-        <Text style={styles.cardSub}>No delivery is generated on these dates.</Text>
-        <View style={styles.skipAddRow}>
+        <Text style={styles.cardTitle}>{t('admin.customerDetails.waterDays')}</Text>
+        <Text style={styles.cardSub}>{t('admin.customerDetails.waterDaysHint')}</Text>
+        <View style={styles.dayAddRow}>
           <TextInput
-            style={styles.skipInput}
+            style={styles.dayInput}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={colors.textMuted}
             value={newDate}
             onChangeText={setNewDate}
           />
-          <TouchableOpacity style={styles.addBtn} onPress={addSkip}><Text style={styles.addBtnText}>Add</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={addWaterDay}><Text style={styles.addBtnText}>{t('admin.common.add')}</Text></TouchableOpacity>
         </View>
-        <View style={styles.skipChips}>
-          {skips.length ? skips.map((d) => (
-            <TouchableOpacity key={d} style={styles.skipChip} onPress={() => setSkips(skips.filter((x) => x !== d))}>
-              <Text style={styles.skipChipText}>{d}</Text>
-              <Icon name="close" size={14} color={colors.warning} />
+        <View style={styles.dayChips}>
+          {waterDays.length ? waterDays.map((d) => (
+            <TouchableOpacity key={d} style={styles.dayChip} onPress={() => setWaterDays(waterDays.filter((x) => x !== d))}>
+              <Text style={styles.dayChipText}>{d}</Text>
+              <Icon name="close" size={14} color={colors.success} />
             </TouchableOpacity>
-          )) : <Text style={styles.cardSub}>No upcoming skipped days.</Text>}
+          )) : <Text style={styles.cardSub}>{t('admin.customerDetails.noWaterDays')}</Text>}
         </View>
         <View style={{ height: 12 }} />
-        <PrimaryButton title="Save Unavailable Days" onPress={saveSkips} />
+        <PrimaryButton title={t('admin.customerDetails.saveWaterDays')} onPress={saveWaterDays} />
       </View>
 
       <View style={{ height: 20 }} />
-      <PrimaryButton title="Remove Customer" variant="outline" onPress={removeCustomer} />
+      <PrimaryButton title={t('admin.customerDetails.removeCustomer')} variant="outline" onPress={removeCustomer} />
     </ScrollView>
   );
 }
@@ -215,17 +216,17 @@ const makeStyles = (colors: AppColors) =>
       width: 70, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder,
       paddingHorizontal: 12, paddingVertical: 8, color: colors.text, textAlign: 'center',
     },
-    skipAddRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-    skipInput: {
+    dayAddRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+    dayInput: {
       flex: 1, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder,
       paddingHorizontal: 12, paddingVertical: 10, color: colors.text,
     },
     addBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
     addBtnText: { color: '#FFFFFF', fontWeight: '800' },
-    skipChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-    skipChip: {
+    dayChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    dayChip: {
       flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6,
-      borderRadius: 16, borderWidth: 1, borderColor: colors.warning + '55', backgroundColor: colors.warning + '1F',
+      borderRadius: 16, borderWidth: 1, borderColor: colors.success + '55', backgroundColor: colors.success + '1F',
     },
-    skipChipText: { color: colors.warning, fontWeight: '700', fontSize: 13 },
+    dayChipText: { color: colors.success, fontWeight: '700', fontSize: 13 },
   });

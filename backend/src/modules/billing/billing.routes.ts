@@ -27,14 +27,11 @@ billingRouter.get('/invoices/:id', admin, ctrl.getOne);
  *     summary: Generate an invoice for a customer & period
  *     security: [{ bearerAuth: [] }]
  *     responses: { 201: { description: Generated } }
- * 
  */
 billingRouter.post('/invoices/generate', admin, validate(generateInvoiceSchema), ctrl.generate);
 billingRouter.post('/invoices/auto-generate', admin, validate(autoGenerateSchema), ctrl.autoGenerate);
 billingRouter.get('/invoices/:id/pdf', admin, ctrl.downloadPdf);
 billingRouter.post('/invoices/:id/notify', admin, ctrl.sendNotification);
-
-
 
 // Customer-facing
 export const billingMeRouter = Router();

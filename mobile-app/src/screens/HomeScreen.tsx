@@ -12,6 +12,8 @@ import type { AppColors } from '../theme/colors';
 // Cohesive aqua/teal accent family (monochrome look, matching the reference).
 const ACTIONS = [
   { label: 'Order Camper', icon: 'water-plus', screen: 'Order', tab: true, color: '#0E8388' },
+  // Water is opt-in — this is where the customer marks the days they need it.
+  { label: 'My Water Days', icon: 'calendar-check', screen: 'DeliveryCalendar', color: '#0EA5B5' },
   { label: 'My Deliveries', icon: 'truck-delivery', screen: 'Deliveries', tab: true, color: '#0EA5B5' },
   { label: 'Track Delivery', icon: 'map-marker-path', screen: 'TrackDelivery', color: '#0B8FD3' },
   { label: 'Order History', icon: 'history', screen: 'OrderHistory', color: '#1AA7B0' },
@@ -158,7 +160,7 @@ export default function HomeScreen() {
               </>
             );
             return tappable ? (
-              <PressableScale key={s.label} style={styles.statCard} onPress={() => navigation.navigate('SkipDeliveries', { view: (s as any).view })}>
+              <PressableScale key={s.label} style={styles.statCard} onPress={() => navigation.navigate('DeliveryCalendar', { view: (s as any).view })}>
                 {inner}
               </PressableScale>
             ) : (

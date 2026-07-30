@@ -34,6 +34,16 @@ const en: Dict = {
 
   'notify.newCustomer.title': 'New customer registered',
   'notify.newCustomer.body': '{name} ({mobile}) signed up.',
+
+  // Opt-in delivery calendar: the customer marks the days they want water.
+  'notify.deliveryRequested.title': 'Water needed on new day(s)',
+  'notify.deliveryRequested.body': '{who} wants water on {dates}.',
+
+  'notify.deliveryRequestedToday.title': 'Water needed today',
+  'notify.deliveryRequestedToday.body': '{who} wants water on {dates}. Deliver today.',
+
+  'notify.deliveryCancelled.title': 'Delivery day cancelled',
+  'notify.deliveryCancelled.body': '{who} no longer wants water on {dates}. Skip those days.',
 };
 
 const hi: Dict = {
@@ -57,6 +67,15 @@ const hi: Dict = {
 
   'notify.newCustomer.title': 'नया ग्राहक पंजीकृत हुआ',
   'notify.newCustomer.body': '{name} ({mobile}) ने साइन अप किया।',
+
+  'notify.deliveryRequested.title': 'नए दिनों पर पानी चाहिए',
+  'notify.deliveryRequested.body': '{who} को {dates} पर पानी चाहिए।',
+
+  'notify.deliveryRequestedToday.title': 'आज पानी चाहिए',
+  'notify.deliveryRequestedToday.body': '{who} को {dates} पर पानी चाहिए। आज डिलीवरी करें।',
+
+  'notify.deliveryCancelled.title': 'डिलीवरी का दिन रद्द हुआ',
+  'notify.deliveryCancelled.body': '{who} को अब {dates} पर पानी नहीं चाहिए। उन दिनों जाने की जरूरत नहीं।',
 };
 
 const catalogs: Record<Lang, Dict> = { en, hi };

@@ -1,3 +1,8 @@
+// Hermes on Android does not provide Intl.PluralRules. Load the polyfill before
+// i18next initialises so plural translations work without a red-box warning.
+import '@formatjs/intl-pluralrules/polyfill-force';
+import '@formatjs/intl-pluralrules/locale-data/en';
+import '@formatjs/intl-pluralrules/locale-data/hi';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';

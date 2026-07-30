@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { RequestSource } from '@prisma/client';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, created, noContent } from '../../utils/apiResponse';
 import { getPagination, buildMeta } from '../../utils/pagination';
@@ -80,14 +81,18 @@ export const resume = asyncHandler(async (req: Request, res: Response) => {
   ok(res, await customerService.resume(req.params.id), 'Deliveries resumed');
 });
 
-export const getSkipDates = asyncHandler(async (req: Request, res: Response) => {
+export const getDeliveryDates = asyncHandler(async (req: Request, res: Response) => {
   await assertCustomerAccess(req);
-  ok(res, await customerService.getSkipDates(req.params.id));
+  ok(res, await customerService.getDeliveryDates(req.params.id));
 });
 
-export const setSkipDates = asyncHandler(async (req: Request, res: Response) => {
+export const setDeliveryDates = asyncHandler(async (req: Request, res: Response) => {
   await assertCustomerAccess(req);
-  ok(res, await customerService.setSkipDates(req.params.id, req.body.dates), 'Unavailable days updated');
+  ok(
+    res,
+    await customerService.setDeliveryDates(req.params.id, req.body.dates, RequestSource.ADMIN),
+    'Delivery days updated',
+  );
 });
 
 // ---- Customer self-service (mobile app) ----
@@ -111,10 +116,10 @@ export const resumeMine = asyncHandler(async (req: Request, res: Response) => {
   ok(res, await customerService.resume(req.user!.sub), 'Deliveries resumed');
 });
 
-export const mySkipDates = asyncHandler(async (req: Request, res: Response) => {
-  ok(res, await customerService.getSkipDates(req.user!.sub));
+export const myDeliveryDates = asyncHandler(async (req: Request, res: Response) => {
+  ok(res, await customerService.getDeliveryDates(req.user!.sub));
 });
 
-export const setMySkipDates = asyncHandler(async (req: Request, res: Response) => {
-  ok(res, await customerService.setSkipDates(req.user!.sub, req.body.dates), 'Unavailable days updated');
+export const setMyDeliveryDates = asyncHandler(async (req: Request, res: Response) => {
+  ok(res, await customerService.setDeliveryDates(req.user!.sub, req.body.dates), 'Delivery days updated');
 });

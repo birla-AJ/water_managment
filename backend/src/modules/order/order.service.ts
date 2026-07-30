@@ -190,57 +190,106 @@ class OrderService {
   }
 
   /**
+   * How many campers to deliver to a customer on a given weekday: the customer's
+   * per-weekday quantity when set, otherwise their allocated campers (min 1).
+   */
+  private async quantityFor(customerId: string, date: Date, allocatedCampers: number): Promise<number> {
+    const schedule = await prisma.customerSchedule.findUnique({
+      where: { customerId_weekday: { customerId, weekday: WEEKDAY_INDEX[dayjs(date).day()] } },
+      select: { quantity: true },
+    });
+    return schedule?.quantity || allocatedCampers || 1;
+  }
+
+  /**
    * Idempotently generate REGULAR orders for every active, non-paused customer
-   * whose schedule has the given weekday enabled. Safe to run multiple times.
+   * who asked for water on this date (deliveries are opt-in — a customer with no
+   * request for the date gets nothing). Safe to run multiple times.
    */
   async generateRegularOrdersForDate(date: Date) {
     const weekday = WEEKDAY_INDEX[dayjs(date).day()];
     const dayStart = dayjs(date).startOf('day').toDate();
     const dayEnd = dayjs(date).endOf('day').toDate();
 
-    const schedules = await prisma.customerSchedule.findMany({
+    const requests = await prisma.deliveryRequest.findMany({
       where: {
-        weekday,
-        enabled: true,
-        customer: {
-          status: 'ACTIVE',
-          isPaused: false,
-          // Skip customers who marked this date as unavailable.
-          deliverySkips: { none: { date: { gte: dayStart, lte: dayEnd } } },
-        },
+        date: { gte: dayStart, lte: dayEnd },
+        customer: { status: 'ACTIVE', isPaused: false },
       },
-      include: { customer: true },
+      select: { customerId: true },
     });
 
     let created = 0;
-    for (const sch of schedules) {
-      const exists = await prisma.order.findFirst({
-        where: {
-          customerId: sch.customerId,
-          type: OrderType.REGULAR,
-          orderDate: { gte: dayStart, lte: dayEnd },
-        },
-      });
-      if (exists) continue;
-
-      const rate = sch.customer.ratePerCamper;
-      const seq = await this.nextSequence();
-      await prisma.order.create({
-        data: {
-          orderNumber: generateOrderNumber(seq),
-          customerId: sch.customerId,
-          type: OrderType.REGULAR,
-          status: OrderStatus.ACCEPTED,
-          quantity: sch.quantity,
-          orderDate: date,
-          items: {
-            create: [{ name: 'Water Camper (20L)', quantity: sch.quantity, rate, amount: rate.mul(sch.quantity) }],
-          },
-        },
-      });
-      created++;
+    for (const req of requests) {
+      if (await this.ensureRegularOrder(req.customerId, date)) created++;
     }
-    return { date: dayjs(date).format('YYYY-MM-DD'), weekday, created };
+    return { date: dayjs(date).format('YYYY-MM-DD'), weekday, requested: requests.length, created };
+  }
+
+  /**
+   * Create the customer's REGULAR order for a date if it doesn't exist yet.
+   * Returns true when an order was created. Used by the daily generator and when
+   * a customer marks a day as "water needed" so the driver sees it immediately.
+   */
+  async ensureRegularOrder(customerId: string, date: Date): Promise<boolean> {
+    const dayStart = dayjs(date).startOf('day').toDate();
+    const dayEnd = dayjs(date).endOf('day').toDate();
+
+    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    if (!customer || customer.status !== 'ACTIVE' || customer.isPaused) return false;
+
+    const existing = await prisma.order.findFirst({
+      where: { customerId, type: OrderType.REGULAR, orderDate: { gte: dayStart, lte: dayEnd } },
+      orderBy: { createdAt: 'desc' },
+    });
+    // A day un-marked and marked again reuses the cancelled order instead of
+    // creating a second one for the same date.
+    if (existing) {
+      if (existing.status !== OrderStatus.CANCELLED) return false;
+      await prisma.order.update({ where: { id: existing.id }, data: { status: OrderStatus.ACCEPTED } });
+      return true;
+    }
+
+    const quantity = await this.quantityFor(customerId, date, customer.allocatedCampers);
+    const rate = customer.ratePerCamper;
+    const seq = await this.nextSequence();
+    await prisma.order.create({
+      data: {
+        orderNumber: generateOrderNumber(seq),
+        customerId,
+        type: OrderType.REGULAR,
+        status: OrderStatus.ACCEPTED,
+        quantity,
+        orderDate: dayjs(date).startOf('day').toDate(),
+        items: {
+          create: [{ name: 'Water Camper (20L)', quantity, rate, amount: rate.mul(quantity) }],
+        },
+      },
+    });
+    return true;
+  }
+
+  /**
+   * Withdraw the customer's REGULAR order for a date — used when they un-mark a
+   * day they had asked water for. Already-delivered orders are left alone.
+   */
+  async cancelRegularOrder(customerId: string, date: Date): Promise<boolean> {
+    const dayStart = dayjs(date).startOf('day').toDate();
+    const dayEnd = dayjs(date).endOf('day').toDate();
+
+    const order = await prisma.order.findFirst({
+      where: {
+        customerId,
+        type: OrderType.REGULAR,
+        orderDate: { gte: dayStart, lte: dayEnd },
+        status: { notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+      },
+      include: { delivery: { select: { status: true } } },
+    });
+    if (!order || order.delivery?.status === DeliveryStatus.DELIVERED) return false;
+
+    await prisma.order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED } });
+    return true;
   }
 }
 

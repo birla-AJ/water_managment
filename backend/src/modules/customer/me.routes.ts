@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import * as ctrl from './customer.controller';
-import { updateCustomerSchema, pauseSchema, skipDatesSchema } from './customer.dto';
+import { updateCustomerSchema, pauseSchema, deliveryDatesSchema } from './customer.dto';
 
 const router = Router();
 const customer = authenticate('customer');
@@ -21,7 +21,8 @@ router.put('/profile', customer, validate(updateCustomerSchema), ctrl.updateMyPr
 router.get('/schedules', customer, ctrl.mySchedules);
 router.post('/pause', customer, validate(pauseSchema), ctrl.pauseMine);
 router.post('/resume', customer, ctrl.resumeMine);
-router.get('/skip-dates', customer, ctrl.mySkipDates);
-router.put('/skip-dates', customer, validate(skipDatesSchema), ctrl.setMySkipDates);
+// Deliveries are opt-in: these are the dates the customer wants water on.
+router.get('/delivery-dates', customer, ctrl.myDeliveryDates);
+router.put('/delivery-dates', customer, validate(deliveryDatesSchema), ctrl.setMyDeliveryDates);
 
 export default router;

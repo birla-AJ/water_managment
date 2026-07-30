@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, FlatList, RefreshControl, Alert, TouchableOpacity, Text } from 'react-native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import { errorMessage } from '../../api/client';
@@ -9,16 +10,17 @@ import type { Payment } from '../types';
 import { PageHeader, FilterChips, RowCard, StatusChip, Loader, EmptyState } from '../components/ui';
 
 type PStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
-const STATUS_FILTERS: { label: string; value: '' | PStatus }[] = [
-  { label: 'All', value: '' },
-  { label: 'Success', value: 'SUCCESS' },
-  { label: 'Pending', value: 'PENDING' },
-  { label: 'Failed', value: 'FAILED' },
-  { label: 'Refunded', value: 'REFUNDED' },
-];
 
 export default function PaymentsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const STATUS_FILTERS: { label: string; value: '' | PStatus }[] = [
+    { label: t('admin.common.all'), value: '' },
+    { label: t('admin.payments.statusSuccess'), value: 'SUCCESS' },
+    { label: t('admin.payments.statusPending'), value: 'PENDING' },
+    { label: t('admin.payments.statusFailed'), value: 'FAILED' },
+    { label: t('admin.payments.statusRefunded'), value: 'REFUNDED' },
+  ];
   const [items, setItems] = useState<Payment[]>([]);
   const [status, setStatus] = useState<'' | PStatus>('');
   const [loading, setLoading] = useState(true);
@@ -32,10 +34,10 @@ export default function PaymentsScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const refund = (p: Payment) => {
-    Alert.alert('Refund payment', `Refund ₹${p.amount} to ${p.customer?.name ?? 'customer'}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Refund', style: 'destructive', onPress: async () => {
-        try { await adminPaymentApi.refund(p.id); load(); } catch (e) { Alert.alert('Error', errorMessage(e)); }
+    Alert.alert(t('admin.payments.refundTitle'), t('admin.payments.refundConfirm', { amount: p.amount, name: p.customer?.name ?? t('admin.payments.customerFallback') }), [
+      { text: t('admin.common.cancel'), style: 'cancel' },
+      { text: t('admin.payments.refund'), style: 'destructive', onPress: async () => {
+        try { await adminPaymentApi.refund(p.id); load(); } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
       } },
     ]);
   };
@@ -48,7 +50,7 @@ export default function PaymentsScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListHeaderComponent={
           <View>
-            <PageHeader title="Payments" subtitle="Razorpay & manual payments" />
+            <PageHeader subtitle={t('admin.payments.subtitle')} />
             <FilterChips options={STATUS_FILTERS} value={status} onChange={setStatus} />
             <View style={{ height: 8 }} />
           </View>
@@ -65,14 +67,14 @@ export default function PaymentsScreen() {
                 <StatusChip status={item.status} />
                 {item.status === 'SUCCESS' && (
                   <TouchableOpacity onPress={() => refund(item)}>
-                    <Text style={{ color: colors.warning, fontWeight: '800', fontSize: 13 }}>Refund</Text>
+                    <Text style={{ color: colors.warning, fontWeight: '800', fontSize: 13 }}>{t('admin.payments.refund')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             }
           />
         )}
-        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="credit-card-off-outline" text="No payments found" />}
+        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="credit-card-off-outline" text={t('admin.payments.noPayments')} />}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
       />
     </View>

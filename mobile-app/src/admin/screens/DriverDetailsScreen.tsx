@@ -5,6 +5,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
 import { PrimaryButton } from '../../components/ui';
@@ -18,6 +19,7 @@ type Nav = NativeStackNavigationProp<AdminStackParamList, 'DriverDetails'>;
 
 export default function DriverDetailsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<AdminStackParamList, 'DriverDetails'>>();
@@ -37,7 +39,7 @@ export default function DriverDetailsScreen() {
 
   const load = useCallback(async () => {
     try { setDriver(await adminDriverApi.get(id)); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setLoading(false); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); } finally { setLoading(false); }
   }, [id]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -52,40 +54,40 @@ export default function DriverDetailsScreen() {
     const ids = Object.keys(picked).filter((k) => picked[k]);
     if (!ids.length) return;
     try { await adminDriverApi.assignCustomers(id, ids); setAssignOpen(false); load(); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
   const unassign = (customerId: string, name: string) => {
-    Alert.alert('Remove customer', `Unassign ${name} from this driver?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: async () => {
-        try { await adminDriverApi.unassignCustomer(id, customerId); load(); } catch (e) { Alert.alert('Error', errorMessage(e)); }
+    Alert.alert(t('admin.driverDetails.removeCustomer'), t('admin.driverDetails.unassignConfirm', { name }), [
+      { text: t('admin.common.cancel'), style: 'cancel' },
+      { text: t('admin.common.remove'), style: 'destructive', onPress: async () => {
+        try { await adminDriverApi.unassignCustomer(id, customerId); load(); } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
       } },
     ]);
   };
 
   const sendNote = async () => {
-    if (!noteTitle.trim() || !noteBody.trim()) { Alert.alert('Required', 'Title and message are required.'); return; }
-    try { await adminDriverApi.notify(id, noteTitle, noteBody); setNotifyOpen(false); setNoteTitle(''); setNoteBody(''); Alert.alert('Sent', 'Notification sent to driver.'); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); }
+    if (!noteTitle.trim() || !noteBody.trim()) { Alert.alert(t('admin.driverDetails.required'), t('admin.driverDetails.titleMessageRequired')); return; }
+    try { await adminDriverApi.notify(id, noteTitle, noteBody); setNotifyOpen(false); setNoteTitle(''); setNoteBody(''); Alert.alert(t('admin.driverDetails.sent'), t('admin.driverDetails.notificationSent')); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
   const removeDriver = () => {
     if (!driver) return;
     Alert.alert(
-      'Remove driver?',
-      `${driver.name} will be unassigned from all customers, removed, and blocked from logging in. They can be restored later.`,
+      t('admin.driverDetails.removeDriverTitle'),
+      t('admin.driverDetails.removeDriverMsg', { name: driver.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('admin.common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('admin.common.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
               await adminDriverApi.remove(id);
               navigation.goBack();
             } catch (e) {
-              Alert.alert('Error', errorMessage(e));
+              Alert.alert(t('admin.common.error'), errorMessage(e));
             }
           },
         },
@@ -100,7 +102,7 @@ export default function DriverDetailsScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <PageHeader
         title={driver.name}
-        subtitle={`Driver · ${driver.mobile}`}
+        subtitle={t('admin.driverDetails.driverSubtitle', { mobile: driver.mobile })}
         action={
           <TouchableOpacity onPress={() => navigation.navigate('DriverForm', { id })} style={styles.iconBtn}>
             <Icon name="pencil" size={18} color={colors.primary} />
@@ -109,24 +111,24 @@ export default function DriverDetailsScreen() {
       />
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile</Text>
-        <View style={styles.fieldInline}><Text style={styles.fieldLabel}>Status</Text><StatusChip status={driver.status} /></View>
-        <Field label="Zone" value={driver.zone} />
-        <Field label="Vehicle" value={driver.vehicle ? `${driver.vehicle.number}${driver.vehicle.type ? ` (${driver.vehicle.type})` : ''}` : '—'} />
-        <Field label="License" value={driver.licenseNumber} />
-        <Field label="Email" value={driver.email} />
-        <Field label="Assigned customers" value={driver._count?.customers ?? driver.customers?.length ?? 0} />
+        <Text style={styles.cardTitle}>{t('admin.driverDetails.profile')}</Text>
+        <View style={styles.fieldInline}><Text style={styles.fieldLabel}>{t('admin.driverDetails.status')}</Text><StatusChip status={driver.status} /></View>
+        <Field label={t('admin.driverDetails.zone')} value={driver.zone} />
+        <Field label={t('admin.driverDetails.vehicle')} value={driver.vehicle ? `${driver.vehicle.number}${driver.vehicle.type ? ` (${driver.vehicle.type})` : ''}` : '—'} />
+        <Field label={t('admin.driverDetails.license')} value={driver.licenseNumber} />
+        <Field label={t('admin.driverDetails.email')} value={driver.email} />
+        <Field label={t('admin.driverDetails.assignedCustomers')} value={driver._count?.customers ?? driver.customers?.length ?? 0} />
       </View>
 
       <View style={styles.rowBtns}>
-        <View style={{ flex: 1 }}><PrimaryButton title="Notify" variant="outline" onPress={() => setNotifyOpen(true)} /></View>
-        <View style={{ flex: 1 }}><PrimaryButton title="Assign" onPress={openAssign} /></View>
+        <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.notify')} variant="outline" onPress={() => setNotifyOpen(true)} /></View>
+        <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.assign')} onPress={openAssign} /></View>
       </View>
 
       <View style={[styles.card, { marginTop: 16 }]}>
-        <Text style={styles.cardTitle}>Assigned Customers</Text>
+        <Text style={styles.cardTitle}>{t('admin.driverDetails.assignedCustomersSection')}</Text>
         {(driver.customers ?? []).length === 0 ? (
-          <Text style={styles.muted}>No customers assigned yet.</Text>
+          <Text style={styles.muted}>{t('admin.driverDetails.noCustomersAssigned')}</Text>
         ) : (driver.customers ?? []).map((c) => (
           <View key={c.id} style={styles.assignedRow}>
             <View style={{ flex: 1 }}>
@@ -141,19 +143,19 @@ export default function DriverDetailsScreen() {
       </View>
 
       <View style={{ height: 20 }} />
-      <PrimaryButton title="Remove Driver" variant="outline" onPress={removeDriver} />
+      <PrimaryButton title={t('admin.driverDetails.removeDriver')} variant="outline" onPress={removeDriver} />
 
       {/* Assign modal */}
       <Modal visible={assignOpen} animationType="slide" transparent onRequestClose={() => setAssignOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
-            <Text style={styles.cardTitle}>Assign customers</Text>
+            <Text style={styles.cardTitle}>{t('admin.driverDetails.assignCustomers')}</Text>
             <TextInput
               style={styles.modalSearch}
-              placeholder="Search name / mobile / area"
+              placeholder={t('admin.driverDetails.searchPlaceholder')}
               placeholderTextColor={colors.textMuted}
               value={search}
-              onChangeText={(t) => { setSearch(t); loadCandidates(t); }}
+              onChangeText={(val) => { setSearch(val); loadCandidates(val); }}
             />
             <FlatList
               data={candidates}
@@ -171,16 +173,16 @@ export default function DriverDetailsScreen() {
                     <Icon name={checked ? 'checkbox-marked' : 'checkbox-blank-outline'} size={22} color={checked ? colors.primary : colors.textMuted} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.assignedName}>{item.name}</Text>
-                      <Text style={styles.muted}>{item.mobile}{item.area ? ` · ${item.area}` : ''}{already ? ' · already assigned' : ''}</Text>
+                      <Text style={styles.muted}>{item.mobile}{item.area ? ` · ${item.area}` : ''}{already ? ` · ${t('admin.driverDetails.alreadyAssigned')}` : ''}</Text>
                     </View>
                   </TouchableOpacity>
                 );
               }}
-              ListEmptyComponent={<Text style={styles.muted}>No customers found.</Text>}
+              ListEmptyComponent={<Text style={styles.muted}>{t('admin.driverDetails.noCustomersFound')}</Text>}
             />
             <View style={styles.rowBtns}>
-              <View style={{ flex: 1 }}><PrimaryButton title="Cancel" variant="outline" onPress={() => setAssignOpen(false)} /></View>
-              <View style={{ flex: 1 }}><PrimaryButton title="Assign" onPress={confirmAssign} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.cancel')} variant="outline" onPress={() => setAssignOpen(false)} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.assign')} onPress={confirmAssign} /></View>
             </View>
           </View>
         </View>
@@ -190,15 +192,15 @@ export default function DriverDetailsScreen() {
       <Modal visible={notifyOpen} animationType="slide" transparent onRequestClose={() => setNotifyOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
-            <Text style={styles.cardTitle}>Send notification</Text>
-            <TextInput style={styles.modalSearch} placeholder="Title" placeholderTextColor={colors.textMuted} value={noteTitle} onChangeText={setNoteTitle} />
+            <Text style={styles.cardTitle}>{t('admin.driverDetails.sendNotification')}</Text>
+            <TextInput style={styles.modalSearch} placeholder={t('admin.driverDetails.notifyTitlePlaceholder')} placeholderTextColor={colors.textMuted} value={noteTitle} onChangeText={setNoteTitle} />
             <TextInput
               style={[styles.modalSearch, { height: 90, textAlignVertical: 'top' }]}
-              placeholder="Message" placeholderTextColor={colors.textMuted} multiline value={noteBody} onChangeText={setNoteBody}
+              placeholder={t('admin.driverDetails.notifyMessagePlaceholder')} placeholderTextColor={colors.textMuted} multiline value={noteBody} onChangeText={setNoteBody}
             />
             <View style={styles.rowBtns}>
-              <View style={{ flex: 1 }}><PrimaryButton title="Cancel" variant="outline" onPress={() => setNotifyOpen(false)} /></View>
-              <View style={{ flex: 1 }}><PrimaryButton title="Send" onPress={sendNote} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.cancel')} variant="outline" onPress={() => setNotifyOpen(false)} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.driverDetails.send')} onPress={sendNote} /></View>
             </View>
           </View>
         </View>

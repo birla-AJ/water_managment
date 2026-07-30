@@ -31,7 +31,8 @@ Authenticated endpoints require `Authorization: Bearer <accessToken>`.
 | GET | `/dashboard/charts` | Revenue/orders/growth/inventory series |
 | GET/POST | `/customers` | List / create customers |
 | GET/PUT/DELETE | `/customers/:id` | Read / update / delete |
-| GET/PUT | `/customers/:id/schedules` | Read / update weekly schedule |
+| GET/PUT | `/customers/:id/schedules` | Read / update per-weekday default camper quantity |
+| GET/PUT | `/customers/:id/delivery-dates` | Read / set the days the customer wants water (opt-in) |
 | POST | `/customers/:id/pause` · `/resume` | Pause / resume deliveries |
 | GET/POST | `/orders` | List / create orders |
 | PATCH | `/orders/:id/status` | Update order status |
@@ -62,7 +63,8 @@ Authenticated endpoints require `Authorization: Bearer <accessToken>`.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET/PUT | `/me/profile` | Get / update profile |
-| GET | `/me/schedules` | My delivery schedule |
+| GET | `/me/schedules` | My per-weekday default camper quantity |
+| GET/PUT | `/me/delivery-dates` | Days I want water on (opt-in — any other day = no delivery) |
 | POST | `/me/pause` · `/me/resume` | Pause / resume |
 | GET/POST | `/me/orders` | My orders / request extra |
 | GET | `/me/deliveries` · `/me/deliveries/summary?period=week\|month` | Deliveries |

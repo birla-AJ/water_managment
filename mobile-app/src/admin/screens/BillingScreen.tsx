@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, FlatList, Modal, StyleSheet, Text, RefreshControl, Alert, TouchableOpacity, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
@@ -16,6 +17,7 @@ const API_BASE = config.apiUrl.replace('/api/v1', '');
 
 export default function BillingScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,30 +39,30 @@ export default function BillingScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const generate = async () => {
-    if (!form.customerId.trim()) { Alert.alert('Required', 'Customer ID is required.'); return; }
+    if (!form.customerId.trim()) { Alert.alert(t('admin.billing.required'), t('admin.billing.customerIdRequired')); return; }
     setSaving(true);
-    try { await adminBillingApi.generate(form); setOpen(false); load(); Alert.alert('Done', 'Invoice generated.'); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setSaving(false); }
+    try { await adminBillingApi.generate(form); setOpen(false); load(); Alert.alert(t('admin.common.done'), t('admin.billing.invoiceGenerated')); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); } finally { setSaving(false); }
   };
 
   const autoBill = () => {
-    Alert.alert('Auto-bill Monthly', 'Generate invoices for all monthly customers?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Generate', onPress: async () => {
-        try { await adminBillingApi.autoGenerate('MONTHLY'); load(); Alert.alert('Done', 'Bulk invoices generated.'); }
-        catch (e) { Alert.alert('Error', errorMessage(e)); }
+    Alert.alert(t('admin.billing.autoBillTitle'), t('admin.billing.autoBillConfirm'), [
+      { text: t('admin.common.cancel'), style: 'cancel' },
+      { text: t('admin.billing.generate'), onPress: async () => {
+        try { await adminBillingApi.autoGenerate('MONTHLY'); load(); Alert.alert(t('admin.common.done'), t('admin.billing.bulkGenerated')); }
+        catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
       } },
     ]);
   };
 
   const openPdf = async (inv: Invoice) => {
     try { const { pdfUrl } = await adminBillingApi.pdf(inv.id); Linking.openURL(`${API_BASE}${pdfUrl}`); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
   const notify = async (inv: Invoice) => {
-    try { await adminBillingApi.notify(inv.id); Alert.alert('Sent', 'Notification sent.'); }
-    catch (e) { Alert.alert('Error', errorMessage(e)); }
+    try { await adminBillingApi.notify(inv.id); Alert.alert(t('admin.billing.sentTitle'), t('admin.billing.notificationSent')); }
+    catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
   };
 
   return (
@@ -71,9 +73,9 @@ export default function BillingScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
         ListHeaderComponent={
           <View>
-            <PageHeader title="Billing" subtitle="Invoices & automatic billing" />
+            <PageHeader subtitle={t('admin.billing.subtitle')} />
             <View style={{ marginBottom: 12 }}>
-              <PrimaryButton title="Auto-bill Monthly" variant="outline" onPress={autoBill} />
+              <PrimaryButton title={t('admin.billing.autoBill')} variant="outline" onPress={autoBill} />
             </View>
           </View>
         }
@@ -83,7 +85,7 @@ export default function BillingScreen() {
             leftColor="#0EA5B5"
             title={item.customer?.name ?? item.invoiceNumber}
             subtitle={`${item.invoiceNumber} · ${dayjs(item.periodStart).format('DD MMM')}–${dayjs(item.periodEnd).format('DD MMM')}`}
-            meta={`Total ₹${item.totalAmount} · Due ₹${item.dueAmount}`}
+            meta={t('admin.billing.invoiceMeta', { total: item.totalAmount, due: item.dueAmount })}
             right={
               <View style={{ alignItems: 'flex-end', gap: 8 }}>
                 <StatusChip status={item.status} />
@@ -95,7 +97,7 @@ export default function BillingScreen() {
             }
           />
         )}
-        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="receipt-text-outline" text="No invoices yet" />}
+        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="receipt-text-outline" text={t('admin.billing.noInvoices')} />}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
       />
       <Fab onPress={() => setOpen(true)} />
@@ -103,13 +105,13 @@ export default function BillingScreen() {
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.title}>Generate Invoice</Text>
-            <FormInput label="Customer ID" value={form.customerId} onChangeText={set('customerId')} placeholder="Paste a customer UUID" autoCapitalize="none" />
-            <FormInput label="Period Start (YYYY-MM-DD)" value={form.periodStart} onChangeText={set('periodStart')} />
-            <FormInput label="Period End (YYYY-MM-DD)" value={form.periodEnd} onChangeText={set('periodEnd')} />
+            <Text style={styles.title}>{t('admin.billing.generateInvoice')}</Text>
+            <FormInput label={t('admin.billing.customerId')} value={form.customerId} onChangeText={set('customerId')} placeholder={t('admin.billing.customerIdPlaceholder')} autoCapitalize="none" />
+            <FormInput label={t('admin.billing.periodStart')} value={form.periodStart} onChangeText={set('periodStart')} />
+            <FormInput label={t('admin.billing.periodEnd')} value={form.periodEnd} onChangeText={set('periodEnd')} />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
-              <View style={{ flex: 1 }}><PrimaryButton title="Cancel" variant="outline" onPress={() => setOpen(false)} /></View>
-              <View style={{ flex: 1 }}><PrimaryButton title="Generate" onPress={generate} loading={saving} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.cancel')} variant="outline" onPress={() => setOpen(false)} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.billing.generate')} onPress={generate} loading={saving} /></View>
             </View>
           </View>
         </View>

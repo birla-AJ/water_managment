@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, FlatList, Modal, StyleSheet, Text, RefreshControl, Alert, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
 import { PrimaryButton } from '../../components/ui';
@@ -12,6 +13,7 @@ import { PageHeader, RowCard, StatusChip, Fab, Loader, EmptyState, FormInput, Se
 
 export default function VehiclesScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,21 +41,21 @@ export default function VehiclesScreen() {
   };
 
   const save = async () => {
-    if (!f.number.trim()) { setNumberError('Vehicle number is required'); return; }
+    if (!f.number.trim()) { setNumberError(t('admin.vehicles.vehicleNumberRequired')); return; }
     setSaving(true);
     const payload = { number: f.number, type: f.type || undefined, capacity: f.capacity ? Number(f.capacity) : undefined, isActive: f.isActive === 'true', notes: f.notes || undefined };
     try {
       if (editId) await adminVehicleApi.update(editId, payload);
       else await adminVehicleApi.create(payload);
       setOpen(false); load();
-    } catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setSaving(false); }
+    } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); } finally { setSaving(false); }
   };
 
   const del = (v: Vehicle) => {
-    Alert.alert('Delete vehicle', `Delete ${v.number}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try { await adminVehicleApi.remove(v.id); load(); } catch (e) { Alert.alert('Error', errorMessage(e)); }
+    Alert.alert(t('admin.vehicles.deleteVehicle'), t('admin.vehicles.deleteConfirm', { number: v.number }), [
+      { text: t('admin.common.cancel'), style: 'cancel' },
+      { text: t('admin.common.delete'), style: 'destructive', onPress: async () => {
+        try { await adminVehicleApi.remove(v.id); load(); } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
       } },
     ]);
   };
@@ -64,14 +66,14 @@ export default function VehiclesScreen() {
         data={items}
         keyExtractor={(v) => v.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
-        ListHeaderComponent={<PageHeader title="Vehicles" subtitle="Delivery vehicles to assign to drivers" />}
+        ListHeaderComponent={<PageHeader subtitle={t('admin.vehicles.subtitle')} />}
         renderItem={({ item }) => (
           <RowCard
             leftIcon="car"
             leftColor="#16A8AE"
             title={item.number}
-            subtitle={`${item.type ?? 'Vehicle'}${item.capacity ? ` · ${item.capacity} cap` : ''}`}
-            meta={item.driver ? `Assigned to ${item.driver.name}` : 'Unassigned'}
+            subtitle={`${item.type ?? t('admin.vehicles.vehicleFallback')}${item.capacity ? ` · ${t('admin.vehicles.capShort', { n: item.capacity })}` : ''}`}
+            meta={item.driver ? t('admin.vehicles.assignedTo', { name: item.driver.name }) : t('admin.vehicles.unassigned')}
             right={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <StatusChip status={item.isActive ? 'ACTIVE' : 'INACTIVE'} />
@@ -81,7 +83,7 @@ export default function VehiclesScreen() {
             }
           />
         )}
-        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="car-off" text="No vehicles yet" />}
+        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="car-off" text={t('admin.vehicles.noVehicles')} />}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
       />
       <Fab onPress={openCreate} />
@@ -89,15 +91,15 @@ export default function VehiclesScreen() {
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.title}>{editId ? 'Edit Vehicle' : 'Add Vehicle'}</Text>
-            <FormInput label="Vehicle Number *" value={f.number} onChangeText={set('number')} autoCapitalize="characters" error={numberError} />
-            <FormInput label="Type" value={f.type} onChangeText={set('type')} placeholder="Tempo, Van…" />
-            <FormInput label="Capacity (campers)" value={f.capacity} onChangeText={set('capacity')} keyboardType="numeric" />
-            <Segmented label="Active" options={[{ label: 'Yes', value: 'true' }, { label: 'No', value: 'false' }]} value={f.isActive} onChange={(v) => setF((p) => ({ ...p, isActive: v }))} />
-            <FormInput label="Notes" value={f.notes} onChangeText={set('notes')} multiline />
+            <Text style={styles.title}>{editId ? t('admin.vehicles.editVehicle') : t('admin.vehicles.addVehicle')}</Text>
+            <FormInput label={t('admin.vehicles.vehicleNumberLabel')} value={f.number} onChangeText={set('number')} autoCapitalize="characters" error={numberError} />
+            <FormInput label={t('admin.vehicles.type')} value={f.type} onChangeText={set('type')} placeholder={t('admin.vehicles.typePlaceholder')} />
+            <FormInput label={t('admin.vehicles.capacity')} value={f.capacity} onChangeText={set('capacity')} keyboardType="numeric" />
+            <Segmented label={t('admin.common.active')} options={[{ label: t('admin.common.yes'), value: 'true' }, { label: t('admin.common.no'), value: 'false' }]} value={f.isActive} onChange={(v) => setF((p) => ({ ...p, isActive: v }))} />
+            <FormInput label={t('admin.vehicles.notes')} value={f.notes} onChangeText={set('notes')} multiline />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
-              <View style={{ flex: 1 }}><PrimaryButton title="Cancel" variant="outline" onPress={() => setOpen(false)} /></View>
-              <View style={{ flex: 1 }}><PrimaryButton title={editId ? 'Update' : 'Create'} onPress={save} loading={saving} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={t('admin.common.cancel')} variant="outline" onPress={() => setOpen(false)} /></View>
+              <View style={{ flex: 1 }}><PrimaryButton title={editId ? t('admin.common.update') : t('admin.common.create')} onPress={save} loading={saving} /></View>
             </View>
           </View>
         </View>

@@ -11,13 +11,13 @@ import type { AppColors } from '../../theme/colors';
 /** Page title + optional subtitle and a trailing action (e.g. an add button). */
 export function PageHeader({
   title, subtitle, action,
-}: { title: string; subtitle?: string; action?: React.ReactNode }) {
+}: { title?: string; subtitle?: string; action?: React.ReactNode }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={s.headerRow}>
       <View style={{ flex: 1 }}>
-        <Text style={s.title}>{title}</Text>
+        {!!title && <Text style={s.title}>{title}</Text>}
         {!!subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
       </View>
       {action}
@@ -192,7 +192,11 @@ export function Segmented<T extends string>({
   return (
     <View style={{ marginBottom: 14 }}>
       {!!label && <Text style={s.fieldLabel}>{label}</Text>}
-      <View style={s.segment}>
+           <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.segment}
+      >
         {options.map((o) => {
           const active = o.value === value;
           return (
@@ -205,17 +209,24 @@ export function Segmented<T extends string>({
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 /** Floating action button (bottom-right). */
-export function Fab({ icon = 'plus', onPress }: { icon?: string; onPress: () => void }) {
+export function Fab({
+  icon = 'plus', onPress, bottom = 168, side = 'right',
+}: {
+  icon?: string;
+  onPress: () => void;
+  bottom?: number;
+  side?: 'left' | 'right';
+}) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   return (
-    <TouchableOpacity activeOpacity={0.85} style={s.fab} onPress={onPress}>
+    <TouchableOpacity activeOpacity={0.85} style={[s.fab, { bottom }, side === 'left' ? { left: 18 } : { right: 18 }]} onPress={onPress}>
       <Icon name={icon} size={26} color="#FFFFFF" />
     </TouchableOpacity>
   );
@@ -298,11 +309,11 @@ const makeStyles = (colors: AppColors) =>
       flexDirection: 'row', backgroundColor: colors.card, borderRadius: 12, borderWidth: 1,
       borderColor: colors.cardBorder, padding: 4, marginTop: 6, gap: 4,
     },
-    segmentItem: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+    segmentItem: { paddingHorizontal:10,paddingVertical:8, borderRadius: 17, alignItems: 'center' ,marginHorizontal:3},
     segmentText: { color: colors.textMuted, fontWeight: '700', fontSize: 13 },
 
     fab: {
-      position: 'absolute', right: 18, bottom: 24, width: 58, height: 58, borderRadius: 29,
+      position: 'absolute', width: 58, height: 58, borderRadius: 29,
       backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
       shadowColor: colors.primary, shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8,
     },

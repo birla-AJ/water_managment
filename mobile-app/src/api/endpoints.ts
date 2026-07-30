@@ -18,8 +18,10 @@ export const meApi = {
   schedules: () => api.get('/me/schedules').then((r) => r.data.data),
   pause: () => api.post('/me/pause', {}),
   resume: () => api.post('/me/resume', {}),
-  skipDates: (): Promise<string[]> => api.get('/me/skip-dates').then((r) => r.data.data),
-  setSkipDates: (dates: string[]): Promise<string[]> => api.put('/me/skip-dates', { dates }).then((r) => r.data.data),
+  // Days the customer wants water on (opt-in — any other day = no delivery).
+  deliveryDates: (): Promise<string[]> => api.get('/me/delivery-dates').then((r) => r.data.data),
+  setDeliveryDates: (dates: string[]): Promise<string[]> =>
+    api.put('/me/delivery-dates', { dates }).then((r) => r.data.data),
 };
 
 export const orderApi = {
@@ -79,7 +81,7 @@ export const notificationApi = {
 export const driverApi = {
   profile: () => api.get('/driver/me').then((r) => r.data.data),
   customers: () => api.get('/driver/customers').then((r) => r.data.data),
-  // Today's delivery worklist (assigned customers + skip flags). Optional date = YYYY-MM-DD.
+  // Today's delivery worklist (assigned customers + who asked for water). Optional date = YYYY-MM-DD.
   deliveries: (date?: string) => api.get('/driver/deliveries', { params: date ? { date } : {} }).then((r) => r.data.data),
   markDelivered: (body: {
     orderId: string;

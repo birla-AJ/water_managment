@@ -50,7 +50,8 @@ export const pauseSchema = z.object({
   pausedTo: z.coerce.date().optional(),
 });
 
-export const skipDatesSchema = z.object({
+// Dates the customer wants water on (opt-in). Any date not listed = no delivery.
+export const deliveryDatesSchema = z.object({
   dates: z.array(z.coerce.date()).max(366),
 });
 

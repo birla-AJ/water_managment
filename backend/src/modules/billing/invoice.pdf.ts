@@ -18,7 +18,7 @@ interface InvoicePdfData {
   dueDate?: string;
   notes?: string;
   /** Period usage summary so the customer understands what's billed. */
-  summary?: { campersReceived: number; deliveryDays: number; skippedDays: number; ratePerCamper: number };
+  summary?: { campersReceived: number; deliveryDays: number; requestedDays: number; ratePerCamper: number };
 }
 
 // ── Brand palette (teal / ocean) ────────────────────────────────────────────
@@ -131,7 +131,7 @@ export function generateInvoicePdf(data: InvoicePdfData): Promise<string> {
       const cards: Array<[string, string, string]> = [
         ['Campers Received', String(data.summary.campersReceived), BRAND],
         ['Delivery Days', String(data.summary.deliveryDays), ACCENT],
-        ['Skipped Days', String(data.summary.skippedDays), RED],
+        ['Days Requested', String(data.summary.requestedDays), ACCENT],
         ['Rate / Camper', money(data.summary.ratePerCamper), INK],
       ];
       const gap = 10;

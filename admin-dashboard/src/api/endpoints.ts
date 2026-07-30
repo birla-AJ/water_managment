@@ -70,9 +70,11 @@ export const customerApi = {
     api.put(`/customers/${id}/schedules`, { schedules }).then((r) => r.data.data),
   pause: (id: string) => api.post(`/customers/${id}/pause`, {}),
   resume: (id: string) => api.post(`/customers/${id}/resume`, {}),
-  skipDates: (id: string) => api.get<ApiResponse<string[]>>(`/customers/${id}/skip-dates`).then((r) => r.data.data),
-  setSkipDates: (id: string, dates: string[]) =>
-    api.put<ApiResponse<string[]>>(`/customers/${id}/skip-dates`, { dates }).then((r) => r.data.data),
+  // Days the customer wants water on (opt-in — any other day = no delivery).
+  deliveryDates: (id: string) =>
+    api.get<ApiResponse<string[]>>(`/customers/${id}/delivery-dates`).then((r) => r.data.data),
+  setDeliveryDates: (id: string, dates: string[]) =>
+    api.put<ApiResponse<string[]>>(`/customers/${id}/delivery-dates`, { dates }).then((r) => r.data.data),
 };
 
 // ---- Vehicles ----

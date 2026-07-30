@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
 import { PrimaryButton } from '../../components/ui';
@@ -10,6 +11,7 @@ import { authApi } from '../../api/endpoints';
 import { PageHeader, Field } from '../components/ui';
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const dispatch = useAppDispatch();
@@ -17,9 +19,9 @@ export default function ProfileScreen() {
   const refreshToken = useAppSelector((s) => s.auth.refreshToken);
 
   const doLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: async () => {
+    Alert.alert(t('admin.profileAdmin.logout'), t('admin.profileAdmin.logoutConfirm'), [
+      { text: t('admin.common.cancel'), style: 'cancel' },
+      { text: t('admin.profileAdmin.logout'), style: 'destructive', onPress: async () => {
         try { if (refreshToken) await authApi.logout(refreshToken); } catch { /* ignore */ }
         await AsyncStorage.removeItem('wf_tokens');
         dispatch(logout());
@@ -29,17 +31,16 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <PageHeader title="Profile" />
       <View style={styles.card}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{(user?.name?.[0] ?? 'A').toUpperCase()}</Text></View>
-        <Text style={styles.name}>{user?.name ?? 'Admin'}</Text>
+        <Text style={styles.name}>{user?.name ?? t('admin.profileAdmin.adminFallback')}</Text>
         <Text style={styles.role}>{user?.role}</Text>
         <View style={{ alignSelf: 'stretch', marginTop: 12 }}>
-          <Field label="Email" value={user?.email} />
-          <Field label="Mobile" value={user?.mobile} />
+          <Field label={t('admin.profileAdmin.email')} value={user?.email} />
+          <Field label={t('admin.profileAdmin.mobile')} value={user?.mobile} />
         </View>
       </View>
-      <PrimaryButton title="Log out" variant="outline" onPress={doLogout} />
+      <PrimaryButton title={t('admin.profileAdmin.logout')} variant="outline" onPress={doLogout} />
     </ScrollView>
   );
 }

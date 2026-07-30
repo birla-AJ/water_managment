@@ -135,7 +135,15 @@ enum NotificationType {
   DRIVER_ASSIGNED
   DELIVERY_ASSIGNED
   CUSTOMER_SKIPPED
+  DELIVERY_REQUESTED
+  DELIVERY_CANCELLED
   GENERAL
+}
+
+// Who created a delivery request for a date.
+enum RequestSource {
+  CUSTOMER
+  ADMIN
 }
 
 // ============================================================
@@ -368,7 +376,7 @@ model Customer {
   payments      Payment[]
   notifications Notification[]
   refreshTokens RefreshToken[]
-  deliverySkips DeliverySkip[]
+  deliveryRequests DeliveryRequest[]
   aiChatUsages AiChatUsage[]
 
   createdAt DateTime @default(now())
@@ -418,21 +426,28 @@ model AiDailyUsage {
   @@map("ai_daily_usages")
 }
 
-// Specific dates a customer marked as unavailable to receive water.
-// The regular-order generator skips a customer on any date listed here.
-model DeliverySkip {
+// Specific dates a customer asked to receive water on (opt-in).
+// Deliveries are opt-in: a date with no row here means "no delivery". The
+// regular-order generator only creates an order for dates listed here.
+model DeliveryRequest {
   id         String   @id @default(uuid())
   customerId String
   date       DateTime @db.Date
+  // Who marked the day: the customer from their app, or an admin on their behalf.
+  source     RequestSource @default(CUSTOMER)
   createdAt  DateTime @default(now())
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([customerId, date])
   @@index([date])
-  @@map("delivery_skips")
+  @@map("delivery_requests")
 }
 
+// Per-weekday default camper quantity. Since deliveries became opt-in
+// (DeliveryRequest), `enabled` no longer decides whether a delivery happens —
+// it only marks the weekday the customer usually takes water, and `quantity` is
+// the number of campers used when an order is generated for that weekday.
 model CustomerSchedule {
   id         String   @id @default(uuid())
   customerId String

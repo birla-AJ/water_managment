@@ -1,7 +1,10 @@
-import { Prisma, Weekday, NotificationAudience, NotificationType } from '@prisma/client';
+import { Prisma, Weekday, NotificationAudience, NotificationType, RequestSource } from '@prisma/client';
+import dayjs from 'dayjs';
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/apiError';
+import { t } from '../../config/i18n';
 import { notificationService } from '../notification/notification.service';
+import { orderService } from '../order/order.service';
 import { customerRepository } from './customer.repository';
 import { CreateCustomerDto, UpdateCustomerDto } from './customer.dto';
 
@@ -14,6 +17,14 @@ const utcDate = (key: string): Date => new Date(`${key}T00:00:00.000Z`);
 const startOfTodayUtc = (): Date => {
   const n = new Date();
   return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
+};
+
+/** "30 Jul, 1 Aug" — readable date list for notification bodies (first 5 + count). */
+const formatDateList = (keys: string[]): string => {
+  const sorted = [...keys].sort();
+  const shown = sorted.slice(0, 5).map((k) => dayjs(k).format('D MMM'));
+  const rest = sorted.length - shown.length;
+  return rest > 0 ? `${shown.join(', ')} +${rest} more` : shown.join(', ');
 };
 
 class CustomerService {
@@ -178,6 +189,64 @@ class CustomerService {
     });
   }
 
+  /**
+   * Tell the customer's driver and distributor which days the customer just
+   * asked for water on / no longer wants water on. Both audiences get the same
+   * dates so the driver knows where to go and the admin can plan the load.
+   */
+  private async notifyDeliveryDateChange(
+    customerId: string,
+    change: { added: string[]; removed: string[] },
+  ) {
+    if (!change.added.length && !change.removed.length) return;
+
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { name: true, area: true, driverId: true, distributorId: true },
+    });
+    if (!customer) return;
+
+    const who = `${customer.name}${customer.area ? ` (${customer.area})` : ''}`;
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    for (const [type, dates] of [
+      [NotificationType.DELIVERY_REQUESTED, change.added],
+      [NotificationType.DELIVERY_CANCELLED, change.removed],
+    ] as const) {
+      if (!dates.length) continue;
+      const requested = type === NotificationType.DELIVERY_REQUESTED;
+      const key = requested
+        ? dates.includes(todayKey)
+          ? 'notify.deliveryRequestedToday'
+          : 'notify.deliveryRequested'
+        : 'notify.deliveryCancelled';
+      const vars = { who, dates: formatDateList(dates) };
+      const data = { customerId, dates: dates.join(',') };
+
+      if (customer.driverId) {
+        // Rendered in the driver's own language.
+        await notificationService.notify({
+          audience: NotificationAudience.DRIVER,
+          type,
+          driverId: customer.driverId,
+          titleKey: `${key}.title`,
+          bodyKey: `${key}.body`,
+          vars,
+          data,
+        });
+      }
+      // The distributor (admin) who owns this customer — admin UI is English.
+      await notificationService.notify({
+        audience: NotificationAudience.ADMIN,
+        type,
+        adminId: customer.distributorId ?? undefined,
+        title: t('en', `${key}.title`, vars),
+        body: t('en', `${key}.body`, vars),
+        data,
+      });
+    }
+  }
+
   async pause(id: string, pausedFrom?: Date, pausedTo?: Date) {
     await this.getById(id);
     const updated = await customerRepository.update(id, { isPaused: true, pausedFrom, pausedTo });
@@ -190,43 +259,67 @@ class CustomerService {
     return customerRepository.update(id, { isPaused: false, pausedFrom: null, pausedTo: null });
   }
 
-  /** Upcoming dates (today onward) the customer marked as unavailable. */
-  async getSkipDates(id: string) {
+  /**
+   * Upcoming dates (today onward) the customer asked for water on. Deliveries are
+   * opt-in: any date NOT in this list means no delivery.
+   */
+  async getDeliveryDates(id: string) {
     await this.getById(id);
-    const skips = await prisma.deliverySkip.findMany({
+    const requests = await prisma.deliveryRequest.findMany({
       where: { customerId: id, date: { gte: startOfTodayUtc() } },
       orderBy: { date: 'asc' },
     });
-    return skips.map((s) => s.date.toISOString().slice(0, 10)); // YYYY-MM-DD
+    return requests.map((r) => r.date.toISOString().slice(0, 10)); // YYYY-MM-DD
   }
 
   /**
-   * Replace the customer's *future* skip dates with the supplied set.
-   * Past dates are left untouched; only today-onward selections are synced.
-   * All dates are handled as UTC date-only values to avoid timezone drift.
+   * Replace the customer's *future* delivery days with the supplied set — the
+   * days they want water on. Past dates are left untouched; only today-onward
+   * selections are synced. All dates are handled as UTC date-only values to avoid
+   * timezone drift.
+   *
+   * Today's order is created / withdrawn straight away so the driver's worklist
+   * reflects the change without waiting for the daily generator, and both the
+   * driver and the distributor are notified about what changed.
    */
-  async setSkipDates(id: string, dates: Date[]) {
+  async setDeliveryDates(id: string, dates: Date[], source: RequestSource = RequestSource.CUSTOMER) {
     await this.getById(id);
     const todayStart = startOfTodayUtc();
+    const todayKey = new Date().toISOString().slice(0, 10);
 
     // Unique YYYY-MM-DD keys (UTC), today or later.
     const wanted = Array.from(new Set(dates.map((d) => d.toISOString().slice(0, 10)))).filter(
       (key) => utcDate(key) >= todayStart,
     );
 
+    const existing = (
+      await prisma.deliveryRequest.findMany({
+        where: { customerId: id, date: { gte: todayStart } },
+        select: { date: true },
+      })
+    ).map((r) => r.date.toISOString().slice(0, 10));
+
+    const added = wanted.filter((key) => !existing.includes(key));
+    const removed = existing.filter((key) => !wanted.includes(key));
+
     await prisma.$transaction([
-      prisma.deliverySkip.deleteMany({ where: { customerId: id, date: { gte: todayStart } } }),
+      prisma.deliveryRequest.deleteMany({ where: { customerId: id, date: { gte: todayStart } } }),
       ...(wanted.length
-        ? [prisma.deliverySkip.createMany({ data: wanted.map((key) => ({ customerId: id, date: utcDate(key) })) })]
+        ? [
+            prisma.deliveryRequest.createMany({
+              data: wanted.map((key) => ({ customerId: id, date: utcDate(key), source })),
+            }),
+          ]
         : []),
     ]);
 
-    // If today is among the newly-skipped dates, let the assigned driver know.
-    if (wanted.includes(new Date().toISOString().slice(0, 10))) {
-      await this.notifyAssignedDriverOfSkip(id, 'marked today as unavailable');
-    }
+    // Keep today's order in step with the customer's choice.
+    if (added.includes(todayKey)) await orderService.ensureRegularOrder(id, new Date());
+    if (removed.includes(todayKey)) await orderService.cancelRegularOrder(id, new Date());
 
-    return this.getSkipDates(id);
+    await this.notifyDeliveryDateChange(id, { added, removed });
+
+    return this.getDeliveryDates(id);
   }
 
   /** Customer self-profile update (limited fields, incl. location & distributor). */

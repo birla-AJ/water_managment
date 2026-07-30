@@ -14,6 +14,8 @@ interface WorklistItem {
   customer: { id: string; name: string; mobile: string; area?: string; address?: string; landmark?: string; allocatedCampers: number };
   order: { id: string; orderNumber: string; quantity: number; status: string; type: string } | null;
   delivery: { id: string; status: string; quantityDelivered: number; emptyCollected: number } | null;
+  /** The customer marked this day as "water needed" on their calendar. */
+  requested: boolean;
   skipped: boolean;
   deliverable: boolean;
 }
@@ -116,7 +118,12 @@ export default function DriverDeliveriesScreen() {
   };
 
   const pending = items.filter((i) => i.deliverable).length;
-  const skipped = items.filter((i) => i.skipped).length;
+  const notNeeded = items.filter((i) => i.skipped).length;
+  // Stops the customer asked for come first; unmarked stops sink to the bottom.
+  const ordered = React.useMemo(
+    () => [...items].sort((a, b) => Number(b.requested) - Number(a.requested)),
+    [items],
+  );
 
   return (
     <View style={styles.container}>
@@ -148,14 +155,14 @@ export default function DriverDeliveriesScreen() {
       <Card style={{ flexDirection: 'row', justifyContent: 'space-around', marginHorizontal: 16, marginTop: 12 }}>
         <View style={styles.sumItem}><Text style={styles.sumNum}>{items.length}</Text><Text style={styles.sumLabel}>Stops</Text></View>
         <View style={styles.sumItem}><Text style={styles.sumNum}>{pending}</Text><Text style={styles.sumLabel}>To deliver</Text></View>
-        <View style={styles.sumItem}><Text style={[styles.sumNum, { color: colors.warning }]}>{skipped}</Text><Text style={styles.sumLabel}>Skipped</Text></View>
+        <View style={styles.sumItem}><Text style={[styles.sumNum, { color: colors.warning }]}>{notNeeded}</Text><Text style={styles.sumLabel}>No water</Text></View>
       </Card>
 
       {loading ? (
         <Loader />
       ) : (
         <FlatList
-          data={items}
+          data={ordered}
           keyExtractor={(i) => i.customer.id}
           ListEmptyComponent={<EmptyState text="No customers assigned for today" />}
           contentContainerStyle={{ padding: 16 }}
@@ -167,7 +174,10 @@ export default function DriverDeliveriesScreen() {
               <Card style={item.skipped ? { opacity: 0.6 } : undefined}>
                 <View style={styles.row}>
                   <Text style={styles.name}>{item.customer.name}</Text>
-                  {item.skipped ? <Badge status="SKIPPED" /> : delivered ? <Badge status="DELIVERED" /> : item.order ? <Badge status="PENDING" /> : <Badge status="NO ORDER" />}
+                  {item.skipped ? (
+                    // Water is opt-in: no mark on the customer's calendar = no visit.
+                    <Badge status={item.requested ? 'PAUSED' : 'NO WATER TODAY'} />
+                  ) : delivered ? <Badge status="DELIVERED" /> : item.order ? <Badge status="PENDING" /> : <Badge status="NO ORDER" />}
                 </View>
                 <Text style={styles.meta}>{item.customer.area ?? '—'}{item.customer.address ? ` · ${item.customer.address}` : ''}</Text>
                 {item.customer.landmark ? <Text style={styles.meta}>Landmark: {item.customer.landmark}</Text> : null}
@@ -189,7 +199,11 @@ export default function DriverDeliveriesScreen() {
                     </TouchableOpacity>
                   )}
                   {item.skipped && (
-                    <View style={styles.skipNote}><Text style={styles.skipNoteText}>Customer skipped — do not visit</Text></View>
+                    <View style={styles.skipNote}>
+                      <Text style={styles.skipNoteText}>
+                        {item.requested ? 'Deliveries paused — do not visit' : 'Customer did not ask for water — do not visit'}
+                      </Text>
+                    </View>
                   )}
                 </View>
               </Card>

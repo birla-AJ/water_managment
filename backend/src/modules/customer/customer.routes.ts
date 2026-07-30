@@ -7,7 +7,7 @@ import {
   updateCustomerSchema,
   updateScheduleSchema,
   pauseSchema,
-  skipDatesSchema,
+  deliveryDatesSchema,
 } from './customer.dto';
 
 const router = Router();
@@ -42,7 +42,8 @@ router.get('/:id/schedules', ...admin, ctrl.getSchedules);
 router.put('/:id/schedules', ...admin, validate(updateScheduleSchema), ctrl.updateSchedules);
 router.post('/:id/pause', ...admin, validate(pauseSchema), ctrl.pause);
 router.post('/:id/resume', ...admin, ctrl.resume);
-router.get('/:id/skip-dates', ...admin, ctrl.getSkipDates);
-router.put('/:id/skip-dates', ...admin, validate(skipDatesSchema), ctrl.setSkipDates);
+// Days the customer wants water on (opt-in; anything else = no delivery).
+router.get('/:id/delivery-dates', ...admin, ctrl.getDeliveryDates);
+router.put('/:id/delivery-dates', ...admin, validate(deliveryDatesSchema), ctrl.setDeliveryDates);
 
 export default router;

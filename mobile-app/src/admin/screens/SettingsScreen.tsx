@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import type { AppColors } from '../../theme/colors';
 import { PrimaryButton } from '../../components/ui';
@@ -9,6 +10,7 @@ import { adminSettingsApi } from '../api';
 import { PageHeader, FormInput, Loader } from '../components/ui';
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
@@ -39,33 +41,33 @@ export default function SettingsScreen() {
         taxPercent: Number(billing.taxPercent) || 0,
         dueDays: Number(billing.dueDays) || 7,
       });
-      Alert.alert('Saved', 'Settings updated.');
-    } catch (e) { Alert.alert('Error', errorMessage(e)); } finally { setSaving(false); }
+      Alert.alert(t('admin.settings.savedTitle'), t('admin.settings.savedMsg'));
+    } catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); } finally { setSaving(false); }
   };
 
   if (loading) return <Loader />;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <PageHeader title="Settings" subtitle="Business & billing configuration" />
+      <PageHeader subtitle={t('admin.settings.subtitle')} />
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Business</Text>
-        <FormInput label="Business Name" value={business.name ?? ''} onChangeText={setB('name')} />
-        <FormInput label="GSTIN" value={business.gstin ?? ''} onChangeText={setB('gstin')} autoCapitalize="characters" />
-        <FormInput label="Phone" value={business.phone ?? ''} onChangeText={setB('phone')} keyboardType="phone-pad" />
-        <FormInput label="Email" value={business.email ?? ''} onChangeText={setB('email')} keyboardType="email-address" autoCapitalize="none" />
-        <FormInput label="Address" value={business.address ?? ''} onChangeText={setB('address')} multiline />
+        <Text style={styles.cardTitle}>{t('admin.settings.business')}</Text>
+        <FormInput label={t('admin.settings.businessName')} value={business.name ?? ''} onChangeText={setB('name')} />
+        <FormInput label={t('admin.settings.gstin')} value={business.gstin ?? ''} onChangeText={setB('gstin')} autoCapitalize="characters" />
+        <FormInput label={t('admin.settings.phone')} value={business.phone ?? ''} onChangeText={setB('phone')} keyboardType="phone-pad" />
+        <FormInput label={t('admin.settings.email')} value={business.email ?? ''} onChangeText={setB('email')} keyboardType="email-address" autoCapitalize="none" />
+        <FormInput label={t('admin.settings.address')} value={business.address ?? ''} onChangeText={setB('address')} multiline />
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Billing</Text>
-        <FormInput label="Default Rate (₹)" value={billing.defaultRate ?? ''} onChangeText={setBill('defaultRate')} keyboardType="numeric" />
-        <FormInput label="Tax %" value={billing.taxPercent ?? ''} onChangeText={setBill('taxPercent')} keyboardType="numeric" />
-        <FormInput label="Due Days" value={billing.dueDays ?? ''} onChangeText={setBill('dueDays')} keyboardType="numeric" />
+        <Text style={styles.cardTitle}>{t('admin.settings.billing')}</Text>
+        <FormInput label={t('admin.settings.defaultRate')} value={billing.defaultRate ?? ''} onChangeText={setBill('defaultRate')} keyboardType="numeric" />
+        <FormInput label={t('admin.settings.taxPercent')} value={billing.taxPercent ?? ''} onChangeText={setBill('taxPercent')} keyboardType="numeric" />
+        <FormInput label={t('admin.settings.dueDays')} value={billing.dueDays ?? ''} onChangeText={setBill('dueDays')} keyboardType="numeric" />
       </View>
 
-      <PrimaryButton title="Save Settings" onPress={save} loading={saving} />
+      <PrimaryButton title={t('admin.settings.saveSettings')} onPress={save} loading={saving} />
     </ScrollView>
   );
 }

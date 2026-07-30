@@ -16,10 +16,14 @@ export const authenticate =
   (principal?: Principal) =>
   (req: Request, _res: Response, next: NextFunction): void => {
     const header = req.headers.authorization;
-    if (!header || !header.startsWith('Bearer ')) {
+    // Primary: Bearer header. Fallback: `?token=` query param, used for
+    // authenticated file downloads (Excel/CSV/PDF exports) that are opened
+    // directly in a browser / mobile Linking where headers can't be set.
+    const queryToken = typeof req.query.token === 'string' ? req.query.token : undefined;
+    const token = header && header.startsWith('Bearer ') ? header.slice(7) : queryToken;
+    if (!token) {
       throw ApiError.unauthorized('Missing or invalid Authorization header');
     }
-    const token = header.slice(7);
     try {
       const payload = verifyAccessToken(token);
       if (principal && payload.principal !== principal) {

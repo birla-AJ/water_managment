@@ -24,7 +24,7 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import TrackDeliveryScreen from '../screens/TrackDeliveryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SupportScreen from '../screens/SupportScreen';
-import SkipDeliveriesScreen from '../screens/SkipDeliveriesScreen';
+import DeliveryCalendarScreen from '../screens/DeliveryCalendarScreen';
 import DriverNavigator from './DriverNavigator';
 import AdminNavigator from '../admin/navigation/AdminNavigator';
 import DriverNotificationsScreen from '../screens/driver/DriverNotificationsScreen';
@@ -129,7 +129,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="TrackDelivery" component={TrackDeliveryScreen} options={{ title: 'Track Delivery' }} />
           <Stack.Screen name="Support" component={SupportScreen} />
-          <Stack.Screen name="SkipDeliveries" component={SkipDeliveriesScreen} options={{ title: 'Skip Deliveries' }} />
+          <Stack.Screen name="DeliveryCalendar" component={DeliveryCalendarScreen} options={{ title: 'My Water Days' }} />
         </>
       )}
     </Stack.Navigator>

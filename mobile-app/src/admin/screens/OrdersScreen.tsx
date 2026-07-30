@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, FlatList, RefreshControl, Alert } from 'react-native';
 import dayjs from 'dayjs';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { errorMessage } from '../../api/client';
 import { adminOrderApi } from '../api';
@@ -9,13 +10,14 @@ import type { Order, OrderStatus } from '../types';
 import { PageHeader, FilterChips, RowCard, StatusChip, Loader, EmptyState } from '../components/ui';
 
 const STATUSES: OrderStatus[] = ['PENDING', 'ACCEPTED', 'PROCESSING', 'DELIVERED', 'CANCELLED'];
-const STATUS_FILTERS: { label: string; value: '' | OrderStatus }[] = [
-  { label: 'All', value: '' },
-  ...STATUSES.map((s) => ({ label: s.charAt(0) + s.slice(1).toLowerCase(), value: s })),
-];
 
 export default function OrdersScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const STATUS_FILTERS: { label: string; value: '' | OrderStatus }[] = [
+    { label: t('admin.common.all'), value: '' },
+    ...STATUSES.map((s) => ({ label: t(`admin.orders.status.${s.toLowerCase()}`), value: s })),
+  ];
   const [items, setItems] = useState<Order[]>([]);
   const [status, setStatus] = useState<'' | OrderStatus>('');
   const [loading, setLoading] = useState(true);
@@ -32,17 +34,17 @@ export default function OrdersScreen() {
 
   const changeStatus = (order: Order) => {
     Alert.alert(
-      `Order ${order.orderNumber}`,
-      'Update status to:',
+      t('admin.orders.orderTitle', { number: order.orderNumber }),
+      t('admin.orders.updateStatusTo'),
       [
         ...STATUSES.map((s) => ({
-          text: s,
+          text: t(`admin.orders.status.${s.toLowerCase()}`),
           onPress: async () => {
             try { await adminOrderApi.updateStatus(order.id, s); load(); }
-            catch (e) { Alert.alert('Error', errorMessage(e)); }
+            catch (e) { Alert.alert(t('admin.common.error'), errorMessage(e)); }
           },
         })),
-        { text: 'Cancel', style: 'cancel' as const },
+        { text: t('admin.common.cancel'), style: 'cancel' as const },
       ],
     );
   };
@@ -55,7 +57,7 @@ export default function OrdersScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListHeaderComponent={
           <View>
-            <PageHeader title="Orders" subtitle="Regular & extra camper orders" />
+            <PageHeader subtitle={t('admin.orders.subtitle')} />
             <FilterChips options={STATUS_FILTERS} value={status} onChange={setStatus} />
             <View style={{ height: 8 }} />
           </View>
@@ -71,7 +73,7 @@ export default function OrdersScreen() {
             onPress={() => changeStatus(item)}
           />
         )}
-        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="cart-off" text="No orders found" />}
+        ListEmptyComponent={loading ? <Loader /> : <EmptyState icon="cart-off" text={t('admin.orders.noOrders')} />}
         refreshControl={
           <RefreshControl
             tintColor={colors.primary}
