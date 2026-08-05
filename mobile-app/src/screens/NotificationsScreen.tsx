@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, Loader, EmptyState } from '../components/ui';
 import { notificationApi } from '../api/endpoints';
 import { useTheme } from '../theme/ThemeContext';
@@ -10,6 +11,7 @@ import type { AppColors } from '../theme/colors';
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function NotificationsScreen() {
         data={items}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={<EmptyState text="No notifications" />}
+        ListEmptyComponent={<EmptyState text={t('notifications.empty')} />}
         renderItem={({ item }) => (
           <Card style={{ flexDirection: 'row' }}>
             <View style={styles.iconWrap}>

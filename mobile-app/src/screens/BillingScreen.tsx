@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react
 import RazorpayCheckout from 'react-native-razorpay';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, Badge, Loader, EmptyState } from '../components/ui';
 import { billingApi, paymentApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
@@ -13,6 +14,7 @@ import type { AppColors } from '../theme/colors';
 
 export default function BillingScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const onPrimary = '#FFFFFF';
   const user = useAppSelector((s) => s.auth.user);
@@ -47,10 +49,10 @@ export default function BillingScreen() {
         razorpayPaymentId: data.razorpay_payment_id,
         razorpaySignature: data.razorpay_signature,
       });
-      Alert.alert('Success', 'Payment completed successfully.');
+      Alert.alert(t('billingCustomer.successTitle'), t('billingCustomer.successMsg'));
       load();
     } catch (e: any) {
-      if (e?.code !== 0 && e?.code !== 2) Alert.alert('Payment', e?.description ?? errorMessage(e));
+      if (e?.code !== 0 && e?.code !== 2) Alert.alert(t('billingCustomer.paymentTitle'), e?.description ?? errorMessage(e));
     } finally {
       setPaying(null);
     }
@@ -64,7 +66,7 @@ export default function BillingScreen() {
         data={invoices}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={<EmptyState text="No invoices yet" />}
+        ListEmptyComponent={<EmptyState text={t('billingCustomer.empty')} />}
         renderItem={({ item }) => (
           <Card>
             <View style={styles.row}>
@@ -73,13 +75,13 @@ export default function BillingScreen() {
             </View>
             <Text style={styles.period}>{dayjs(item.periodStart).format('DD MMM')} – {dayjs(item.periodEnd).format('DD MMM YYYY')}</Text>
             <View style={styles.amounts}>
-              <View><Text style={styles.label}>Total</Text><Text style={styles.value}>₹{item.totalAmount}</Text></View>
-              <View><Text style={styles.label}>Paid</Text><Text style={styles.value}>₹{item.paidAmount}</Text></View>
-              <View><Text style={styles.label}>Due</Text><Text style={[styles.value, { color: colors.error }]}>₹{item.dueAmount}</Text></View>
+              <View><Text style={styles.label}>{t('billingCustomer.total')}</Text><Text style={styles.value}>₹{item.totalAmount}</Text></View>
+              <View><Text style={styles.label}>{t('billingCustomer.paid')}</Text><Text style={styles.value}>₹{item.paidAmount}</Text></View>
+              <View><Text style={styles.label}>{t('billingCustomer.due')}</Text><Text style={[styles.value, { color: colors.error }]}>₹{item.dueAmount}</Text></View>
             </View>
             {Number(item.dueAmount) > 0 && (
               <TouchableOpacity style={styles.payBtn} onPress={() => pay(item)} disabled={paying === item.id}>
-                <Text style={[styles.payText, { color: onPrimary }]}>{paying === item.id ? 'Processing…' : `Pay ₹${item.dueAmount}`}</Text>
+                <Text style={[styles.payText, { color: onPrimary }]}>{paying === item.id ? t('billingCustomer.processing') : t('billingCustomer.pay', { amount: item.dueAmount })}</Text>
               </TouchableOpacity>
             )}
           </Card>

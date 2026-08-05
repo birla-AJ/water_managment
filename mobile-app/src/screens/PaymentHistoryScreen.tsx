@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, Badge, Loader, EmptyState } from '../components/ui';
 import { paymentApi } from '../api/endpoints';
 import { useTheme } from '../theme/ThemeContext';
@@ -9,6 +10,7 @@ import type { AppColors } from '../theme/colors';
 
 export default function PaymentHistoryScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export default function PaymentHistoryScreen() {
         data={items}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={<EmptyState text="No payments yet" />}
+        ListEmptyComponent={<EmptyState text={t('paymentHistory.empty')} />}
         renderItem={({ item }) => (
           <Card>
             <View style={styles.row}>
@@ -36,7 +38,7 @@ export default function PaymentHistoryScreen() {
               <Badge status={item.status} />
             </View>
             <Text style={styles.meta}>{dayjs(item.createdAt).format('DD MMM YYYY HH:mm')} · {item.method}</Text>
-            {item.invoice?.invoiceNumber ? <Text style={styles.meta}>Invoice {item.invoice.invoiceNumber}</Text> : null}
+            {item.invoice?.invoiceNumber ? <Text style={styles.meta}>{t('paymentHistory.invoiceLabel', { number: item.invoice.invoiceNumber })}</Text> : null}
           </Card>
         )}
       />

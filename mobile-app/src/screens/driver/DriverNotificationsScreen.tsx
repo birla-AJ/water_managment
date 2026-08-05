@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, Loader, EmptyState } from '../../components/ui';
 import { driverApi, notificationApi } from '../../api/endpoints';
 import { useTheme } from '../../theme/ThemeContext';
@@ -17,6 +18,7 @@ interface Note {
 
 export default function DriverNotificationsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,7 @@ export default function DriverNotificationsScreen() {
       keyExtractor={(i) => i.id}
       onRefresh={load}
       refreshing={loading}
-      ListEmptyComponent={<EmptyState text="No notifications yet" />}
+      ListEmptyComponent={<EmptyState text={t('driverNotifications.empty')} />}
       contentContainerStyle={{ padding: 16 }}
       renderItem={({ item }) => (
         <Card style={!item.isRead ? { borderColor: colors.primary } : undefined}>

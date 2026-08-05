@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, PrimaryButton } from '../components/ui';
 import { meApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
@@ -20,6 +21,7 @@ const WEEKDAY_HEADER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
  */
 export default function DeliveryCalendarScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<RouteProp<RootStackParamList, 'DeliveryCalendar'>>();
 
@@ -62,11 +64,11 @@ export default function DeliveryCalendarScreen() {
       const saved = await meApi.setDeliveryDates(Array.from(selected));
       setSelected(new Set(saved));
       Alert.alert(
-        'Saved',
-        "Your delivery days are updated. We'll deliver only on the days you marked, and your driver has been informed.",
+        t('deliveryCalendar.savedTitle'),
+        t('deliveryCalendar.savedMsg'),
       );
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -87,7 +89,7 @@ export default function DeliveryCalendarScreen() {
       <View style={styles.segment}>
         {(['week', 'month'] as const).map((v) => (
           <TouchableOpacity key={v} style={[styles.segmentBtn, view === v && styles.segmentBtnActive]} onPress={() => setView(v)} activeOpacity={0.8}>
-            <Text style={[styles.segmentText, view === v && styles.segmentTextActive]}>{v === 'week' ? 'This Week' : 'This Month'}</Text>
+            <Text style={[styles.segmentText, view === v && styles.segmentTextActive]}>{v === 'week' ? t('common.thisWeek') : t('common.thisMonth')}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -96,21 +98,21 @@ export default function DeliveryCalendarScreen() {
       <View style={styles.infoBanner}>
         <Icon name="information-outline" size={18} color={colors.primary} />
         <Text style={styles.infoText}>
-          Tap the days you need water. Days you don't mark stay red — no water is delivered on those days.
+          {t('deliveryCalendar.infoBanner')}
         </Text>
       </View>
 
       {/* Legend */}
       <View style={styles.legend}>
-        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.success }]} /><Text style={styles.legendText}>Water needed</Text></View>
-        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.error }]} /><Text style={styles.legendText}>No delivery</Text></View>
-        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.textMuted, opacity: 0.5 }]} /><Text style={styles.legendText}>Past</Text></View>
+        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.success }]} /><Text style={styles.legendText}>{t('deliveryCalendar.legendNeeded')}</Text></View>
+        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.error }]} /><Text style={styles.legendText}>{t('deliveryCalendar.legendNone')}</Text></View>
+        <View style={styles.legendItem}><View style={[styles.dot, { backgroundColor: colors.textMuted, opacity: 0.5 }]} /><Text style={styles.legendText}>{t('deliveryCalendar.legendPast')}</Text></View>
       </View>
 
       {view === 'week' ? (
         <WeekView
           colors={colors} styles={styles} weekStart={weekStart} today={today}
-          isWanted={isWanted} toggle={toggle}
+          isWanted={isWanted} toggle={toggle} t={t}
           onPrev={() => setWeekStart((w) => w.subtract(1, 'week'))}
           onNext={() => setWeekStart((w) => w.add(1, 'week'))}
           canPrev={weekStart.isAfter(dayjs().startOf('week'), 'day')}
@@ -127,17 +129,16 @@ export default function DeliveryCalendarScreen() {
 
       <Text style={styles.footNote}>
         {wantedCount
-          ? `${wantedCount} upcoming day${wantedCount > 1 ? 's' : ''} marked for water.`
-          : 'No upcoming days marked — you will not receive water.'}{' '}
-        Tap a day to toggle.
+          ? t('deliveryCalendar.footNoteMarked', { count: wantedCount })
+          : t('deliveryCalendar.footNoteEmpty')}
       </Text>
-      <PrimaryButton title="Save changes" onPress={save} loading={saving} />
+      <PrimaryButton title={t('deliveryCalendar.saveChanges')} onPress={save} loading={saving} />
     </ScrollView>
   );
 }
 
 // ---------------- Week ----------------
-function WeekView({ colors, styles, weekStart, today, isWanted, toggle, onPrev, onNext, canPrev }: any) {
+function WeekView({ colors, styles, weekStart, today, isWanted, toggle, onPrev, onNext, canPrev, t }: any) {
   const days = Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day'));
   return (
     <Card style={{ paddingVertical: 6 }}>
@@ -153,13 +154,13 @@ function WeekView({ colors, styles, weekStart, today, isWanted, toggle, onPrev, 
               <Text style={styles.dateNum}>{d.format('D')}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>{wanted ? 'Water delivery' : 'No delivery'}</Text>
+              <Text style={styles.rowTitle}>{wanted ? t('deliveryCalendar.waterDelivery') : t('deliveryCalendar.noDelivery')}</Text>
               <Text style={styles.rowSub}>
                 {past
-                  ? 'Past'
+                  ? t('deliveryCalendar.past')
                   : wanted
-                    ? "You'll receive water — tap to cancel"
-                    : 'Tap if you need water this day'}
+                    ? t('deliveryCalendar.willReceive')
+                    : t('deliveryCalendar.tapIfNeeded')}
               </Text>
             </View>
             {!past ? (

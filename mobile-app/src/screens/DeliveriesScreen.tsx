@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, Badge, Loader, EmptyState } from '../components/ui';
 import { deliveryApi } from '../api/endpoints';
 import { useTheme } from '../theme/ThemeContext';
@@ -10,6 +11,7 @@ import type { AppColors } from '../theme/colors';
 
 export default function DeliveriesScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<any>();
   const onPrimary = '#FFFFFF';
@@ -38,15 +40,15 @@ export default function DeliveriesScreen() {
       <View style={styles.toggle}>
         {(['week', 'month'] as const).map((p) => (
           <TouchableOpacity key={p} style={[styles.toggleBtn, period === p && styles.toggleActive]} onPress={() => setPeriod(p)}>
-            <Text style={[styles.toggleText, period === p && { color: onPrimary }]}>{p === 'week' ? 'This Week' : 'This Month'}</Text>
+            <Text style={[styles.toggleText, period === p && { color: onPrimary }]}>{p === 'week' ? t('common.thisWeek') : t('common.thisMonth')}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {summary && (
         <Card style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-          <View style={styles.sumItem}><Text style={styles.sumNum}>{summary.count}</Text><Text style={styles.sumLabel}>Deliveries</Text></View>
-          <View style={styles.sumItem}><Text style={styles.sumNum}>{summary.totalDelivered}</Text><Text style={styles.sumLabel}>Campers</Text></View>
+          <View style={styles.sumItem}><Text style={styles.sumNum}>{summary.count}</Text><Text style={styles.sumLabel}>{t('deliveries.deliveriesCount')}</Text></View>
+          <View style={styles.sumItem}><Text style={styles.sumNum}>{summary.totalDelivered}</Text><Text style={styles.sumLabel}>{t('deliveries.campers')}</Text></View>
         </Card>
       )}
 
@@ -57,7 +59,7 @@ export default function DeliveriesScreen() {
         onPress={() => navigation.navigate('DeliveryCalendar', { view: period })}
       >
         <Icon name="calendar-check" size={20} color={colors.primary} />
-        <Text style={styles.manageText}>Pick the days you need water</Text>
+        <Text style={styles.manageText}>{t('deliveries.manageText')}</Text>
         <Icon name="chevron-right" size={20} color={colors.textMuted} />
       </TouchableOpacity>
 
@@ -67,7 +69,7 @@ export default function DeliveriesScreen() {
         <FlatList
           data={items}
           keyExtractor={(i) => i.id}
-          ListEmptyComponent={<EmptyState text="No deliveries in this period" />}
+          ListEmptyComponent={<EmptyState text={t('deliveries.empty')} />}
           contentContainerStyle={{ padding: 16, paddingTop: 0 }}
           renderItem={({ item }) => (
             <Card>
@@ -75,7 +77,7 @@ export default function DeliveriesScreen() {
                 <Text style={styles.date}>{item.deliveryDate ? dayjs(item.deliveryDate).format('DD MMM YYYY') : '—'}</Text>
                 <Badge status={item.status} />
               </View>
-              <Text style={styles.meta}>{item.order?.orderNumber} · {item.quantityDelivered} camper(s)</Text>
+              <Text style={styles.meta}>{item.order?.orderNumber} · {t('common.camperUnit', { count: item.quantityDelivered })}</Text>
             </Card>
           )}
         />

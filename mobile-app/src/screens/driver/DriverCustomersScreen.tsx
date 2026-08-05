@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { Card, Badge, Loader, EmptyState } from '../../components/ui';
 import { driverApi } from '../../api/endpoints';
 import { useTheme } from '../../theme/ThemeContext';
@@ -21,6 +22,7 @@ interface DriverCustomer {
 
 export default function DriverCustomersScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<DriverCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function DriverCustomersScreen() {
       keyExtractor={(i) => i.id}
       onRefresh={load}
       refreshing={loading}
-      ListEmptyComponent={<EmptyState text="No customers assigned to you yet" />}
+      ListEmptyComponent={<EmptyState text={t('driverCustomers.empty')} />}
       contentContainerStyle={{ padding: 16 }}
       renderItem={({ item }) => (
         <Card>
@@ -54,8 +56,8 @@ export default function DriverCustomersScreen() {
             {item.isPaused ? <Badge status="PAUSED" /> : <Badge status={item.status} />}
           </View>
           <Text style={styles.meta}>{item.area ?? '—'}{item.address ? ` · ${item.address}` : ''}</Text>
-          {item.landmark ? <Text style={styles.meta}>Landmark: {item.landmark}</Text> : null}
-          <Text style={styles.meta}>{item.allocatedCampers} camper(s) / delivery</Text>
+          {item.landmark ? <Text style={styles.meta}>{t('driverCustomers.landmark', { name: item.landmark })}</Text> : null}
+          <Text style={styles.meta}>{t('driverCustomers.camperUnitPerDelivery', { count: item.allocatedCampers })}</Text>
           <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${item.mobile}`)}>
             <Icon name="phone" size={16} color={colors.primary} />
             <Text style={styles.callText}>{item.mobile}</Text>

@@ -4,6 +4,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Badge, Card, EmptyState, Loader } from '../components/ui';
 import { customerTrackingApi, meApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
@@ -13,6 +14,7 @@ import { getCurrentLocation } from '../services/location';
 
 export default function TrackDeliveryScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const mapRef = useRef<MapView | null>(null);
   const [data, setData] = useState<any>(null);
@@ -26,7 +28,7 @@ export default function TrackDeliveryScreen() {
     try {
       setData(await customerTrackingApi.activeDelivery());
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -55,9 +57,9 @@ export default function TrackDeliveryScreen() {
         };
       });
       await load();
-      if (showSuccess) Alert.alert('Location saved', 'Your delivery location is saved. ETA and map route are refreshed.');
+      if (showSuccess) Alert.alert(t('trackDelivery.locationSavedTitle'), t('trackDelivery.locationSavedMsg'));
     } catch (e) {
-      if (showSuccess) Alert.alert('Location error', errorMessage(e));
+      if (showSuccess) Alert.alert(t('trackDelivery.locationErrorTitle'), errorMessage(e));
     } finally {
       setSavingLocation(false);
     }
@@ -76,7 +78,7 @@ export default function TrackDeliveryScreen() {
   if (!data?.trackable) {
     return (
       <View style={styles.container}>
-        <EmptyState text={data?.reason ?? 'No active delivery to track right now.'} />
+        <EmptyState text={data?.reason ?? t('trackDelivery.noActive')} />
       </View>
     );
   }
@@ -130,16 +132,16 @@ export default function TrackDeliveryScreen() {
           toolbarEnabled={false}
           onMapReady={fitMap}
         >
-          <Marker coordinate={driverPoint} title={driver.name} description={driver.vehicle?.number ?? 'Driver'}>
+          <Marker coordinate={driverPoint} title={driver.name} description={driver.vehicle?.number ?? t('trackDelivery.driverMarkerDefault')}>
             <View style={styles.driverMarker}><Icon name="truck-fast" size={19} color="#FFFFFF" /></View>
           </Marker>
           {customerPoint && (
-            <Marker coordinate={customerPoint} title={customer.name} description={customer.address ?? customer.area ?? 'Delivery location'}>
+            <Marker coordinate={customerPoint} title={customer.name} description={customer.address ?? customer.area ?? t('trackDelivery.customerMarkerDefault')}>
               <View style={styles.customerMarker}><Icon name="map-marker" size={18} color="#FFFFFF" /></View>
             </Marker>
           )}
           {hubPoint && (
-            <Marker coordinate={hubPoint} title={hub.name} description="Distributor hub / warehouse">
+            <Marker coordinate={hubPoint} title={hub.name} description={t('trackDelivery.hubMarkerDefault')}>
               <View style={styles.hubMarker}><Text style={styles.hubEmoji}>🏭</Text></View>
             </Marker>
           )}
@@ -161,8 +163,8 @@ export default function TrackDeliveryScreen() {
             <Icon name="truck-fast" size={28} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Your camper is on the way</Text>
-            <Text style={styles.sub}>Live driver location is shown inside the app.</Text>
+            <Text style={styles.title}>{t('trackDelivery.onTheWay')}</Text>
+            <Text style={styles.sub}>{t('trackDelivery.liveLocationNote')}</Text>
           </View>
         </View>
       </Card>
@@ -174,70 +176,70 @@ export default function TrackDeliveryScreen() {
               <Icon name="crosshairs-gps" size={22} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.section}>Save delivery location</Text>
-              <Text style={styles.sub}>We need your GPS point to show route, distance and ETA accurately.</Text>
+              <Text style={styles.section}>{t('trackDelivery.saveLocationTitle')}</Text>
+              <Text style={styles.sub}>{t('trackDelivery.saveLocationSub')}</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.locationBtn} onPress={() => saveCurrentDeliveryLocation(true)} disabled={savingLocation} activeOpacity={0.86}>
             {savingLocation ? <ActivityIndicator color="#FFFFFF" /> : <Icon name="map-marker-check" size={18} color="#FFFFFF" />}
-            <Text style={styles.locationBtnText}>{savingLocation ? 'Saving location...' : 'Use my current location'}</Text>
+            <Text style={styles.locationBtnText}>{savingLocation ? t('trackDelivery.savingLocation') : t('trackDelivery.useCurrentLocation')}</Text>
           </TouchableOpacity>
         </Card>
       )}
 
       <Card>
         <View style={styles.row}>
-          <Text style={styles.section}>Delivery</Text>
+          <Text style={styles.section}>{t('trackDelivery.delivery')}</Text>
           <Badge status={data.delivery.status} />
         </View>
-        <Text style={styles.meta}>Order: {data.delivery.order.orderNumber}</Text>
-        <Text style={styles.meta}>Quantity: {data.delivery.order.quantity} camper(s)</Text>
-        <Text style={styles.meta}>Deliver to: {customer.address ?? customer.area ?? 'Saved delivery location'}</Text>
+        <Text style={styles.meta}>{t('trackDelivery.order', { number: data.delivery.order.orderNumber })}</Text>
+        <Text style={styles.meta}>{t('trackDelivery.quantity', { count: data.delivery.order.quantity })}</Text>
+        <Text style={styles.meta}>{t('trackDelivery.deliverTo', { address: customer.address ?? customer.area ?? t('trackDelivery.savedLocationFallback') })}</Text>
       </Card>
 
       <Card>
-        <Text style={styles.section}>Driver</Text>
+        <Text style={styles.section}>{t('trackDelivery.driver')}</Text>
         <Text style={styles.driverName}>{driver.name}</Text>
-        <Text style={styles.meta}>Vehicle: {driver.vehicle?.number ?? 'Not assigned'}{driver.vehicle?.type ? ` (${driver.vehicle.type})` : ''}</Text>
-        <Text style={styles.meta}>Last location: {dayjs(loc.recordedAt).format('DD MMM, hh:mm:ss A')}</Text>
+        <Text style={styles.meta}>{t('trackDelivery.vehicle', { info: `${driver.vehicle?.number ?? t('trackDelivery.notAssigned')}${driver.vehicle?.type ? ` (${driver.vehicle.type})` : ''}` })}</Text>
+        <Text style={styles.meta}>{t('trackDelivery.lastLocation', { time: dayjs(loc.recordedAt).format('DD MMM, hh:mm:ss A') })}</Text>
         <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${driver.mobile}`)}>
           <Icon name="phone" size={18} color={colors.primary} />
-          <Text style={styles.callText}>Call Driver</Text>
+          <Text style={styles.callText}>{t('trackDelivery.callDriver')}</Text>
         </TouchableOpacity>
       </Card>
 
       {hubPoint && (
         <Card>
-          <Text style={styles.section}>Distributor hub</Text>
+          <Text style={styles.section}>{t('trackDelivery.distributorHub')}</Text>
           <Text style={styles.driverName}>{hub.name}</Text>
-          <Text style={styles.meta}>Warehouse / plant location is visible on the map.</Text>
+          <Text style={styles.meta}>{t('trackDelivery.hubNote')}</Text>
           {hub.phone ? (
             <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${hub.phone}`)}>
               <Icon name="phone" size={18} color={colors.primary} />
-              <Text style={styles.callText}>Call Distributor</Text>
+              <Text style={styles.callText}>{t('trackDelivery.callDistributor')}</Text>
             </TouchableOpacity>
           ) : null}
         </Card>
       )}
 
       <Card>
-        <Text style={styles.section}>ETA</Text>
+        <Text style={styles.section}>{t('trackDelivery.eta')}</Text>
         <View style={styles.etaRow}>
           <View style={styles.etaBox}>
             <Text style={styles.etaNum}>{data.etaMinutes ?? '—'}</Text>
-            <Text style={styles.etaLabel}>Minutes</Text>
+            <Text style={styles.etaLabel}>{t('trackDelivery.minutes')}</Text>
           </View>
           <View style={styles.etaBox}>
             <Text style={styles.etaNum}>{data.distanceKm ?? '—'}</Text>
-            <Text style={styles.etaLabel}>Km away</Text>
+            <Text style={styles.etaLabel}>{t('trackDelivery.kmAway')}</Text>
           </View>
         </View>
         {!data.etaMinutes ? (
-          <Text style={styles.note}>Add customer GPS location to calculate distance and ETA.</Text>
+          <Text style={styles.note}>{t('trackDelivery.etaMissing')}</Text>
         ) : data.etaSource === 'GOOGLE_MAPS' ? (
-          <Text style={styles.note}>ETA uses Google Maps driving distance from the latest driver location.</Text>
+          <Text style={styles.note}>{t('trackDelivery.etaGoogle')}</Text>
         ) : (
-          <Text style={styles.note}>ETA is estimated using live GPS distance because road ETA is unavailable right now.</Text>
+          <Text style={styles.note}>{t('trackDelivery.etaFallback')}</Text>
         )}
       </Card>
     </ScrollView>

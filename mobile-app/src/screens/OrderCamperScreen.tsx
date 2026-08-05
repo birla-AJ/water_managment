@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Card, PrimaryButton } from '../components/ui';
 import { orderApi, meApi } from '../api/endpoints';
 import { errorMessage } from '../api/client';
@@ -22,6 +23,7 @@ function deliveryPerCamper(qty: number): number {
 
 export default function OrderCamperScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [qty, setQty] = useState(1);
   const [remarks, setRemarks] = useState('');
@@ -48,10 +50,10 @@ export default function OrderCamperScreen() {
     setLoading(true);
     try {
       await orderApi.create(qty, remarks);
-      Alert.alert('Order placed', `Your request for ${qty} extra camper(s) has been sent.\nEstimated total: ${inr(total)}`);
+      Alert.alert(t('orderCamper.placedTitle'), t('orderCamper.placedMsg', { qty, total: inr(total) }));
       setQty(1); setRemarks('');
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -60,8 +62,8 @@ export default function OrderCamperScreen() {
   return (
     <View style={styles.container}>
       <Card>
-        <Text style={styles.title}>Request Extra Campers</Text>
-        <Text style={styles.subtitle}>In addition to your regular schedule</Text>
+        <Text style={styles.title}>{t('orderCamper.title')}</Text>
+        <Text style={styles.subtitle}>{t('orderCamper.subtitle')}</Text>
 
         <View style={styles.stepper}>
           <TouchableOpacity style={styles.stepBtn} onPress={() => setQty(Math.max(1, qty - 1))}>
@@ -78,7 +80,7 @@ export default function OrderCamperScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Remarks (optional)"
+          placeholder={t('orderCamper.remarksPlaceholder')}
           placeholderTextColor={colors.textMuted}
           value={remarks}
           onChangeText={setRemarks}
@@ -87,19 +89,19 @@ export default function OrderCamperScreen() {
       </Card>
 
       <Card>
-        <Text style={styles.summaryTitle}>Price Summary</Text>
+        <Text style={styles.summaryTitle}>{t('orderCamper.summaryTitle')}</Text>
 
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Campers ({qty} × {inr(rate)})</Text>
+          <Text style={styles.rowLabel}>{t('orderCamper.campersRow', { qty, rate: inr(rate) })}</Text>
           <Text style={styles.rowValue}>{inr(subtotal)}</Text>
         </View>
 
         <View style={styles.row}>
           <Text style={styles.rowLabel}>
-            Delivery {freeDelivery ? '' : `(${qty} × ${inr(perCamperDelivery)})`}
+            {t('orderCamper.delivery')} {freeDelivery ? '' : `(${qty} × ${inr(perCamperDelivery)})`}
           </Text>
           {freeDelivery ? (
-            <Text style={[styles.rowValue, { color: colors.success }]}>FREE</Text>
+            <Text style={[styles.rowValue, { color: colors.success }]}>{t('orderCamper.free')}</Text>
           ) : (
             <Text style={styles.rowValue}>{inr(deliveryTotal)}</Text>
           )}
@@ -108,19 +110,19 @@ export default function OrderCamperScreen() {
         <View style={styles.divider} />
 
         <View style={styles.row}>
-          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalLabel}>{t('orderCamper.total')}</Text>
           <Text style={styles.totalValue}>{inr(total)}</Text>
         </View>
 
         {!freeDelivery && (
           <View style={styles.hint}>
             <Icon name="truck-fast-outline" size={16} color={colors.primary} />
-            <Text style={styles.hintText}>Add {campersToFree} more camper(s) for FREE delivery</Text>
+            <Text style={styles.hintText}>{t('orderCamper.freeDeliveryHint', { n: campersToFree })}</Text>
           </View>
         )}
       </Card>
 
-      <PrimaryButton title={`Place Order · ${inr(total)}`} onPress={placeOrder} loading={loading} />
+      <PrimaryButton title={t('orderCamper.placeOrder', { total: inr(total) })} onPress={placeOrder} loading={loading} />
     </View>
   );
 }

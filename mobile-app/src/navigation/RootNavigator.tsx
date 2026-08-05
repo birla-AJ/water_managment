@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { useAppSelector } from '../store/hooks';
 import PillTabBar from '../components/PillTabBar';
@@ -35,6 +36,7 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       tabBar={(props) => <PillTabBar {...props} />}
@@ -60,11 +62,11 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Deliveries" component={DeliveriesScreen} />
-      <Tab.Screen name="Order" component={OrderCamperScreen} options={{ title: 'Order Camper', tabBarLabel: 'Order' }} />
-      <Tab.Screen name="Bills" component={BillingScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('nav.home'), tabBarLabel: t('nav.home') }} />
+      <Tab.Screen name="Deliveries" component={DeliveriesScreen} options={{ title: t('nav.deliveries'), tabBarLabel: t('nav.deliveries') }} />
+      <Tab.Screen name="Order" component={OrderCamperScreen} options={{ title: t('nav.orderCamper'), tabBarLabel: t('nav.order') }} />
+      <Tab.Screen name="Bills" component={BillingScreen} options={{ title: t('nav.bills'), tabBarLabel: t('nav.bills') }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: t('nav.profile'), tabBarLabel: t('nav.profile') }} />
     </Tab.Navigator>
   );
 }
@@ -89,6 +91,7 @@ function AdminMainWithAi() {
 
 export default function RootNavigator() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { accessToken, bootstrapped, profileComplete, user } = useAppSelector((s) => s.auth);
   const isDriver = user?.role === 'DRIVER';
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -106,30 +109,30 @@ export default function RootNavigator() {
       ) : !accessToken ? (
         <>
           <Stack.Screen name="OtpLogin" component={OtpLoginScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: 'Verify OTP' }} />
+          <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: t('nav.verifyOtp') }} />
         </>
       ) : isAdmin ? (
         <Stack.Screen name="AdminMain" component={AdminMainWithAi} options={{ headerShown: false }} />
       ) : isDriver ? (
         <>
           <Stack.Screen name="DriverMain" component={DriverNavigator} options={{ headerShown: false }} />
-          <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} options={{ title: 'Notifications' }} />
+          <Stack.Screen name="DriverNotifications" component={DriverNotificationsScreen} options={{ title: t('nav.notifications') }} />
         </>
       ) : !profileComplete ? (
         <Stack.Screen
           name="CompleteProfile"
           component={CompleteProfileScreen}
-          options={{ title: 'Your Details', headerBackVisible: false, gestureEnabled: false }}
+          options={{ title: t('nav.yourDetails'), headerBackVisible: false, gestureEnabled: false }}
         />
       ) : (
         <>
           <Stack.Screen name="Main" component={CustomerMainWithAi} options={{ headerShown: false }} />
-          <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} options={{ title: 'Order History' }} />
-          <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: 'Payment History' }} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="TrackDelivery" component={TrackDeliveryScreen} options={{ title: 'Track Delivery' }} />
-          <Stack.Screen name="Support" component={SupportScreen} />
-          <Stack.Screen name="DeliveryCalendar" component={DeliveryCalendarScreen} options={{ title: 'My Water Days' }} />
+          <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} options={{ title: t('nav.orderHistory') }} />
+          <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: t('nav.paymentHistory') }} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('nav.notifications') }} />
+          <Stack.Screen name="TrackDelivery" component={TrackDeliveryScreen} options={{ title: t('nav.trackDelivery') }} />
+          <Stack.Screen name="Support" component={SupportScreen} options={{ title: t('home.support') }} />
+          <Stack.Screen name="DeliveryCalendar" component={DeliveryCalendarScreen} options={{ title: t('nav.myWaterDays') }} />
         </>
       )}
     </Stack.Navigator>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import PillTabBar from '../components/PillTabBar';
 import DriverDeliveriesScreen from '../screens/driver/DriverDeliveriesScreen';
@@ -12,6 +13,7 @@ const Tab = createBottomTabNavigator();
 /** Bottom-tab dashboard for delivery drivers. */
 export default function DriverNavigator() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       tabBar={(props) => <PillTabBar {...props} />}
@@ -31,9 +33,9 @@ export default function DriverNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Deliveries" component={DriverDeliveriesScreen} options={{ title: "Today's Deliveries", tabBarLabel: 'Deliveries' }} />
-      <Tab.Screen name="Customers" component={DriverCustomersScreen} options={{ title: 'My Customers', tabBarLabel: 'Customers' }} />
-      <Tab.Screen name="Profile" component={DriverProfileScreen} />
+      <Tab.Screen name="Deliveries" component={DriverDeliveriesScreen} options={{ title: t('nav.todaysDeliveries'), tabBarLabel: t('nav.deliveries') }} />
+      <Tab.Screen name="Customers" component={DriverCustomersScreen} options={{ title: t('nav.myCustomers'), tabBarLabel: t('nav.customers') }} />
+      <Tab.Screen name="Profile" component={DriverProfileScreen} options={{ title: t('nav.profile'), tabBarLabel: t('nav.profile') }} />
     </Tab.Navigator>
   );
 }

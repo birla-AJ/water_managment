@@ -31,7 +31,7 @@ async function sendViaApiTxt(mobile: string, otp: string) {
   const { authKey, apiUrl } = env.sms.apitxt;
   if (!authKey) throw new Error('APITXT_AUTH_KEY not set');
 
-  const result :any= await postForm(apiUrl, {
+  const result :any = await postForm(apiUrl, {
     authkey: authKey,
     mobile: `91${mobile}`,
     otp,

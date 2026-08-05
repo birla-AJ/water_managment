@@ -91,10 +91,10 @@ export default function OtpLoginScreen({ navigation }: Props) {
         <Pressable style={styles.dialogBackdrop} onPress={() => setLoginError(null)}>
           <Pressable style={styles.dialogCard} onPress={(event) => event.stopPropagation()}>
             <View style={styles.dialogIcon}><Icon name="shield-alert-outline" size={28} color={colors.error} /></View>
-            <Text style={styles.dialogTitle}>Access unavailable</Text>
+            <Text style={styles.dialogTitle}>{t('otpLoginExtra.accessUnavailable')}</Text>
             <Text style={styles.dialogText}>{loginError}</Text>
             <TouchableOpacity style={styles.dialogButton} onPress={() => setLoginError(null)} activeOpacity={0.85}>
-              <Text style={styles.dialogButtonText}>Got it</Text>
+              <Text style={styles.dialogButtonText}>{t('otpLoginExtra.gotIt')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

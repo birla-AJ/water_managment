@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'reac
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCredentials, setBootstrapped, setProfileComplete, isProfileComplete } from '../store/slices/authSlice';
 import { authApi, meApi } from '../api/endpoints';
@@ -10,6 +11,7 @@ import { setupNotifications } from '../services/notifications';
 import { applyStoredLanguage, setAppLanguage } from '../i18n';
 
 export default function SplashScreen() {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const accessToken = useAppSelector((s) => s.auth.accessToken);
 
@@ -107,7 +109,7 @@ export default function SplashScreen() {
           </View>
         </View>
 
-        <Text style={styles.eyebrow}>PURE DRINKING WATER</Text>
+        <Text style={styles.eyebrow}>{t('splash.eyebrow')}</Text>
         <Text style={styles.wordmark}>
           <Text style={{ color: AQUA.ink }}>Water</Text>
           <Text style={{ color: AQUA.teal }}>Flow</Text>
@@ -131,7 +133,7 @@ export default function SplashScreen() {
           { opacity: btn, transform: [{ scale: btn }, { translateX: bobX }] },
         ]}
       >
-        <Text style={styles.hint}>{accessToken ? 'Continue' : 'Get started'}</Text>
+        <Text style={styles.hint}>{accessToken ? t('splash.continue') : t('splash.getStarted')}</Text>
         <TouchableOpacity activeOpacity={0.85} onPress={proceed}>
           <LinearGradient colors={[AQUA.deep, AQUA.teal]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fab}>
             <Icon name="arrow-right" size={30} color="#FFFFFF" />

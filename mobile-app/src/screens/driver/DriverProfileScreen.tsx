@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { Card, Loader, PrimaryButton } from '../../components/ui';
 import { driverApi } from '../../api/endpoints';
 import { useAppDispatch } from '../../store/hooks';
@@ -32,6 +33,7 @@ function Row({ label, value, colors }: { label: string; value: React.ReactNode; 
 
 export default function DriverProfileScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const dispatch = useAppDispatch();
   const navigation = useNavigation<any>();
@@ -69,28 +71,28 @@ export default function DriverProfileScreen() {
       </Card>
 
       <Card>
-        <Text style={styles.section}>Assignment</Text>
-        <Row label="Zone" value={profile.zone ?? '—'} colors={colors} />
-        <Row label="Vehicle" value={profile.vehicle ? `${profile.vehicle.number}${profile.vehicle.type ? ` (${profile.vehicle.type})` : ''}` : '—'} colors={colors} />
-        <Row label="Status" value={profile.status} colors={colors} />
+        <Text style={styles.section}>{t('driverProfile.assignment')}</Text>
+        <Row label={t('driverProfile.zone')} value={profile.zone ?? '—'} colors={colors} />
+        <Row label={t('driverProfile.vehicle')} value={profile.vehicle ? `${profile.vehicle.number}${profile.vehicle.type ? ` (${profile.vehicle.type})` : ''}` : '—'} colors={colors} />
+        <Row label={t('driverProfile.status')} value={profile.status} colors={colors} />
       </Card>
 
       <Card>
-        <Text style={styles.section}>Today</Text>
+        <Text style={styles.section}>{t('driverProfile.today')}</Text>
         <View style={styles.statsRow}>
-          <View style={styles.stat}><Text style={styles.statNum}>{profile.stats?.assignedCustomers ?? 0}</Text><Text style={styles.statLabel}>Customers</Text></View>
-          <View style={styles.stat}><Text style={styles.statNum}>{profile.stats?.deliveredToday ?? 0}</Text><Text style={styles.statLabel}>Delivered today</Text></View>
+          <View style={styles.stat}><Text style={styles.statNum}>{profile.stats?.assignedCustomers ?? 0}</Text><Text style={styles.statLabel}>{t('driverProfile.customers')}</Text></View>
+          <View style={styles.stat}><Text style={styles.statNum}>{profile.stats?.deliveredToday ?? 0}</Text><Text style={styles.statLabel}>{t('driverProfile.deliveredToday')}</Text></View>
         </View>
       </Card>
 
       <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('DriverNotifications')}>
         <Icon name="bell-outline" size={20} color={colors.primary} />
-        <Text style={styles.linkText}>Notifications</Text>
+        <Text style={styles.linkText}>{t('driverProfile.notifications')}</Text>
         <Icon name="chevron-right" size={20} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
       </TouchableOpacity>
 
       <View style={{ marginTop: 16 }}>
-        <PrimaryButton title="Log out" variant="outline" onPress={doLogout} />
+        <PrimaryButton title={t('driverProfile.logout')} variant="outline" onPress={doLogout} />
       </View>
     </ScrollView>
   );

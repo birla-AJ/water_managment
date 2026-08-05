@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { GradientView } from '../components/ui';
 import { FadeSlideIn, PressableScale, AnimatedNumber } from '../components/anim';
 import { useAppSelector } from '../store/hooks';
@@ -11,27 +12,28 @@ import type { AppColors } from '../theme/colors';
 
 // Cohesive aqua/teal accent family (monochrome look, matching the reference).
 const ACTIONS = [
-  { label: 'Order Camper', icon: 'water-plus', screen: 'Order', tab: true, color: '#0E8388' },
+  { key: 'orderCamper', icon: 'water-plus', screen: 'Order', tab: true, color: '#0E8388' },
   // Water is opt-in — this is where the customer marks the days they need it.
-  { label: 'My Water Days', icon: 'calendar-check', screen: 'DeliveryCalendar', color: '#0EA5B5' },
-  { label: 'My Deliveries', icon: 'truck-delivery', screen: 'Deliveries', tab: true, color: '#0EA5B5' },
-  { label: 'Track Delivery', icon: 'map-marker-path', screen: 'TrackDelivery', color: '#0B8FD3' },
-  { label: 'Order History', icon: 'history', screen: 'OrderHistory', color: '#1AA7B0' },
-  { label: 'Billing', icon: 'receipt', screen: 'Bills', tab: true, color: '#2BB3B8' },
-  { label: 'Payments', icon: 'credit-card', screen: 'PaymentHistory', color: '#0C7C82' },
-  { label: 'Notifications', icon: 'bell', screen: 'Notifications', color: '#3FC1C9' },
-  { label: 'Support', icon: 'headset', screen: 'Support', color: '#16A8AE' },
+  { key: 'myWaterDays', icon: 'calendar-check', screen: 'DeliveryCalendar', color: '#0EA5B5' },
+  { key: 'myDeliveries', icon: 'truck-delivery', screen: 'Deliveries', tab: true, color: '#0EA5B5' },
+  { key: 'trackDelivery', icon: 'map-marker-path', screen: 'TrackDelivery', color: '#0B8FD3' },
+  { key: 'orderHistory', icon: 'history', screen: 'OrderHistory', color: '#1AA7B0' },
+  { key: 'billing', icon: 'receipt', screen: 'Bills', tab: true, color: '#2BB3B8' },
+  { key: 'payments', icon: 'credit-card', screen: 'PaymentHistory', color: '#0C7C82' },
+  { key: 'notifications', icon: 'bell', screen: 'Notifications', color: '#3FC1C9' },
+  { key: 'support', icon: 'headset', screen: 'Support', color: '#16A8AE' },
 ] as const;
 
-function greeting(): string {
+function greetingKey(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return 'greeting.morning';
+  if (h < 17) return 'greeting.afternoon';
+  return 'greeting.evening';
 }
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const user = useAppSelector((s) => s.auth.user);
   const navigation = useNavigation<any>();
@@ -67,14 +69,14 @@ export default function HomeScreen() {
     else navigation.navigate(t.screen);
   };
 
-  const firstName = user?.name?.split(' ')[0] || 'there';
+  const firstName = user?.name?.split(' ')[0] || t('home.defaultFirstName');
   const initial = (user?.name?.[0] || 'U').toUpperCase();
   const settled = due <= 0;
 
   const stats = [
-    { label: 'This week', value: weekCount, icon: 'calendar-week', color: colors.primary, view: 'week' as const },
-    { label: 'This month', value: monthCount, icon: 'calendar-month', color: '#1AA7B0', view: 'month' as const },
-    { label: 'Campers', value: campers, icon: 'cup-water', color: '#2BB3B8' },
+    { label: t('home.thisWeekStat'), value: weekCount, icon: 'calendar-week', color: colors.primary, view: 'week' as const },
+    { label: t('home.thisMonthStat'), value: monthCount, icon: 'calendar-month', color: '#1AA7B0', view: 'month' as const },
+    { label: t('home.campers'), value: campers, icon: 'cup-water', color: '#2BB3B8' },
   ];
 
   return (
@@ -94,7 +96,7 @@ export default function HomeScreen() {
       <FadeSlideIn key={`greet-${focusKey}`}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.greetingSub}>{greeting()},</Text>
+            <Text style={styles.greetingSub}>{t(greetingKey())},</Text>
             <Text style={styles.greetingName}>{firstName} 👋</Text>
           </View>
           <View style={styles.avatar}>
@@ -108,7 +110,7 @@ export default function HomeScreen() {
         <FadeSlideIn key={`pause-${focusKey}`} delay={60}>
           <View style={styles.pauseBanner}>
             <Icon name="pause-circle" size={20} color={colors.warning} />
-            <Text style={styles.pauseText}>Deliveries are paused. Resume them from your Profile.</Text>
+            <Text style={styles.pauseText}>{t('home.paused')}</Text>
           </View>
         </FadeSlideIn>
       )}
@@ -117,7 +119,7 @@ export default function HomeScreen() {
       <FadeSlideIn key={`due-${focusKey}`} delay={90}>
         <GradientView style={styles.heroCard}>
           <Icon name="water" size={120} color="#FFFFFF" style={styles.heroWatermark} />
-          <Text style={styles.heroLabel}>Outstanding Balance</Text>
+          <Text style={styles.heroLabel}>{t('home.outstandingBalance')}</Text>
           <AnimatedNumber
             value={due}
             style={styles.heroAmount}
@@ -126,7 +128,7 @@ export default function HomeScreen() {
           {settled ? (
             <View style={styles.settledRow}>
               <Icon name="check-circle" size={16} color="#FFFFFF" />
-              <Text style={styles.settledText}>You're all caught up</Text>
+              <Text style={styles.settledText}>{t('home.allCaughtUp')}</Text>
             </View>
           ) : (
             <TouchableOpacity
@@ -134,7 +136,7 @@ export default function HomeScreen() {
               style={styles.payBtn}
               onPress={() => navigation.navigate('Main', { screen: 'Bills' })}
             >
-              <Text style={[styles.payBtnText, { color: colors.primary }]}>Pay Now</Text>
+              <Text style={[styles.payBtnText, { color: colors.primary }]}>{t('home.payNow')}</Text>
               <Icon name="arrow-right" size={18} color={colors.primary} />
             </TouchableOpacity>
           )}
@@ -156,7 +158,7 @@ export default function HomeScreen() {
                 </View>
                 <AnimatedNumber value={s.value} style={styles.statNum} />
                 <Text style={styles.statLabel}>{s.label}</Text>
-                {tappable && <Text style={styles.statHint}>Tap to manage</Text>}
+                {tappable && <Text style={styles.statHint}>{t('home.tapToManage')}</Text>}
               </>
             );
             return tappable ? (
@@ -172,17 +174,17 @@ export default function HomeScreen() {
 
       {/* Quick actions */}
       <FadeSlideIn key={`sec-${focusKey}`} delay={210}>
-        <Text style={styles.section}>Quick Actions</Text>
+        <Text style={styles.section}>{t('home.quickActions')}</Text>
       </FadeSlideIn>
 
       <View style={styles.grid}>
-        {ACTIONS.map((t, i) => (
-          <FadeSlideIn key={`${t.label}-${focusKey}`} delay={250 + i * 50} style={styles.tileWrap}>
-            <PressableScale onPress={() => go(t)} style={styles.tile}>
-              <View style={[styles.tileIcon, { backgroundColor: t.color + '22' }]}>
-                <Icon name={t.icon} size={24} color={t.color} />
+        {ACTIONS.map((action, i) => (
+          <FadeSlideIn key={`${action.key}-${focusKey}`} delay={250 + i * 50} style={styles.tileWrap}>
+            <PressableScale onPress={() => go(action)} style={styles.tile}>
+              <View style={[styles.tileIcon, { backgroundColor: action.color + '22' }]}>
+                <Icon name={action.icon} size={24} color={action.color} />
               </View>
-              <Text style={styles.tileText}>{t.label}</Text>
+              <Text style={styles.tileText}>{t(`home.${action.key}`)}</Text>
             </PressableScale>
           </FadeSlideIn>
         ))}

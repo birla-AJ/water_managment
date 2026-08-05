@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Linking, Swi
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Card, Badge, Loader, EmptyState } from '../../components/ui';
 import { driverApi } from '../../api/endpoints';
 import { errorMessage } from '../../api/client';
@@ -22,6 +23,7 @@ interface WorklistItem {
 
 export default function DriverDeliveriesScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const [items, setItems] = useState<WorklistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function DriverDeliveriesScreen() {
         setLastPing(duty.latestLocation?.recordedAt ?? duty.lastSeenAt ?? null);
       }
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ export default function DriverDeliveriesScreen() {
       setLocationError(null);
       if (value) await sendLocation();
     } catch (e) {
-      Alert.alert('Duty update failed', errorMessage(e));
+      Alert.alert(t('driverDeliveries.dutyUpdateFailed'), errorMessage(e));
     } finally {
       setDutyBusy(false);
     }
@@ -95,19 +97,19 @@ export default function DriverDeliveriesScreen() {
   const markDelivered = (item: WorklistItem) => {
     if (!item.order) return;
     Alert.alert(
-      'Confirm delivery',
-      `Mark ${item.order.quantity} camper(s) delivered to ${item.customer.name}?`,
+      t('driverDeliveries.confirmTitle'),
+      t('driverDeliveries.confirmMsg', { qty: item.order.quantity, name: item.customer.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('driverDeliveries.cancel'), style: 'cancel' },
         {
-          text: 'Delivered',
+          text: t('driverDeliveries.delivered'),
           onPress: async () => {
             setBusyId(item.order!.id);
             try {
               await driverApi.markDelivered({ orderId: item.order!.id, status: 'DELIVERED', quantityDelivered: item.order!.quantity });
               await load();
             } catch (e) {
-              Alert.alert('Error', errorMessage(e));
+              Alert.alert(t('common.error'), errorMessage(e));
             } finally {
               setBusyId(null);
             }
@@ -130,9 +132,9 @@ export default function DriverDeliveriesScreen() {
       <Card style={styles.dutyCard}>
         <View style={styles.dutyTop}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.dutyTitle}>{isOnDuty ? 'Duty is ON' : 'Duty is OFF'}</Text>
+            <Text style={styles.dutyTitle}>{isOnDuty ? t('driverDeliveries.dutyOnTitle') : t('driverDeliveries.dutyOffTitle')}</Text>
             <Text style={styles.dutyText}>
-              {isOnDuty ? 'Live location is shared every 15 seconds.' : 'Start duty before deliveries so admin can track you.'}
+              {isOnDuty ? t('driverDeliveries.dutyOnText') : t('driverDeliveries.dutyOffText')}
             </Text>
           </View>
           <Switch
@@ -146,16 +148,16 @@ export default function DriverDeliveriesScreen() {
         <View style={styles.dutyMetaRow}>
           <Icon name={isOnDuty ? 'map-marker-radius' : 'map-marker-off'} size={16} color={isOnDuty ? colors.success : colors.textMuted} />
           <Text style={styles.dutyMeta}>
-            {lastPing ? `Last ping ${dayjs(lastPing).format('hh:mm:ss A')}` : 'No location ping yet'}
+            {lastPing ? t('driverDeliveries.lastPing', { time: dayjs(lastPing).format('hh:mm:ss A') }) : t('driverDeliveries.noPing')}
           </Text>
         </View>
         {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
       </Card>
 
       <Card style={{ flexDirection: 'row', justifyContent: 'space-around', marginHorizontal: 16, marginTop: 12 }}>
-        <View style={styles.sumItem}><Text style={styles.sumNum}>{items.length}</Text><Text style={styles.sumLabel}>Stops</Text></View>
-        <View style={styles.sumItem}><Text style={styles.sumNum}>{pending}</Text><Text style={styles.sumLabel}>To deliver</Text></View>
-        <View style={styles.sumItem}><Text style={[styles.sumNum, { color: colors.warning }]}>{notNeeded}</Text><Text style={styles.sumLabel}>No water</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumNum}>{items.length}</Text><Text style={styles.sumLabel}>{t('driverDeliveries.stops')}</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumNum}>{pending}</Text><Text style={styles.sumLabel}>{t('driverDeliveries.toDeliver')}</Text></View>
+        <View style={styles.sumItem}><Text style={[styles.sumNum, { color: colors.warning }]}>{notNeeded}</Text><Text style={styles.sumLabel}>{t('driverDeliveries.noWater')}</Text></View>
       </Card>
 
       {loading ? (
@@ -164,7 +166,7 @@ export default function DriverDeliveriesScreen() {
         <FlatList
           data={ordered}
           keyExtractor={(i) => i.customer.id}
-          ListEmptyComponent={<EmptyState text="No customers assigned for today" />}
+          ListEmptyComponent={<EmptyState text={t('driverDeliveries.empty')} />}
           contentContainerStyle={{ padding: 16 }}
           onRefresh={load}
           refreshing={loading}
@@ -180,13 +182,13 @@ export default function DriverDeliveriesScreen() {
                   ) : delivered ? <Badge status="DELIVERED" /> : item.order ? <Badge status="PENDING" /> : <Badge status="NO ORDER" />}
                 </View>
                 <Text style={styles.meta}>{item.customer.area ?? '—'}{item.customer.address ? ` · ${item.customer.address}` : ''}</Text>
-                {item.customer.landmark ? <Text style={styles.meta}>Landmark: {item.customer.landmark}</Text> : null}
-                {item.order ? <Text style={styles.meta}>{item.order.orderNumber} · {item.order.quantity} camper(s)</Text> : null}
+                {item.customer.landmark ? <Text style={styles.meta}>{t('driverDeliveries.landmark', { name: item.customer.landmark })}</Text> : null}
+                {item.order ? <Text style={styles.meta}>{item.order.orderNumber} · {t('common.camperUnit', { count: item.order.quantity })}</Text> : null}
 
                 <View style={styles.actions}>
                   <TouchableOpacity style={styles.iconBtn} onPress={() => Linking.openURL(`tel:${item.customer.mobile}`)}>
                     <Icon name="phone" size={18} color={colors.primary} />
-                    <Text style={styles.iconBtnText}>Call</Text>
+                    <Text style={styles.iconBtnText}>{t('driverDeliveries.call')}</Text>
                   </TouchableOpacity>
                   {item.deliverable && (
                     <TouchableOpacity
@@ -195,13 +197,13 @@ export default function DriverDeliveriesScreen() {
                       onPress={() => markDelivered(item)}
                     >
                       <Icon name="check-circle" size={18} color="#FFFFFF" />
-                      <Text style={[styles.iconBtnText, { color: '#FFFFFF' }]}>{busyId === item.order?.id ? 'Saving…' : 'Delivered'}</Text>
+                      <Text style={[styles.iconBtnText, { color: '#FFFFFF' }]}>{busyId === item.order?.id ? t('driverDeliveries.saving') : t('driverDeliveries.delivered')}</Text>
                     </TouchableOpacity>
                   )}
                   {item.skipped && (
                     <View style={styles.skipNote}>
                       <Text style={styles.skipNoteText}>
-                        {item.requested ? 'Deliveries paused — do not visit' : 'Customer did not ask for water — do not visit'}
+                        {item.requested ? t('driverDeliveries.deliveriesPaused') : t('driverDeliveries.customerDidNotAsk')}
                       </Text>
                     </View>
                   )}

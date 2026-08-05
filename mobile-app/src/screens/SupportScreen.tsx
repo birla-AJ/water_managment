@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/ui';
 import { useTheme } from '../theme/ThemeContext';
 import type { AppColors } from '../theme/colors';
@@ -11,12 +12,13 @@ const SUPPORT_WHATSAPP = '918001234567';
 
 export default function SupportScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
 
   const rows = [
-    { icon: 'phone', label: 'Call Us', value: SUPPORT_PHONE, action: () => Linking.openURL(`tel:${SUPPORT_PHONE}`) },
-    { icon: 'whatsapp', label: 'WhatsApp', value: `+${SUPPORT_WHATSAPP}`, action: () => Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}`) },
-    { icon: 'email', label: 'Email', value: SUPPORT_EMAIL, action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`) },
+    { icon: 'phone', label: t('support.callUs'), value: SUPPORT_PHONE, action: () => Linking.openURL(`tel:${SUPPORT_PHONE}`) },
+    { icon: 'whatsapp', label: t('support.whatsapp'), value: `+${SUPPORT_WHATSAPP}`, action: () => Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}`) },
+    { icon: 'email', label: t('support.email'), value: SUPPORT_EMAIL, action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`) },
   ];
 
   return (
@@ -25,8 +27,8 @@ export default function SupportScreen() {
         <View style={styles.heroIcon}>
           <Icon name="headset" size={44} color={colors.primary} />
         </View>
-        <Text style={styles.title}>How can we help?</Text>
-        <Text style={styles.subtitle}>Our team is available 8am – 8pm, all days</Text>
+        <Text style={styles.title}>{t('support.title')}</Text>
+        <Text style={styles.subtitle}>{t('support.subtitle')}</Text>
       </Card>
       {rows.map((r) => (
         <TouchableOpacity key={r.label} activeOpacity={0.8} onPress={r.action}>

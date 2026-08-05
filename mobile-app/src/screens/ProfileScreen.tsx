@@ -104,10 +104,10 @@ export default function ProfileScreen() {
         <Text style={styles.section}>{t('profile.editProfile')}</Text>
         <Field label={t('common.name')} value={profile.name} onChange={(v) => setProfile({ ...profile, name: v })} />
         <Field label={t('common.email')} value={profile.email} onChange={(v) => setProfile({ ...profile, email: v })} />
-        <Field label="Alternate Mobile" value={profile.altMobile} onChange={(v) => setProfile({ ...profile, altMobile: v })} />
+        <Field label={t('profileExtra.alternateMobile')} value={profile.altMobile} onChange={(v) => setProfile({ ...profile, altMobile: v })} />
         <Field label={t('common.address')} value={profile.address} onChange={(v) => setProfile({ ...profile, address: v })} />
-        <Field label="Area" value={profile.area} onChange={(v) => setProfile({ ...profile, area: v })} />
-        <Field label="Landmark" value={profile.landmark} onChange={(v) => setProfile({ ...profile, landmark: v })} />
+        <Field label={t('profileExtra.area')} value={profile.area} onChange={(v) => setProfile({ ...profile, area: v })} />
+        <Field label={t('profileExtra.landmark')} value={profile.landmark} onChange={(v) => setProfile({ ...profile, landmark: v })} />
         <PrimaryButton title={t('common.save')} onPress={save} loading={saving} />
       </Card>
 

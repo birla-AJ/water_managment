@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { Card, PrimaryButton, GradientView } from '../components/ui';
 import { meApi, distributorApi, DistributorSuggestion } from '../api/endpoints';
 import { errorMessage } from '../api/client';
@@ -30,6 +31,7 @@ type TextFieldKey = Exclude<keyof Form, 'latitude' | 'longitude'>;
 
 export default function CompleteProfileScreen() {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const onPrimary = '#FFFFFF';
   const dispatch = useAppDispatch();
@@ -93,9 +95,9 @@ export default function CompleteProfileScreen() {
       });
       setDistributors(list);
       if (list.length === 1) setDistributorId(list[0].id);
-      if (list.length === 0) Alert.alert('No distributors found', 'No distributor serves this area yet. Please contact support.');
+      if (list.length === 0) Alert.alert(t('completeProfileExtra.noDistributorsTitle'), t('completeProfileExtra.noDistributorsMsg'));
     } catch (e) {
-      Alert.alert('Error', errorMessage(e));
+      Alert.alert(t('common.error'), errorMessage(e));
     } finally {
       setFinding(false);
     }
@@ -106,9 +108,9 @@ export default function CompleteProfileScreen() {
       setLocating(true);
       const loc = await getCurrentLocation();
       setForm((f) => ({ ...f, latitude: loc.latitude, longitude: loc.longitude }));
-      Alert.alert('Location saved', 'Your delivery GPS location was captured for live ETA tracking.');
+      Alert.alert(t('completeProfileExtra.locationSavedTitle'), t('completeProfileExtra.locationSavedMsg'));
     } catch (e) {
-      Alert.alert('Location error', errorMessage(e));
+      Alert.alert(t('completeProfileExtra.locationErrorTitle'), errorMessage(e));
     } finally {
       setLocating(false);
     }
@@ -122,14 +124,14 @@ export default function CompleteProfileScreen() {
 
     const pincode = form.pincode.trim();
 
-    if (name.length < 2) return Alert.alert('Name required', 'Please enter your full name.');
-    if (!address) return Alert.alert('Address required', 'Please enter your delivery address.');
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return Alert.alert('Invalid email', 'Please enter a valid email address.');
-    if (altMobile && !/^[6-9]\d{9}$/.test(altMobile)) return Alert.alert('Invalid mobile', 'Alternate mobile must be a valid 10-digit number.');
-    if (pincode && !/^\d{6}$/.test(pincode)) return Alert.alert('Invalid pincode', 'Pincode must be 6 digits.');
+    if (name.length < 2) return Alert.alert(t('completeProfileExtra.nameRequiredTitle'), t('completeProfileExtra.nameRequiredMsg'));
+    if (!address) return Alert.alert(t('completeProfileExtra.addressRequiredTitle'), t('completeProfileExtra.addressRequiredMsg'));
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return Alert.alert(t('completeProfileExtra.invalidEmailTitle'), t('completeProfileExtra.invalidEmailMsg'));
+    if (altMobile && !/^[6-9]\d{9}$/.test(altMobile)) return Alert.alert(t('completeProfileExtra.invalidMobileTitle'), t('completeProfileExtra.invalidMobileMsg'));
+    if (pincode && !/^\d{6}$/.test(pincode)) return Alert.alert(t('completeProfileExtra.invalidPincodeTitle'), t('completeProfileExtra.invalidPincodeMsg'));
     // A distributor is required so the customer is routed to the right dashboard.
     if (!distributorId) {
-      return Alert.alert('Choose a distributor', 'Please find and select your water distributor before continuing.');
+      return Alert.alert(t('completeProfileExtra.chooseDistributorTitle'), t('completeProfileExtra.chooseDistributorMsg'));
     }
 
     setSaving(true);
@@ -190,44 +192,44 @@ export default function CompleteProfileScreen() {
           <View style={[styles.headerIcon, { backgroundColor: isDark ? '#FFFFFF22' : '#FFFFFF33' }]}>
             <Icon name="account-edit" size={34} color={onPrimary} />
           </View>
-          <Text style={[styles.headerTitle, { color: onPrimary }]}>Complete your profile</Text>
+          <Text style={[styles.headerTitle, { color: onPrimary }]}>{t('completeProfileExtra.headerTitle')}</Text>
           <Text style={[styles.headerSub, { color: onPrimary }]}>
-            We need a few details to set up your water deliveries.
+            {t('completeProfileExtra.headerSub')}
           </Text>
         </GradientView>
 
         <Card>
-          <Text style={styles.section}>Your details</Text>
-          <Field label="Full Name *" value={form.name} onChange={set('name')} placeholder="e.g. Rahul Sharma" autoCapitalize="words" />
-          <Field label="Email" value={form.email} onChange={set('email')} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
-          <Field label="Alternate Mobile" value={form.altMobile} onChange={set('altMobile')} placeholder="10-digit number" keyboardType="number-pad" maxLength={10} />
+          <Text style={styles.section}>{t('completeProfileExtra.yourDetails')}</Text>
+          <Field label={t('completeProfileExtra.fullName')} value={form.name} onChange={set('name')} placeholder={t('completeProfileExtra.fullNamePh')} autoCapitalize="words" />
+          <Field label={t('completeProfileExtra.email')} value={form.email} onChange={set('email')} placeholder={t('completeProfileExtra.emailPh')} keyboardType="email-address" autoCapitalize="none" />
+          <Field label={t('completeProfileExtra.altMobile')} value={form.altMobile} onChange={set('altMobile')} placeholder={t('completeProfileExtra.altMobilePh')} keyboardType="number-pad" maxLength={10} />
         </Card>
 
         <Card>
-          <Text style={styles.section}>Delivery address</Text>
-          <Field label="Address *" value={form.address} onChange={set('address')} placeholder="House / flat no, street, building" multiline />
-          <Field label="Area" value={form.area} onChange={set('area')} placeholder="Locality / sector" autoCapitalize="words" />
-          <Field label="Pincode" value={form.pincode} onChange={set('pincode')} placeholder="6-digit pincode" keyboardType="number-pad" maxLength={6} />
-          <Field label="Landmark" value={form.landmark} onChange={set('landmark')} placeholder="Nearby landmark" />
+          <Text style={styles.section}>{t('completeProfileExtra.deliveryAddress')}</Text>
+          <Field label={t('completeProfileExtra.address')} value={form.address} onChange={set('address')} placeholder={t('completeProfileExtra.addressPh')} multiline />
+          <Field label={t('completeProfileExtra.area')} value={form.area} onChange={set('area')} placeholder={t('completeProfileExtra.areaPh')} autoCapitalize="words" />
+          <Field label={t('completeProfileExtra.pincode')} value={form.pincode} onChange={set('pincode')} placeholder={t('completeProfileExtra.pincodePh')} keyboardType="number-pad" maxLength={6} />
+          <Field label={t('completeProfileExtra.landmark')} value={form.landmark} onChange={set('landmark')} placeholder={t('completeProfileExtra.landmarkPh')} />
           <TouchableOpacity style={styles.locationBtn} onPress={captureLocation} activeOpacity={0.8} disabled={locating}>
             {locating ? <ActivityIndicator color={colors.primary} /> : <Icon name="crosshairs-gps" size={18} color={colors.primary} />}
             <Text style={styles.locationBtnText}>
-              {locating ? 'Capturing delivery location...' : form.latitude != null && form.longitude != null ? 'Update delivery GPS location' : 'Use current delivery location'}
+              {locating ? t('completeProfileExtra.capturingLocation') : form.latitude != null && form.longitude != null ? t('completeProfileExtra.updateGps') : t('completeProfileExtra.useCurrentLocation')}
             </Text>
           </TouchableOpacity>
           {form.latitude != null && form.longitude != null ? (
             <Text style={styles.locationMeta}>
-              Saved: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+              {t('completeProfileExtra.savedGps', { lat: form.latitude.toFixed(5), lng: form.longitude.toFixed(5) })}
             </Text>
           ) : (
-            <Text style={styles.locationMeta}>GPS helps calculate delivery ETA when driver is on the way.</Text>
+            <Text style={styles.locationMeta}>{t('completeProfileExtra.gpsHelp')}</Text>
           )}
         </Card>
 
         <Card>
-          <Text style={styles.section}>Your distributor *</Text>
+          <Text style={styles.section}>{t('completeProfileExtra.yourDistributor')}</Text>
           <Text style={styles.help}>
-            Pick the water distributor that serves your area. Your orders and deliveries are handled by them.
+            {t('completeProfileExtra.distributorHelp')}
           </Text>
           <TouchableOpacity style={styles.findBtn} onPress={findDistributors} disabled={finding} activeOpacity={0.8}>
             {finding ? (
@@ -235,7 +237,7 @@ export default function CompleteProfileScreen() {
             ) : (
               <>
                 <Icon name="map-search-outline" size={18} color={colors.primary} />
-                <Text style={styles.findBtnText}>Find distributors near me</Text>
+                <Text style={styles.findBtnText}>{t('completeProfileExtra.findDistributors')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -258,9 +260,9 @@ export default function CompleteProfileScreen() {
                   <Text style={styles.distName}>{d.name}</Text>
                   <Text style={styles.distMeta} numberOfLines={1}>
                     {[
-                      d.distanceKm != null ? `${d.distanceKm} km away` : null,
+                      d.distanceKm != null ? t('completeProfileExtra.distanceAway', { km: d.distanceKm }) : null,
                       d.serviceAreas?.length ? d.serviceAreas.slice(0, 3).join(', ') : null,
-                    ].filter(Boolean).join(' · ') || 'Available'}
+                    ].filter(Boolean).join(' · ') || t('completeProfileExtra.available')}
                   </Text>
                 </View>
                 {d.matchReasons?.length ? (
@@ -273,8 +275,8 @@ export default function CompleteProfileScreen() {
           })}
         </Card>
 
-        <PrimaryButton title="Save & Continue" onPress={save} loading={saving} />
-        <Text style={styles.note}>You can update these anytime from your Profile.</Text>
+        <PrimaryButton title={t('completeProfileExtra.saveContinue')} onPress={save} loading={saving} />
+        <Text style={styles.note}>{t('completeProfileExtra.note')}</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
