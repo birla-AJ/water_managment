@@ -218,7 +218,6 @@ model Driver {
   id            String       @id @default(uuid())
   name          String
   mobile        String       @unique
-  altMobile     String?
   email         String?
   licenseNumber String?
   address       String?
@@ -334,7 +333,6 @@ model Customer {
   id              String         @id @default(uuid())
   name            String
   mobile          String         @unique
-  altMobile       String?
   email           String?
   address         String?
   area            String?

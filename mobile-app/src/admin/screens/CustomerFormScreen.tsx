@@ -25,7 +25,7 @@ export default function CustomerFormScreen() {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [f, setF] = useState({
-    name: '', mobile: '', altMobile: '', email: '', address: '', area: '', landmark: '',
+    name: '', mobile: '', email: '', address: '', area: '', landmark: '',
     customerType: 'DAILY' as CustomerType, status: 'ACTIVE' as CustomerStatus,
     securityDeposit: '0', ratePerCamper: '30', allocatedCampers: '1', notes: '',
   });
@@ -36,7 +36,6 @@ export default function CustomerFormScreen() {
     const e: Record<string, string> = {};
     if (!f.name.trim()) e.name = t('admin.customerForm.nameRequired');
     if (!isMobile(f.mobile)) e.mobile = t('admin.customerForm.mobileInvalid');
-    if (f.altMobile && !isMobile(f.altMobile)) e.altMobile = t('admin.customerForm.altMobileInvalid');
     if (f.email && !isEmail(f.email)) e.email = t('admin.customerForm.emailInvalid');
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -48,7 +47,7 @@ export default function CustomerFormScreen() {
       try {
         const c = await adminCustomerApi.get(id!);
         setF({
-          name: c.name ?? '', mobile: c.mobile ?? '', altMobile: c.altMobile ?? '', email: c.email ?? '',
+          name: c.name ?? '', mobile: c.mobile ?? '', email: c.email ?? '',
           address: c.address ?? '', area: c.area ?? '', landmark: c.landmark ?? '',
           customerType: c.customerType, status: c.status,
           securityDeposit: String(c.securityDeposit ?? 0), ratePerCamper: String(c.ratePerCamper ?? 0),
@@ -62,7 +61,7 @@ export default function CustomerFormScreen() {
     if (!validate()) return;
     setSaving(true);
     const payload = {
-      name: f.name, mobile: f.mobile, altMobile: f.altMobile || undefined, email: f.email || undefined,
+      name: f.name, mobile: f.mobile, email: f.email || undefined,
       address: f.address || undefined, area: f.area || undefined, landmark: f.landmark || undefined,
       customerType: f.customerType, status: f.status, notes: f.notes || undefined,
       securityDeposit: Number(f.securityDeposit) || 0,
@@ -83,7 +82,6 @@ export default function CustomerFormScreen() {
       <PageHeader title={isEdit ? t('admin.customerForm.editTitle') : t('admin.customerForm.addTitle')} />
       <FormInput label={t('admin.customerForm.name')} value={f.name} onChangeText={set('name')} placeholder={t('admin.customerForm.namePlaceholder')} autoCapitalize="words" error={errors.name} />
       <FormInput label={t('admin.customerForm.mobile')} value={f.mobile} onChangeText={(v) => set('mobile')(sanitizeMobile(v))} placeholder={t('admin.customerForm.mobilePlaceholder')} keyboardType="phone-pad" prefix="+91" error={errors.mobile} />
-      <FormInput label={t('admin.customerForm.altMobile')} value={f.altMobile} onChangeText={(v) => set('altMobile')(sanitizeMobile(v))} keyboardType="phone-pad" prefix="+91" error={errors.altMobile} />
       <FormInput label={t('admin.customerForm.email')} value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" error={errors.email} />
       <FormInput label={t('admin.customerForm.address')} value={f.address} onChangeText={set('address')} multiline />
       <FormInput label={t('admin.customerForm.area')} value={f.area} onChangeText={set('area')} />

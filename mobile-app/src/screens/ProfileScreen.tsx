@@ -34,7 +34,7 @@ export default function ProfileScreen() {
     setSaving(true);
     try {
       await meApi.updateProfile({
-        name: profile.name, email: profile.email, address: profile.address, area: profile.area, landmark: profile.landmark, altMobile: profile.altMobile,
+        name: profile.name, email: profile.email, address: profile.address, area: profile.area, landmark: profile.landmark,
       });
       Alert.alert(t('profile.saved'), t('profile.savedMsg'));
     } catch (e) { Alert.alert(t('common.error'), errorMessage(e)); } finally { setSaving(false); }
@@ -104,7 +104,6 @@ export default function ProfileScreen() {
         <Text style={styles.section}>{t('profile.editProfile')}</Text>
         <Field label={t('common.name')} value={profile.name} onChange={(v) => setProfile({ ...profile, name: v })} />
         <Field label={t('common.email')} value={profile.email} onChange={(v) => setProfile({ ...profile, email: v })} />
-        <Field label={t('profileExtra.alternateMobile')} value={profile.altMobile} onChange={(v) => setProfile({ ...profile, altMobile: v })} />
         <Field label={t('common.address')} value={profile.address} onChange={(v) => setProfile({ ...profile, address: v })} />
         <Field label={t('profileExtra.area')} value={profile.area} onChange={(v) => setProfile({ ...profile, area: v })} />
         <Field label={t('profileExtra.landmark')} value={profile.landmark} onChange={(v) => setProfile({ ...profile, landmark: v })} />

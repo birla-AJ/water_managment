@@ -26,7 +26,7 @@ export default function DriverFormScreen() {
   const [saving, setSaving] = useState(false);
   const [vehicleOptions, setVehicleOptions] = useState<{ label: string; value: string }[]>([{ label: t('admin.common.none'), value: '' }]);
   const [f, setF] = useState({
-    name: '', mobile: '', altMobile: '', email: '', licenseNumber: '', zone: '', address: '',
+    name: '', mobile: '', email: '', licenseNumber: '', zone: '', address: '',
     status: 'ACTIVE' as DriverStatus, vehicleId: '',
   });
   const set = (k: keyof typeof f) => (v: string) => { setF((p) => ({ ...p, [k]: v })); setErrors((e) => ({ ...e, [k]: '' })); };
@@ -36,7 +36,6 @@ export default function DriverFormScreen() {
     const e: Record<string, string> = {};
     if (!f.name.trim()) e.name = t('admin.driverForm.nameRequired');
     if (!isMobile(f.mobile)) e.mobile = t('admin.driverForm.mobileInvalid');
-    if (f.altMobile && !isMobile(f.altMobile)) e.altMobile = t('admin.driverForm.altMobileInvalid');
     if (f.email && !isEmail(f.email)) e.email = t('admin.driverForm.emailInvalid');
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -56,7 +55,7 @@ export default function DriverFormScreen() {
         setVehicleOptions(opts);
         if (driver) {
           setF({
-            name: driver.name ?? '', mobile: driver.mobile ?? '', altMobile: driver.altMobile ?? '',
+            name: driver.name ?? '', mobile: driver.mobile ?? '',
             email: driver.email ?? '', licenseNumber: driver.licenseNumber ?? '', zone: driver.zone ?? '',
             address: driver.address ?? '', status: driver.status, vehicleId: driver.vehicle?.id ?? driver.vehicleId ?? '',
           });
@@ -69,7 +68,7 @@ export default function DriverFormScreen() {
     if (!validate()) return;
     setSaving(true);
     const payload = {
-      name: f.name, mobile: f.mobile, altMobile: f.altMobile || undefined, email: f.email || undefined,
+      name: f.name, mobile: f.mobile, email: f.email || undefined,
       licenseNumber: f.licenseNumber || undefined, zone: f.zone || undefined, address: f.address || undefined,
       status: f.status, vehicleId: f.vehicleId || null,
     };
@@ -87,7 +86,6 @@ export default function DriverFormScreen() {
       <PageHeader title={isEdit ? t('admin.driverForm.editTitle') : t('admin.driverForm.addTitle')} subtitle={t('admin.driverForm.subtitle')} />
       <FormInput label={t('admin.driverForm.name')} value={f.name} onChangeText={set('name')} autoCapitalize="words" error={errors.name} />
       <FormInput label={t('admin.driverForm.mobile')} value={f.mobile} onChangeText={(v) => set('mobile')(sanitizeMobile(v))} keyboardType="phone-pad" prefix="+91" error={errors.mobile} />
-      <FormInput label={t('admin.driverForm.altMobile')} value={f.altMobile} onChangeText={(v) => set('altMobile')(sanitizeMobile(v))} keyboardType="phone-pad" prefix="+91" error={errors.altMobile} />
       <FormInput label={t('admin.driverForm.email')} value={f.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" error={errors.email} />
       <FormInput label={t('admin.driverForm.licenseNumber')} value={f.licenseNumber} onChangeText={set('licenseNumber')} />
       <FormInput label={t('admin.driverForm.zone')} value={f.zone} onChangeText={set('zone')} placeholder={t('admin.driverForm.zonePlaceholder')} />

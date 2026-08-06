@@ -37,7 +37,6 @@ CREATE TABLE customers (
   id                TEXT PRIMARY KEY,
   name              TEXT NOT NULL,
   mobile            TEXT UNIQUE NOT NULL,
-  "altMobile"       TEXT,
   email             TEXT,
   address           TEXT,
   area              TEXT,

@@ -324,14 +324,13 @@ class CustomerService {
 
   /** Customer self-profile update (limited fields, incl. location & distributor). */
   async updateProfile(id: string, dto: UpdateCustomerDto) {
-    await this.getById(id);
+    const before = await this.getById(id);
     const allowed: Prisma.CustomerUpdateInput = {
       name: dto.name,
       email: dto.email,
       address: dto.address,
       area: dto.area,
       landmark: dto.landmark,
-      altMobile: dto.altMobile,
       pincode: dto.pincode,
       latitude: dto.latitude,
       longitude: dto.longitude,
@@ -339,7 +338,31 @@ class CustomerService {
       ...(dto.distributorId ? { distributor: { connect: { id: dto.distributorId } } } : {}),
     };
     await customerRepository.update(id, allowed);
-    return this.getById(id);
+    const updated = await this.getById(id);
+
+    // First time the customer picks (or changes) a distributor, tell that
+    // admin a new customer has joined their group.
+    if (dto.distributorId && dto.distributorId !== before.distributorId) {
+      await this.notifyDistributorOfNewCustomer(updated, dto.distributorId);
+    }
+
+    return updated;
+  }
+
+  /** Tell the chosen admin/distributor a customer has just registered under them. */
+  private async notifyDistributorOfNewCustomer(
+    customer: { id: string; name: string; area?: string | null },
+    distributorId: string,
+  ) {
+    const who = `${customer.name}${customer.area ? ` (${customer.area})` : ''}`;
+    await notificationService.notify({
+      audience: NotificationAudience.ADMIN,
+      type: NotificationType.NEW_CUSTOMER,
+      adminId: distributorId,
+      title: 'New customer registered',
+      body: `${who} has registered and added you as their distributor.`,
+      data: { customerId: customer.id },
+    });
   }
 }
 

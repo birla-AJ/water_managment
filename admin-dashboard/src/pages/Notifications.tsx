@@ -6,6 +6,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { ReactNode } from 'react';
@@ -15,6 +16,7 @@ import PageHeader from '../components/PageHeader';
 // Map a notification type to an icon + accent colour (best-effort by keyword).
 function visualFor(type: string): { icon: ReactNode; color: string } {
   const t = (type ?? '').toUpperCase();
+  if (t.includes('NEW_CUSTOMER')) return { icon: <PersonAddAlt1Icon />, color: '#0E6BA8' };
   if (t.includes('ORDER')) return { icon: <ShoppingCartIcon />, color: '#055152' };
   if (t.includes('PAY')) return { icon: <PaymentsIcon />, color: '#179A33' };
   if (t.includes('DELIV')) return { icon: <LocalShippingIcon />, color: '#0E8C84' };

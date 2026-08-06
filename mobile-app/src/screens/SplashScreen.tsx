@@ -8,6 +8,8 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCredentials, setBootstrapped, setProfileComplete, isProfileComplete } from '../store/slices/authSlice';
 import { authApi, meApi } from '../api/endpoints';
 import { setupNotifications } from '../services/notifications';
+import { getCurrentLocationSilent } from '../services/location';
+import { setPendingLocation } from '../services/pendingLocation';
 import { applyStoredLanguage, setAppLanguage } from '../i18n';
 
 export default function SplashScreen() {
@@ -29,6 +31,12 @@ export default function SplashScreen() {
     (async () => {
       // Apply the locally-saved language before anything renders.
       await applyStoredLanguage();
+
+      // Best-effort, silent location permission + fix — used only to prefill a
+      // brand-new customer's row on their very first OTP verify. Never blocks
+      // splash and never shows an alert; stays null all session if declined.
+      getCurrentLocationSilent().then(setPendingLocation);
+
       try {
         const raw = await AsyncStorage.getItem('wf_tokens');
         if (raw) {

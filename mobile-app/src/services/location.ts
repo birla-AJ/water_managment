@@ -47,3 +47,28 @@ export async function getCurrentLocation(): Promise<DeviceLocation> {
     );
   });
 }
+
+/**
+ * Best-effort, silent location fetch for the splash screen: asks for
+ * permission (native OS prompt only, no follow-up alert) and resolves to
+ * null instead of throwing when the customer declines or the fix fails.
+ * Used purely to prefill a brand-new customer's row; never blocks app entry.
+ */
+export async function getCurrentLocationSilent(): Promise<DeviceLocation | null> {
+  try {
+    const allowed = await requestLocationPermission();
+    if (!allowed) return null;
+    return await new Promise((resolve) => {
+      Geolocation.getCurrentPosition(
+        (position) => {
+          const { coords } = position;
+          resolve({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy });
+        },
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 8000 },
+      );
+    });
+  } catch {
+    return null;
+  }
+}

@@ -18,7 +18,6 @@ const driverPublicSelect = {
   id: true,
   name: true,
   mobile: true,
-  altMobile: true,
   email: true,
   licenseNumber: true,
   address: true,

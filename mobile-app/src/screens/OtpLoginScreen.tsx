@@ -38,8 +38,9 @@ export default function OtpLoginScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      // The backend checks that this mobile belongs to a customer, driver, or
-      // admin created by an administrator before it sends an APITxT OTP.
+      // Any mobile number can request an OTP now. Existing driver/admin/
+      // customer numbers log straight in; a brand-new number gets a fresh
+      // customer record on verify and is guided through registration.
       await authApi.requestOtp(mobile);
       navigation.navigate('OtpVerify', { mobile });
     } catch (e) {

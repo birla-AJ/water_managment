@@ -5,7 +5,6 @@ const weekday = z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 
 export const createCustomerSchema = z.object({
   name: z.string().min(2),
   mobile: z.string().regex(/^[6-9]\d{9}$/),
-  altMobile: z.string().regex(/^[6-9]\d{9}$/).optional(),
   email: z.string().email().optional(),
   address: z.string().optional(),
   area: z.string().optional(),

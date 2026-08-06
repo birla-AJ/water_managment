@@ -59,10 +59,13 @@ class AuthService {
   }
 
   /**
-   * Mobile access is invitation-only: a Super Admin/Admin must first create
-   * the customer, driver, or admin record. This check runs before OTP delivery
-   * as well as token issuance, so unregistered numbers cannot consume OTPs or
-   * be auto-created through either the native or Firebase auth path.
+   * Mobile access is now open: any 10-digit number can request/verify an OTP.
+   * A number that already belongs to a driver or admin record must still be
+   * ACTIVE to log in (an admin-deactivated account stays blocked). A number
+   * with no record at all is a brand-new customer — it is let through here and
+   * verifyOtp/firebaseLogin auto-creates a minimal customer for it, which then
+   * completes registration (name, address, distributor) on the app's
+   * "complete profile" screen.
    */
   private async assertMobileLoginAllowed(mobile: string) {
     await this.assertNotRemoved(mobile);
@@ -73,18 +76,16 @@ class AuthService {
       prisma.admin.findUnique({ where: { mobile }, select: { isActive: true } }),
     ]);
 
-    const hasActiveAccount =
-      customer?.status === CustomerStatus.ACTIVE ||
-      driver?.status === DriverStatus.ACTIVE ||
-      admin?.isActive === true;
-    if (hasActiveAccount) return;
-
-    if (customer || driver || admin) {
+    if (customer && customer.status !== CustomerStatus.ACTIVE) {
       throw ApiError.forbidden('This account is inactive. Please contact your administrator.');
     }
-    throw ApiError.forbidden(
-      'This mobile number has not been added by an administrator. Please contact your administrator.'
-    );
+    if (driver && driver.status !== DriverStatus.ACTIVE) {
+      throw ApiError.forbidden('This account is inactive. Please contact your administrator.');
+    }
+    if (admin && !admin.isActive) {
+      throw ApiError.forbidden('This account is inactive. Please contact your administrator.');
+    }
+    // No existing record at all → allow through as a fresh customer sign-up.
   }
 
   private async loginAsDriverIfRegistered(mobile: string, fcmToken?: string) {
@@ -227,15 +228,34 @@ class AuthService {
     if (asAdmin) return asAdmin;
 
     let customer = await prisma.customer.findUnique({ where: { mobile: dto.mobile } });
-    // assertMobileLoginAllowed guarantees one of the three account types exists.
-    // Driver/admin matches returned above take precedence, so this must be a customer.
-    if (!customer) throw ApiError.forbidden('This mobile number is not authorized for customer login.');
-    if (dto.fcmToken) {
+    const isNewCustomer = !customer;
+    if (!customer) {
+      // Brand-new number with no admin/driver/customer record — self sign-up.
+      // A placeholder name ("Customer 1234") is used until the customer fills
+      // in the "complete profile" screen; the mobile app's isProfileComplete()
+      // check recognises this exact pattern and keeps the user on that screen.
+      // Location is best-effort: null in the DB if the splash-screen location
+      // permission was declined.
+      customer = await prisma.customer.create({
+        data: {
+          name: dto.name?.trim() || `Customer ${dto.mobile.slice(-4)}`,
+          mobile: dto.mobile,
+          status: CustomerStatus.ACTIVE,
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          fcmToken: dto.fcmToken,
+        },
+      });
+    } else if (dto.fcmToken) {
       customer = await prisma.customer.update({ where: { id: customer.id }, data: { fcmToken: dto.fcmToken } });
     }
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
-    return { ...tokens, isNew: false, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
+    return {
+      ...tokens,
+      isNew: isNewCustomer,
+      user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language },
+    };
   }
 
   // ---------------- FIREBASE PHONE AUTH ----------------
@@ -281,8 +301,21 @@ class AuthService {
     if (asAdmin) return asAdmin;
 
     let customer = await prisma.customer.findUnique({ where: { mobile } });
-    if (!customer) throw ApiError.forbidden('This mobile number is not authorized for customer login.');
-    if (dto.fcmToken) {
+    const isNewCustomer = !customer;
+    if (!customer) {
+      // Same self sign-up path as the OTP flow: create a placeholder customer
+      // for a number with no existing record, then let the app collect the
+      // rest of the profile.
+      customer = await prisma.customer.create({
+        data: {
+          name: `Customer ${mobile.slice(-4)}`,
+          mobile,
+          status: CustomerStatus.ACTIVE,
+          fcmToken: dto.fcmToken,
+        },
+      });
+      logger.info(`[Auth/firebase-login] Created new customer mobile=${mobile} customerId=${customer.id}`);
+    } else if (dto.fcmToken) {
       customer = await prisma.customer.update({ where: { id: customer.id }, data: { fcmToken: dto.fcmToken } });
       logger.info(`[Auth/firebase-login] Updated customer FCM mobile=${mobile} customerId=${customer.id}`);
     } else {
@@ -291,7 +324,11 @@ class AuthService {
 
     const tokens = await this.issueTokens({ sub: customer.id, principal: 'customer' }, 'customer');
     logger.info(`[Auth/firebase-login] Issued customer tokens mobile=${mobile}`);
-    return { ...tokens, isNew: false, user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language } };
+    return {
+      ...tokens,
+      isNew: isNewCustomer,
+      user: { id: customer.id, name: customer.name, mobile: customer.mobile, status: customer.status, role: 'CUSTOMER' as const, language: customer.language },
+    };
   }
 
   // ---------------- REFRESH / LOGOUT ----------------

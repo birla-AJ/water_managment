@@ -20,6 +20,10 @@ export const verifyOtpSchema = z.object({
   otp: z.string().length(6),
   name: z.string().min(2).optional(), // for first-time self registration
   fcmToken: z.string().optional(),
+  // Captured from the splash-screen location permission prompt. Optional —
+  // stays null in the DB when the customer declines permission.
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });
 
 export const updateFcmSchema = z.object({

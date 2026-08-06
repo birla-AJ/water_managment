@@ -67,13 +67,6 @@ export default function DriverForm() {
                   inputProps={{ maxLength: 10, inputMode: 'numeric' }} InputLabelProps={{ shrink: true }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Alternate Mobile" fullWidth
-                  {...register('altMobile', { pattern: { value: /^[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile' } })}
-                  error={!!errors.altMobile} helperText={errors.altMobile?.message}
-                  InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
-                  inputProps={{ maxLength: 10, inputMode: 'numeric' }} InputLabelProps={{ shrink: true }} />
-              </Grid>
-              <Grid item xs={12} sm={6}>
                 <TextField label="Email" fullWidth
                   {...register('email', { pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email' } })}
                   error={!!errors.email} helperText={errors.email?.message} InputLabelProps={{ shrink: true }} />

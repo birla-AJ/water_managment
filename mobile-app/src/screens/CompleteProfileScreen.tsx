@@ -17,7 +17,6 @@ import { getCurrentLocation } from '../services/location';
 interface Form {
   name: string;
   email: string;
-  altMobile: string;
   address: string;
   area: string;
   landmark: string;
@@ -26,7 +25,7 @@ interface Form {
   longitude: number | null;
 }
 
-const empty: Form = { name: '', email: '', altMobile: '', address: '', area: '', landmark: '', pincode: '', latitude: null, longitude: null };
+const empty: Form = { name: '', email: '', address: '', area: '', landmark: '', pincode: '', latitude: null, longitude: null };
 type TextFieldKey = Exclude<keyof Form, 'latitude' | 'longitude'>;
 
 export default function CompleteProfileScreen() {
@@ -54,7 +53,6 @@ export default function CompleteProfileScreen() {
         const nextForm = {
           name: /^Customer \d{4}$/.test(p?.name ?? '') ? '' : p?.name ?? '',
           email: p?.email ?? '',
-          altMobile: p?.altMobile ?? '',
           address: p?.address ?? '',
           area: p?.area ?? '',
           landmark: p?.landmark ?? '',
@@ -103,6 +101,21 @@ export default function CompleteProfileScreen() {
     }
   };
 
+  // Full picker — every active distributor (admin) in the system, for when the
+  // customer would rather choose manually than rely on area/GPS matching.
+  const showAllDistributors = async () => {
+    setFinding(true);
+    try {
+      const list = await distributorApi.list();
+      setDistributors(list);
+      if (list.length === 0) Alert.alert(t('completeProfileExtra.noDistributorsTitle'), t('completeProfileExtra.noDistributorsMsg'));
+    } catch (e) {
+      Alert.alert(t('common.error'), errorMessage(e));
+    } finally {
+      setFinding(false);
+    }
+  };
+
   const captureLocation = async () => {
     try {
       setLocating(true);
@@ -120,14 +133,12 @@ export default function CompleteProfileScreen() {
     const name = form.name.trim();
     const address = form.address.trim();
     const email = form.email.trim();
-    const altMobile = form.altMobile.trim();
 
     const pincode = form.pincode.trim();
 
     if (name.length < 2) return Alert.alert(t('completeProfileExtra.nameRequiredTitle'), t('completeProfileExtra.nameRequiredMsg'));
     if (!address) return Alert.alert(t('completeProfileExtra.addressRequiredTitle'), t('completeProfileExtra.addressRequiredMsg'));
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return Alert.alert(t('completeProfileExtra.invalidEmailTitle'), t('completeProfileExtra.invalidEmailMsg'));
-    if (altMobile && !/^[6-9]\d{9}$/.test(altMobile)) return Alert.alert(t('completeProfileExtra.invalidMobileTitle'), t('completeProfileExtra.invalidMobileMsg'));
     if (pincode && !/^\d{6}$/.test(pincode)) return Alert.alert(t('completeProfileExtra.invalidPincodeTitle'), t('completeProfileExtra.invalidPincodeMsg'));
     // A distributor is required so the customer is routed to the right dashboard.
     if (!distributorId) {
@@ -139,7 +150,6 @@ export default function CompleteProfileScreen() {
       await meApi.updateProfile({
         name,
         email: email || undefined,
-        altMobile: altMobile || undefined,
         address,
         area: form.area.trim() || undefined,
         landmark: form.landmark.trim() || undefined,
@@ -202,8 +212,7 @@ export default function CompleteProfileScreen() {
           <Text style={styles.section}>{t('completeProfileExtra.yourDetails')}</Text>
           <Field label={t('completeProfileExtra.fullName')} value={form.name} onChange={set('name')} placeholder={t('completeProfileExtra.fullNamePh')} autoCapitalize="words" />
           <Field label={t('completeProfileExtra.email')} value={form.email} onChange={set('email')} placeholder={t('completeProfileExtra.emailPh')} keyboardType="email-address" autoCapitalize="none" />
-          <Field label={t('completeProfileExtra.altMobile')} value={form.altMobile} onChange={set('altMobile')} placeholder={t('completeProfileExtra.altMobilePh')} keyboardType="number-pad" maxLength={10} />
-        </Card>
+            </Card>
 
         <Card>
           <Text style={styles.section}>{t('completeProfileExtra.deliveryAddress')}</Text>
@@ -240,6 +249,10 @@ export default function CompleteProfileScreen() {
                 <Text style={styles.findBtnText}>{t('completeProfileExtra.findDistributors')}</Text>
               </>
             )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.findBtnSecondary} onPress={showAllDistributors} disabled={finding} activeOpacity={0.8}>
+            <Icon name="format-list-bulleted" size={18} color={colors.textMuted} />
+            <Text style={styles.findBtnSecondaryText}>{t('completeProfileExtra.showAllDistributors')}</Text>
           </TouchableOpacity>
 
           {distributors.map((d) => {
@@ -299,6 +312,11 @@ const makeStyles = (colors: AppColors) =>
       borderWidth: 1, borderColor: colors.primary, borderRadius: 10, paddingVertical: 11, marginBottom: 12,
     },
     findBtnText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+    findBtnSecondary: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 11, marginBottom: 12,
+    },
+    findBtnSecondaryText: { color: colors.textMuted, fontWeight: '700', fontSize: 13 },
     locationBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
       borderWidth: 1, borderColor: colors.primary, borderRadius: 10, paddingVertical: 11, marginTop: 4,

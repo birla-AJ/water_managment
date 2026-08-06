@@ -9,6 +9,7 @@ import { PrimaryButton } from '../components/ui';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials, setProfileComplete, isProfileComplete } from '../store/slices/authSlice';
 import { setupNotifications } from '../services/notifications';
+import { getPendingLocation } from '../services/pendingLocation';
 import { useTheme } from '../theme/ThemeContext';
 import type { AppColors } from '../theme/colors';
 import { RootStackParamList } from '../navigation/types';
@@ -36,8 +37,10 @@ export default function OtpVerifyScreen({ route }: Props) {
     setLoading(true);
     try {
       // APITxT delivers the code; our backend verifies its locally stored OTP
-      // and returns the role-specific WaterFlow session.
-      const res = await authApi.verifyOtp(mobile, code);
+      // and returns the role-specific WaterFlow session. The splash-screen
+      // location (if the customer allowed it) rides along so a brand-new
+      // customer's row isn't null unnecessarily.
+      const res = await authApi.verifyOtp(mobile, code, undefined, getPendingLocation());
       await AsyncStorage.setItem('wf_tokens', JSON.stringify({ accessToken: res.accessToken, refreshToken: res.refreshToken }));
 
       // Drivers skip the customer onboarding entirely and go straight to the

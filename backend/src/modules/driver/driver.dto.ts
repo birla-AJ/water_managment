@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const createDriverSchema = z.object({
   name: z.string().min(2),
   mobile: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
-  altMobile: z.string().regex(/^[6-9]\d{9}$/).optional(),
   email: z.string().email().optional(),
   licenseNumber: z.string().optional(),
   address: z.string().optional(),

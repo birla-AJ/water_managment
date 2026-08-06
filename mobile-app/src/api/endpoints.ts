@@ -2,8 +2,15 @@ import { api } from './client';
 
 export const authApi = {
   requestOtp: (mobile: string) => api.post('/auth/otp/request', { mobile }).then((r) => r.data.data),
-  verifyOtp: (mobile: string, otp: string, fcmToken?: string) =>
-    api.post('/auth/otp/verify', { mobile, otp, fcmToken }).then((r) => r.data.data),
+  verifyOtp: (mobile: string, otp: string, fcmToken?: string, location?: { latitude: number; longitude: number } | null) =>
+    api
+      .post('/auth/otp/verify', {
+        mobile,
+        otp,
+        fcmToken,
+        ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
+      })
+      .then((r) => r.data.data),
   firebaseLogin: (firebaseToken: string, fcmToken?: string) =>
     api.post('/auth/firebase-login', { firebaseToken, fcmToken }).then((r) => r.data.data),
   me: () => api.get('/auth/me').then((r) => r.data.data),

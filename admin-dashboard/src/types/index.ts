@@ -48,7 +48,6 @@ export interface Customer {
   id: string;
   name: string;
   mobile: string;
-  altMobile?: string;
   email?: string;
   address?: string;
   area?: string;
@@ -99,7 +98,6 @@ export interface Driver {
   id: string;
   name: string;
   mobile: string;
-  altMobile?: string;
   email?: string;
   licenseNumber?: string;
   address?: string;
