@@ -28,6 +28,43 @@ interface Form {
 const empty: Form = { name: '', email: '', address: '', area: '', landmark: '', pincode: '', latitude: null, longitude: null };
 type TextFieldKey = Exclude<keyof Form, 'latitude' | 'longitude'>;
 
+// IMPORTANT: this must live OUTSIDE the screen component. If it's defined
+// inside CompleteProfileScreen(), React treats it as a brand-new component
+// type on every render (every keystroke), so it unmounts/remounts every
+// TextInput and focus jumps back to the first field. Defining it here once
+// keeps its identity stable across re-renders.
+function Field({
+  label, value, onChange, placeholder, keyboardType, multiline, maxLength, autoCapitalize, styles, colors,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  keyboardType?: 'default' | 'email-address' | 'number-pad';
+  multiline?: boolean;
+  maxLength?: number;
+  autoCapitalize?: 'none' | 'words' | 'sentences';
+  styles: ReturnType<typeof makeStyles>;
+  colors: AppColors;
+}) {
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={[styles.input, multiline && styles.inputMultiline]}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        keyboardType={keyboardType ?? 'default'}
+        multiline={multiline}
+        maxLength={maxLength}
+        autoCapitalize={autoCapitalize ?? 'sentences'}
+      />
+    </View>
+  );
+}
+
 export default function CompleteProfileScreen() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
@@ -167,34 +204,6 @@ export default function CompleteProfileScreen() {
     }
   };
 
-  const Field = ({
-    label, value, onChange, placeholder, keyboardType, multiline, maxLength, autoCapitalize,
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    placeholder: string;
-    keyboardType?: 'default' | 'email-address' | 'number-pad';
-    multiline?: boolean;
-    maxLength?: number;
-    autoCapitalize?: 'none' | 'words' | 'sentences';
-  }) => (
-    <View style={{ marginBottom: 14 }}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline]}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        keyboardType={keyboardType ?? 'default'}
-        multiline={multiline}
-        maxLength={maxLength}
-        autoCapitalize={autoCapitalize ?? 'sentences'}
-      />
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
@@ -210,16 +219,16 @@ export default function CompleteProfileScreen() {
 
         <Card>
           <Text style={styles.section}>{t('completeProfileExtra.yourDetails')}</Text>
-          <Field label={t('completeProfileExtra.fullName')} value={form.name} onChange={set('name')} placeholder={t('completeProfileExtra.fullNamePh')} autoCapitalize="words" />
-          <Field label={t('completeProfileExtra.email')} value={form.email} onChange={set('email')} placeholder={t('completeProfileExtra.emailPh')} keyboardType="email-address" autoCapitalize="none" />
+          <Field label={t('completeProfileExtra.fullName')} value={form.name} onChange={set('name')} placeholder={t('completeProfileExtra.fullNamePh')} autoCapitalize="words" styles={styles} colors={colors} />
+          <Field label={t('completeProfileExtra.email')} value={form.email} onChange={set('email')} placeholder={t('completeProfileExtra.emailPh')} keyboardType="email-address" autoCapitalize="none" styles={styles} colors={colors} />
             </Card>
 
         <Card>
           <Text style={styles.section}>{t('completeProfileExtra.deliveryAddress')}</Text>
-          <Field label={t('completeProfileExtra.address')} value={form.address} onChange={set('address')} placeholder={t('completeProfileExtra.addressPh')} multiline />
-          <Field label={t('completeProfileExtra.area')} value={form.area} onChange={set('area')} placeholder={t('completeProfileExtra.areaPh')} autoCapitalize="words" />
-          <Field label={t('completeProfileExtra.pincode')} value={form.pincode} onChange={set('pincode')} placeholder={t('completeProfileExtra.pincodePh')} keyboardType="number-pad" maxLength={6} />
-          <Field label={t('completeProfileExtra.landmark')} value={form.landmark} onChange={set('landmark')} placeholder={t('completeProfileExtra.landmarkPh')} />
+          <Field label={t('completeProfileExtra.address')} value={form.address} onChange={set('address')} placeholder={t('completeProfileExtra.addressPh')} multiline styles={styles} colors={colors} />
+          <Field label={t('completeProfileExtra.area')} value={form.area} onChange={set('area')} placeholder={t('completeProfileExtra.areaPh')} autoCapitalize="words" styles={styles} colors={colors} />
+          <Field label={t('completeProfileExtra.pincode')} value={form.pincode} onChange={set('pincode')} placeholder={t('completeProfileExtra.pincodePh')} keyboardType="number-pad" maxLength={6} styles={styles} colors={colors} />
+          <Field label={t('completeProfileExtra.landmark')} value={form.landmark} onChange={set('landmark')} placeholder={t('completeProfileExtra.landmarkPh')} styles={styles} colors={colors} />
           <TouchableOpacity style={styles.locationBtn} onPress={captureLocation} activeOpacity={0.8} disabled={locating}>
             {locating ? <ActivityIndicator color={colors.primary} /> : <Icon name="crosshairs-gps" size={18} color={colors.primary} />}
             <Text style={styles.locationBtnText}>
