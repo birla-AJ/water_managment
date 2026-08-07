@@ -133,7 +133,7 @@ export default function WhatsAppConnectionCard() {
               {t('whatsapp.scanHint')}
             </Typography>
             {qr ? (
-              <Box component="img" src={qr} alt="WhatsApp QR" sx={{ width: 256, height: 256 }} />
+              <Box component="img" src={qr} alt={t('whatsapp.qrAlt')} sx={{ width: 256, height: 256 }} />
             ) : (
               <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
                 <CircularProgress />

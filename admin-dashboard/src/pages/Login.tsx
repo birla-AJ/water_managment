@@ -62,7 +62,7 @@ export default function Login() {
     try {
       const res = await authApi.requestOtp(mobile);
       setOtpSent(true);
-      enqueueSnackbar(res?.devOtp ? `OTP: ${res.devOtp} (dev mode)` : t('login.otpSent'), { variant: 'success' });
+      enqueueSnackbar(res?.devOtp ? t('login.devOtp', { otp: res.devOtp }) : t('login.otpSent'), { variant: 'success' });
     } catch (err) {
       enqueueSnackbar(apiErrorMessage(err), { variant: 'error' });
     } finally {

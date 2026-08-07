@@ -25,6 +25,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { aiApi } from '../../api/endpoints';
 import type { AiChatResponse, AiUsage } from '../../types';
 import { BRAND_GRADIENT } from '../../theme/theme';
+import { useTranslation } from 'react-i18next';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -115,12 +116,13 @@ function DataPreview({ data }: { data: AiChatResponse }) {
 }
 
 export default function AdminAiChat() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [tick, setTick] = useState(0);
   const [usageInfo, setUsageInfo] = useState<Partial<AiUsage> | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', text: 'Ask about earnings, drivers, payments, billing, inventory, areas, or customer growth.' },
+    { role: 'assistant', text: t('ai.greeting') },
   ]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -145,8 +147,8 @@ export default function AdminAiChat() {
     onError: (err: any) => {
       const payload = limitPayload(err);
       if (payload?.resetAt) setUsageInfo((prev) => ({ ...prev, ...payload, remaining: 0, remainingQuestions: 0, limitExceeded: true }));
-      const timer = payload?.resetAt ? ` Reset in ${formatCountdown(payload.resetAt)}.` : '';
-      setMessages((prev) => [...prev, { role: 'assistant', text: `${err?.response?.data?.message ?? 'AI chat failed. Please try again.'}${timer}` }]);
+      const timer = payload?.resetAt ? t('ai.resetIn', { time: formatCountdown(payload.resetAt) }) : '';
+      setMessages((prev) => [...prev, { role: 'assistant', text: `${err?.response?.data?.message ?? t('ai.genericError')}${timer}` }]);
     },
   });
 
@@ -168,7 +170,7 @@ export default function AdminAiChat() {
   const resetTimer = useMemo(() => formatCountdown(usageInfo?.resetAt), [usageInfo?.resetAt, tick]);
   const limitExceeded = remaining === 0 || usageInfo?.limitExceeded;
   const canSend = input.trim().length > 1 && !ask.isPending && !limitExceeded;
-  const quick = useMemo(() => suggestions ?? ['Monthly earning', 'Daily performance', 'Pending payments', 'Driver performance', 'Inventory status'], [suggestions]);
+  const quick = useMemo(() => suggestions ?? (t('ai.quickSuggestions', { returnObjects: true }) as string[]), [suggestions, t]);
 
   const send = (text = input, intent?: string) => {
     const message = text.trim();
@@ -180,7 +182,7 @@ export default function AdminAiChat() {
 
   return (
     <>
-      <Tooltip title="AI assistant">
+      <Tooltip title={t('ai.assistantTooltip')}>
         <Fab
           color="primary"
           onClick={() => setOpen((v) => !v)}
@@ -212,13 +214,13 @@ export default function AdminAiChat() {
           <Box sx={{ p: 2, background: BRAND_GRADIENT, color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
             <SmartToyOutlinedIcon />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography fontWeight={900}>WaterFlow AI</Typography>
-              <Typography variant="caption">Business reports in text, table and chart</Typography>
+              <Typography fontWeight={900}>{t('ai.title')}</Typography>
+              <Typography variant="caption">{t('ai.subtitle')}</Typography>
             </Box>
             {remaining !== undefined && (
               <Chip
                 size="small"
-                label={limitExceeded ? `Reset ${resetTimer}` : `${remaining}/${usageInfo?.dailyLimit ?? usageInfo?.limit ?? 3} left`}
+                label={limitExceeded ? t('ai.resetChip', { time: resetTimer }) : t('ai.leftChip', { remaining, limit: usageInfo?.dailyLimit ?? usageInfo?.limit ?? 3 })}
                 sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 800 }}
               />
             )}
@@ -294,7 +296,7 @@ export default function AdminAiChat() {
             <TextField
               size="small"
               fullWidth
-              placeholder={limitExceeded ? `Daily AI limit exceeded. Reset in ${resetTimer}` : 'Ask: monthly report, pending payments...'}
+              placeholder={limitExceeded ? t('ai.inputPlaceholderLimit', { time: resetTimer }) : t('ai.inputPlaceholder')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={limitExceeded}

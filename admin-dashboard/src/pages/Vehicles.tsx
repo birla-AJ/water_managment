@@ -15,10 +15,12 @@ import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 import type { Vehicle } from '../types';
+import { useTranslation } from 'react-i18next';
 
 type FormValues = Partial<Vehicle>;
 
 export default function Vehicles({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [page, setPage] = useState(0);
@@ -41,7 +43,7 @@ export default function Vehicles({ embedded = false }: { embedded?: boolean }) {
       return editId ? vehicleApi.update(editId, payload) : vehicleApi.create(payload);
     },
     onSuccess: () => {
-      enqueueSnackbar(`Vehicle ${editId ? 'updated' : 'created'}`, { variant: 'success' });
+      enqueueSnackbar(editId ? t('vehicles.updatedToast') : t('vehicles.createdToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['vehicles'] });
       setOpen(false);
     },
@@ -50,21 +52,21 @@ export default function Vehicles({ embedded = false }: { embedded?: boolean }) {
 
   const del = useMutation({
     mutationFn: (id: string) => vehicleApi.remove(id),
-    onSuccess: () => { enqueueSnackbar('Vehicle deleted', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['vehicles'] }); },
+    onSuccess: () => { enqueueSnackbar(t('vehicles.deletedToast'), { variant: 'success' }); qc.invalidateQueries({ queryKey: ['vehicles'] }); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
   const columns: GridColDef[] = [
-    { field: 'number', headerName: 'Vehicle No.', flex: 1, minWidth: 140 },
-    { field: 'type', headerName: 'Type', width: 130 },
-    { field: 'capacity', headerName: 'Capacity', width: 100 },
+    { field: 'number', headerName: t('vehicles.colNumber'), flex: 1, minWidth: 140 },
+    { field: 'type', headerName: t('vehicles.colType'), width: 130 },
+    { field: 'capacity', headerName: t('vehicles.colCapacity'), width: 100 },
     {
-      field: 'driver', headerName: 'Assigned to', flex: 1, minWidth: 160,
+      field: 'driver', headerName: t('vehicles.colAssignedTo'), flex: 1, minWidth: 160,
       renderCell: (p) => (p.value ? `${p.value.name} (${p.value.mobile})` : '—'),
     },
-    { field: 'isActive', headerName: 'Active', width: 100, renderCell: (p) => <StatusChip status={p.value ? 'ACTIVE' : 'INACTIVE'} /> },
+    { field: 'isActive', headerName: t('vehicles.colActive'), width: 100, renderCell: (p) => <StatusChip status={p.value ? 'ACTIVE' : 'INACTIVE'} /> },
     {
-      field: 'actions', headerName: 'Actions', width: 110, sortable: false,
+      field: 'actions', headerName: t('vehicles.colActions'), width: 110, sortable: false,
       renderCell: (p) => (
         <>
           <IconButton size="small" onClick={() => openEdit(p.row)}><EditIcon fontSize="small" /></IconButton>
@@ -78,14 +80,14 @@ export default function Vehicles({ embedded = false }: { embedded?: boolean }) {
     <Box>
       {!embedded && (
         <PageHeader
-          title="Drivers & Vehicles"
-          subtitle="Manage delivery vehicles and their driver assignments"
-          action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Vehicle</Button>}
+          title={t('nav.driversVehicles')}
+          subtitle={t('vehicles.subtitle')}
+          action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>{t('vehicles.addVehicle')}</Button>}
         />
       )}
       {embedded && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Vehicle</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>{t('vehicles.addVehicle')}</Button>
         </Box>
       )}
       <Card>
@@ -104,27 +106,27 @@ export default function Vehicles({ embedded = false }: { embedded?: boolean }) {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editId ? 'Edit Vehicle' : 'Add Vehicle'}</DialogTitle>
+        <DialogTitle>{editId ? t('vehicles.editVehicle') : t('vehicles.addVehicle')}</DialogTitle>
         <form onSubmit={handleSubmit((v) => save.mutate(v))}>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 0 }}>
               <Grid item xs={12} sm={6}>
-                <TextField label="Vehicle Number" fullWidth {...register('number', { required: 'Vehicle number is required' })}
+                <TextField label={t('vehicles.vehicleNumber')} fullWidth {...register('number', { required: t('vehicles.vehicleNumberRequired') })}
                   error={!!errors.number} helperText={errors.number?.message} InputLabelProps={{ shrink: true }} />
               </Grid>
-              <Grid item xs={12} sm={6}><TextField label="Type (Tempo, Van…)" fullWidth {...register('type')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Capacity (campers)" type="number" fullWidth {...register('capacity')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}><TextField label={t('vehicles.typePlaceholder')} fullWidth {...register('type')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}><TextField label={t('vehicles.capacityCampers')} type="number" fullWidth {...register('capacity')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Active" fullWidth defaultValue="true" {...register('isActive', { setValueAs: (v) => v === true || v === 'true' })} InputLabelProps={{ shrink: true }}>
-                  <MenuItem value="true">Yes</MenuItem><MenuItem value="false">No</MenuItem>
+                <TextField select label={t('vehicles.active')} fullWidth defaultValue="true" {...register('isActive', { setValueAs: (v) => v === true || v === 'true' })} InputLabelProps={{ shrink: true }}>
+                  <MenuItem value="true">{t('common.yes')}</MenuItem><MenuItem value="false">{t('common.no')}</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12}><TextField label="Notes" fullWidth multiline rows={2} {...register('notes')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12}><TextField label={t('vehicles.notes')} fullWidth multiline rows={2} {...register('notes')} InputLabelProps={{ shrink: true }} /></Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Stack><Button type="submit" variant="contained" disabled={save.isPending}>{editId ? 'Update' : 'Create'}</Button></Stack>
+            <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
+            <Stack><Button type="submit" variant="contained" disabled={save.isPending}>{editId ? t('common.update') : t('common.create')}</Button></Stack>
           </DialogActions>
         </form>
       </Dialog>

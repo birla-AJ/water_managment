@@ -118,7 +118,7 @@ export default function Layout() {
             WaterFlow
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 1.5 }}>
-            ERP ADMIN
+            {t('layout.erpAdmin')}
           </Typography>
         </Box>
       </Toolbar>
@@ -206,14 +206,14 @@ export default function Layout() {
             {activeLabel}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title="Change language">
+          <Tooltip title={t('layout.changeLanguage')}>
             <Button
               startIcon={<LanguageIcon />}
               onClick={() => setLangModalOpen(true)}
               size="small"
               sx={{ mr: 0.75, borderRadius: 2, textTransform: 'none', fontWeight: 800, color: 'text.primary', px: 1.25 }}
             >
-              Language · {lang === 'hi' ? 'हिंदी' : 'English'}
+              {t('layout.languagePrefix')} · {lang === 'hi' ? 'हिंदी' : 'English'}
             </Button>
           </Tooltip>
           {!isSuperAdmin && (
@@ -225,7 +225,7 @@ export default function Layout() {
               </IconButton>
             </Tooltip>
           )}
-          <Tooltip title="Open profile">
+          <Tooltip title={t('layout.openProfile')}>
           <IconButton onClick={() => navigate('/profile')} sx={{ p: 0.25 }}>
             <Avatar sx={{ background: BRAND_GRADIENT, color: '#FFFFFF', width: 40, height: 40 }}>
               <AccountCircleOutlinedIcon fontSize="medium" />

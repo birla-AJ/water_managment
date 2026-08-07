@@ -14,10 +14,12 @@ import { billingApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://13.235.27.138:4000/api/v1').replace('/api/v1', '');
 
 export default function Billing() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [open, setOpen] = useState(false);
@@ -27,19 +29,19 @@ export default function Billing() {
 
   const generate = useMutation({
     mutationFn: () => billingApi.generate(form),
-    onSuccess: () => { enqueueSnackbar('Invoice generated', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['invoices'] }); setOpen(false); },
+    onSuccess: () => { enqueueSnackbar(t('billing.generatedToast'), { variant: 'success' }); qc.invalidateQueries({ queryKey: ['invoices'] }); setOpen(false); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
   const autoGen = useMutation({
     mutationFn: (plan: string) => billingApi.autoGenerate(plan),
-    onSuccess: () => { enqueueSnackbar('Bulk invoices generated', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['invoices'] }); },
+    onSuccess: () => { enqueueSnackbar(t('billing.bulkGeneratedToast'), { variant: 'success' }); qc.invalidateQueries({ queryKey: ['invoices'] }); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
   const notify = useMutation({
     mutationFn: (id: string) => billingApi.notify(id),
-    onSuccess: () => enqueueSnackbar('Notification sent', { variant: 'success' }),
+    onSuccess: () => enqueueSnackbar(t('billing.notificationSentToast'), { variant: 'success' }),
   });
 
   // Regenerate the PDF with the latest template, then open it. Opening a blank
@@ -52,23 +54,23 @@ export default function Billing() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'invoiceNumber', headerName: 'Invoice #', width: 170 },
-    { field: 'customer', headerName: 'Customer', flex: 1, minWidth: 140, valueGetter: (_v, row) => row.customer?.name },
-    { field: 'period', headerName: 'Period', width: 200, valueGetter: (_v, row) => `${dayjs(row.periodStart).format('DD MMM')} - ${dayjs(row.periodEnd).format('DD MMM')}` },
-    { field: 'quantity', headerName: 'Qty', width: 70 },
-    { field: 'totalAmount', headerName: 'Total', width: 100, valueFormatter: (v) => `₹${v}` },
-    { field: 'dueAmount', headerName: 'Due', width: 100, valueFormatter: (v) => `₹${v}` },
-    { field: 'status', headerName: 'Status', width: 140, renderCell: (p) => <StatusChip status={p.value} /> },
+    { field: 'invoiceNumber', headerName: t('billing.colInvoiceNo'), width: 170 },
+    { field: 'customer', headerName: t('billing.colCustomer'), flex: 1, minWidth: 140, valueGetter: (_v, row) => row.customer?.name },
+    { field: 'period', headerName: t('billing.colPeriod'), width: 200, valueGetter: (_v, row) => `${dayjs(row.periodStart).format('DD MMM')} - ${dayjs(row.periodEnd).format('DD MMM')}` },
+    { field: 'quantity', headerName: t('billing.colQty'), width: 70 },
+    { field: 'totalAmount', headerName: t('billing.colTotal'), width: 100, valueFormatter: (v) => `₹${v}` },
+    { field: 'dueAmount', headerName: t('billing.colDue'), width: 100, valueFormatter: (v) => `₹${v}` },
+    { field: 'status', headerName: t('billing.colStatus'), width: 140, renderCell: (p) => <StatusChip status={p.value} /> },
     {
-      field: 'actions', headerName: 'Actions', width: 120, sortable: false,
+      field: 'actions', headerName: t('billing.colActions'), width: 120, sortable: false,
       renderCell: (p) => (
         <>
-          <Tooltip title="Download / open PDF">
+          <Tooltip title={t('billing.downloadPdfTooltip')}>
             <IconButton size="small" onClick={() => downloadPdf(p.row.id)}>
               <DownloadIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Send notification">
+          <Tooltip title={t('billing.sendNotificationTooltip')}>
             <IconButton size="small" onClick={() => notify.mutate(p.row.id)}><NotificationsActiveIcon fontSize="small" /></IconButton>
           </Tooltip>
         </>
@@ -79,12 +81,12 @@ export default function Billing() {
   return (
     <Box>
       <PageHeader
-        title="Billing"
-        subtitle="Invoices & automatic billing"
+        title={t('nav.billing')}
+        subtitle={t('billing.subtitle')}
         action={
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" onClick={() => autoGen.mutate('MONTHLY')}>Auto-bill Monthly</Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Generate Invoice</Button>
+            <Button variant="outlined" onClick={() => autoGen.mutate('MONTHLY')}>{t('billing.autoBillMonthly')}</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>{t('billing.generateInvoice')}</Button>
           </Stack>
         }
       />
@@ -93,17 +95,17 @@ export default function Billing() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Generate Invoice</DialogTitle>
+        <DialogTitle>{t('billing.generateInvoice')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Customer ID" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })} helperText="Paste a customer UUID (from Customers page)" />
-            <TextField label="Period Start" type="date" value={form.periodStart} onChange={(e) => setForm({ ...form, periodStart: e.target.value })} InputLabelProps={{ shrink: true }} />
-            <TextField label="Period End" type="date" value={form.periodEnd} onChange={(e) => setForm({ ...form, periodEnd: e.target.value })} InputLabelProps={{ shrink: true }} />
+            <TextField label={t('billing.customerId')} value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })} helperText={t('billing.customerIdHelper')} />
+            <TextField label={t('billing.periodStart')} type="date" value={form.periodStart} onChange={(e) => setForm({ ...form, periodStart: e.target.value })} InputLabelProps={{ shrink: true }} />
+            <TextField label={t('billing.periodEnd')} type="date" value={form.periodEnd} onChange={(e) => setForm({ ...form, periodEnd: e.target.value })} InputLabelProps={{ shrink: true }} />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => generate.mutate()} disabled={generate.isPending}>Generate</Button>
+          <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={() => generate.mutate()} disabled={generate.isPending}>{t('billing.generate')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

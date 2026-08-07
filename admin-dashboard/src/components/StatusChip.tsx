@@ -1,4 +1,5 @@
 import { Box } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 // Each status → foreground (text + dot) and a soft tinted background, all drawn
 // from the warm WaterFlow palette. No more clashing default MUI blue.
@@ -30,6 +31,7 @@ const MAP: Record<string, Tone> = {
 };
 
 export default function StatusChip({ status, label }: { status: string; label?: string }) {
+  const { t } = useTranslation();
   const tone = MAP[status] ?? GREY;
   return (
     <Box
@@ -51,7 +53,7 @@ export default function StatusChip({ status, label }: { status: string; label?: 
       }}
     >
       <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: tone.fg, flexShrink: 0 }} />
-      {label ?? status.replace(/_/g, ' ')}
+      {label ?? t(`common.statuses.${status}`, { defaultValue: status.replace(/_/g, ' ') })}
     </Box>
   );
 }

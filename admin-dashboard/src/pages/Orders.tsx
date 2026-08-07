@@ -10,10 +10,12 @@ import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 import { dataGridSx } from '../theme/dataGrid';
+import { useTranslation } from 'react-i18next';
 
 const STATUSES = ['PENDING', 'ACCEPTED', 'PROCESSING', 'DELIVERED', 'CANCELLED'];
 
 export default function Orders() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [status, setStatus] = useState('');
@@ -28,7 +30,7 @@ export default function Orders() {
 
   const updateStatus = useMutation({
     mutationFn: ({ id, s }: { id: string; s: string }) => orderApi.updateStatus(id, s),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); enqueueSnackbar('Order updated', { variant: 'success' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); enqueueSnackbar(t('ordersPage.updatedToast'), { variant: 'success' }); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
@@ -37,12 +39,12 @@ export default function Orders() {
 
   const columns: GridColDef[] = [
     {
-      field: 'orderNumber', headerName: 'Order #', width: 180,
+      field: 'orderNumber', headerName: t('ordersPage.colOrderNo'), width: 180,
       renderCell: (p) => <Typography variant="body2" fontWeight={700}>{p.value}</Typography>,
     },
-    { field: 'customer', headerName: 'Customer', flex: 1, minWidth: 160, valueGetter: (_v, row) => row.customer?.name },
+    { field: 'customer', headerName: t('ordersPage.colCustomer'), flex: 1, minWidth: 160, valueGetter: (_v, row) => row.customer?.name },
     {
-      field: 'type', headerName: 'Type', width: 110,
+      field: 'type', headerName: t('ordersPage.colType'), width: 110,
       renderCell: (p) => (
         <Chip
           size="small"
@@ -57,10 +59,10 @@ export default function Orders() {
         />
       ),
     },
-    { field: 'quantity', headerName: 'Qty', width: 80, align: 'center', headerAlign: 'center' },
-    { field: 'orderDate', headerName: 'Date', width: 130, valueFormatter: (v) => dayjs(v).format('DD MMM YYYY') },
+    { field: 'quantity', headerName: t('ordersPage.colQty'), width: 80, align: 'center', headerAlign: 'center' },
+    { field: 'orderDate', headerName: t('ordersPage.colDate'), width: 130, valueFormatter: (v) => dayjs(v).format('DD MMM YYYY') },
     {
-      field: 'status', headerName: 'Status', width: 200, sortable: false,
+      field: 'status', headerName: t('ordersPage.colStatus'), width: 200, sortable: false,
       // One control: shows the colored status pill and lets the admin change it inline.
       renderCell: (p) => (
         <Select
@@ -87,22 +89,22 @@ export default function Orders() {
 
   return (
     <Box>
-      <PageHeader title="Orders" subtitle="Regular & extra camper orders" />
+      <PageHeader title={t('nav.orders')} subtitle={t('ordersPage.subtitle')} />
 
       <Card sx={{ p: 2, mb: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary' }}>
             <FilterAltOutlinedIcon fontSize="small" />
-            <Typography variant="subtitle2">Filters</Typography>
+            <Typography variant="subtitle2">{t('ordersPage.filters')}</Typography>
           </Stack>
-          <TextField select label="Status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} size="small" sx={{ minWidth: 170 }}>
-            <MenuItem value="">All statuses</MenuItem>
+          <TextField select label={t('common.status')} value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} size="small" sx={{ minWidth: 170 }}>
+            <MenuItem value="">{t('ordersPage.allStatuses')}</MenuItem>
             {STATUSES.map((s) => <MenuItem key={s} value={s}><StatusChip status={s} /></MenuItem>)}
           </TextField>
-          <TextField select label="Type" value={type} onChange={(e) => { setType(e.target.value); setPage(0); }} size="small" sx={{ minWidth: 150 }}>
-            <MenuItem value="">All types</MenuItem>
-            <MenuItem value="REGULAR">Regular</MenuItem>
-            <MenuItem value="EXTRA">Extra</MenuItem>
+          <TextField select label={t('ordersPage.type')} value={type} onChange={(e) => { setType(e.target.value); setPage(0); }} size="small" sx={{ minWidth: 150 }}>
+            <MenuItem value="">{t('ordersPage.allTypes')}</MenuItem>
+            <MenuItem value="REGULAR">{t('ordersPage.regular')}</MenuItem>
+            <MenuItem value="EXTRA">{t('ordersPage.extra')}</MenuItem>
           </TextField>
           {hasFilters && (
             <Button size="small" color="inherit" onClick={() => { setStatus(''); setType(''); setPage(0); }} sx={{ color: 'text.secondary' }}>
@@ -111,7 +113,7 @@ export default function Orders() {
           )}
           <Box sx={{ flexGrow: 1 }} />
           <Chip
-            label={`${total} order${total === 1 ? '' : 's'}`}
+            label={t('ordersPage.orderCount', { count: total })}
             size="small"
             sx={{ fontWeight: 700, bgcolor: 'rgba(5,81,82,0.10)', color: 'primary.main' }}
           />

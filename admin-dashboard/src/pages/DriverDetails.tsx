@@ -14,6 +14,7 @@ import { driverApi, customerApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
+import { useTranslation } from 'react-i18next';
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -25,6 +26,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function DriverDetails() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -52,7 +54,7 @@ export default function DriverDetails() {
   const assign = useMutation({
     mutationFn: () => driverApi.assignCustomers(id!, Object.keys(picked).filter((k) => picked[k])),
     onSuccess: () => {
-      enqueueSnackbar('Customers assigned', { variant: 'success' });
+      enqueueSnackbar(t('driverDetails.assignedToast'), { variant: 'success' });
       setAssignOpen(false); setPicked({}); invalidate();
     },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
@@ -60,14 +62,14 @@ export default function DriverDetails() {
 
   const unassign = useMutation({
     mutationFn: (customerId: string) => driverApi.unassignCustomer(id!, customerId),
-    onSuccess: () => { enqueueSnackbar('Customer removed', { variant: 'success' }); invalidate(); },
+    onSuccess: () => { enqueueSnackbar(t('driverDetails.unassignedToast'), { variant: 'success' }); invalidate(); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
   const sendNote = useMutation({
     mutationFn: () => driverApi.notify(id!, noteTitle, noteBody),
     onSuccess: () => {
-      enqueueSnackbar('Notification sent to driver', { variant: 'success' });
+      enqueueSnackbar(t('driverDetails.notifySentToast'), { variant: 'success' });
       setNotifyOpen(false); setNoteTitle(''); setNoteBody('');
     },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
@@ -77,14 +79,14 @@ export default function DriverDetails() {
   const removeDriver = useMutation({
     mutationFn: () => driverApi.remove(id!),
     onSuccess: () => {
-      enqueueSnackbar('Driver removed', { variant: 'success' });
+      enqueueSnackbar(t('driverDetails.removedToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['drivers'] });
       navigate('/drivers');
     },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
-  if (isLoading || !driver) return <Box sx={{ p: 3 }}>Loading…</Box>;
+  if (isLoading || !driver) return <Box sx={{ p: 3 }}>{t('common.loading')}</Box>;
 
   const assignedIds = new Set((driver.customers ?? []).map((c) => c.id));
 
@@ -92,28 +94,27 @@ export default function DriverDetails() {
     <Box>
       <PageHeader
         title={driver.name}
-        subtitle={`Driver · ${driver.mobile}`}
+        subtitle={t('driverDetails.driverSubtitle', { mobile: driver.mobile })}
         action={
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<CampaignIcon />} onClick={() => setNotifyOpen(true)}>Notify</Button>
-            <Button variant="contained" startIcon={<EditIcon />} onClick={() => navigate(`/drivers/${id}/edit`)}>Edit</Button>
-            <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setConfirmRemove(true)}>Remove</Button>
+            <Button variant="outlined" startIcon={<CampaignIcon />} onClick={() => setNotifyOpen(true)}>{t('driverDetails.notify')}</Button>
+            <Button variant="contained" startIcon={<EditIcon />} onClick={() => navigate(`/drivers/${id}/edit`)}>{t('driverDetails.edit')}</Button>
+            <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setConfirmRemove(true)}>{t('driverDetails.remove')}</Button>
           </Stack>
         }
       />
 
       <Dialog open={confirmRemove} onClose={() => setConfirmRemove(false)}>
-        <DialogTitle>Remove driver?</DialogTitle>
+        <DialogTitle>{t('driverDetails.removeTitle')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {driver.name} will be unassigned from all customers, removed, and blocked from logging
-            in. They can be restored later. Continue?
+            {t('driverDetails.removeBody', { name: driver.name })}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmRemove(false)}>Cancel</Button>
+          <Button onClick={() => setConfirmRemove(false)}>{t('common.cancel')}</Button>
           <Button color="error" variant="contained" onClick={() => removeDriver.mutate()} disabled={removeDriver.isPending}>
-            Remove
+            {t('driverDetails.remove')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -122,14 +123,14 @@ export default function DriverDetails() {
         <Grid item xs={12} md={5}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Profile</Typography>
-              <Row label="Status" value={<StatusChip status={driver.status} />} />
-              <Row label="Mobile" value={driver.mobile} />
-              <Row label="Zone" value={driver.zone ?? '—'} />
-              <Row label="Vehicle" value={driver.vehicle ? `${driver.vehicle.number}${driver.vehicle.type ? ` (${driver.vehicle.type})` : ''}` : '—'} />
-              <Row label="License" value={driver.licenseNumber ?? '—'} />
-              <Row label="Email" value={driver.email ?? '—'} />
-              <Row label="Assigned customers" value={driver._count?.customers ?? driver.customers?.length ?? 0} />
+              <Typography variant="h6" gutterBottom>{t('driverDetails.profile')}</Typography>
+              <Row label={t('common.status')} value={<StatusChip status={driver.status} />} />
+              <Row label={t('driverDetails.rowMobile')} value={driver.mobile} />
+              <Row label={t('driverDetails.rowZone')} value={driver.zone ?? '—'} />
+              <Row label={t('driverDetails.rowVehicle')} value={driver.vehicle ? `${driver.vehicle.number}${driver.vehicle.type ? ` (${driver.vehicle.type})` : ''}` : '—'} />
+              <Row label={t('driverDetails.rowLicense')} value={driver.licenseNumber ?? '—'} />
+              <Row label={t('common.email')} value={driver.email ?? '—'} />
+              <Row label={t('driverDetails.rowAssignedCustomers')} value={driver._count?.customers ?? driver.customers?.length ?? 0} />
             </CardContent>
           </Card>
         </Grid>
@@ -138,13 +139,13 @@ export default function DriverDetails() {
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="h6">Assigned Customers</Typography>
-                <Button size="small" variant="contained" startIcon={<PersonAddIcon />} onClick={() => setAssignOpen(true)}>Assign</Button>
+                <Typography variant="h6">{t('driverDetails.assignedCustomers')}</Typography>
+                <Button size="small" variant="contained" startIcon={<PersonAddIcon />} onClick={() => setAssignOpen(true)}>{t('driverDetails.assign')}</Button>
               </Stack>
               <Divider />
               <List dense>
                 {(driver.customers ?? []).length === 0 && (
-                  <Typography color="text.secondary" sx={{ py: 2 }}>No customers assigned yet.</Typography>
+                  <Typography color="text.secondary" sx={{ py: 2 }}>{t('driverDetails.noCustomersAssigned')}</Typography>
                 )}
                 {(driver.customers ?? []).map((c) => (
                   <ListItem
@@ -154,7 +155,7 @@ export default function DriverDetails() {
                     }
                   >
                     <ListItemText
-                      primary={<>{c.name} {c.isPaused && <Chip size="small" color="warning" label="Paused" sx={{ ml: 1 }} />}</>}
+                      primary={<>{c.name} {c.isPaused && <Chip size="small" color="warning" label={t('driverDetails.paused')} sx={{ ml: 1 }} />}</>}
                       secondary={`${c.mobile}${c.area ? ` · ${c.area}` : ''}`}
                     />
                   </ListItem>
@@ -167,10 +168,10 @@ export default function DriverDetails() {
 
       {/* Assign customers dialog */}
       <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Assign customers to {driver.name}</DialogTitle>
+        <DialogTitle>{t('driverDetails.assignCustomersTo', { name: driver.name })}</DialogTitle>
         <DialogContent>
           <TextField
-            label="Search name / mobile / area" fullWidth size="small" sx={{ my: 1 }}
+            label={t('driverDetails.searchPlaceholder')} fullWidth size="small" sx={{ my: 1 }}
             value={search} onChange={(e) => setSearch(e.target.value)}
           />
           <List dense sx={{ maxHeight: 360, overflow: 'auto' }}>
@@ -186,7 +187,7 @@ export default function DriverDetails() {
                     <input type="checkbox" readOnly checked={already || !!picked[c.id]} disabled={already} style={{ marginRight: 12 }} />
                     <ListItemText
                       primary={c.name}
-                      secondary={`${c.mobile}${c.area ? ` · ${c.area}` : ''}${already ? ' · already assigned' : ''}`}
+                      secondary={`${c.mobile}${c.area ? ` · ${c.area}` : ''}${already ? ` · ${t('driverDetails.alreadyAssigned')}` : ''}`}
                     />
                   </ListItem>
                 </ListItem>
@@ -195,29 +196,29 @@ export default function DriverDetails() {
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAssignOpen(false)}>Cancel</Button>
+          <Button onClick={() => setAssignOpen(false)}>{t('common.cancel')}</Button>
           <Button
             variant="contained"
             disabled={assign.isPending || Object.values(picked).every((v) => !v)}
             onClick={() => assign.mutate()}
           >
-            Assign selected
+            {t('driverDetails.assignSelected')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Notify driver dialog */}
       <Dialog open={notifyOpen} onClose={() => setNotifyOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Send notification to {driver.name}</DialogTitle>
+        <DialogTitle>{t('driverDetails.sendNotificationTo', { name: driver.name })}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Title" fullWidth value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} />
-            <TextField label="Message" fullWidth multiline rows={3} value={noteBody} onChange={(e) => setNoteBody(e.target.value)} />
+            <TextField label={t('driverDetails.title')} fullWidth value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} />
+            <TextField label={t('driverDetails.message')} fullWidth multiline rows={3} value={noteBody} onChange={(e) => setNoteBody(e.target.value)} />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNotifyOpen(false)}>Cancel</Button>
-          <Button variant="contained" disabled={sendNote.isPending || !noteTitle || !noteBody} onClick={() => sendNote.mutate()}>Send</Button>
+          <Button onClick={() => setNotifyOpen(false)}>{t('common.cancel')}</Button>
+          <Button variant="contained" disabled={sendNote.isPending || !noteTitle || !noteBody} onClick={() => sendNote.mutate()}>{t('driverDetails.send')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

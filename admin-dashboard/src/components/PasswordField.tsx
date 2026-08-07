@@ -1,6 +1,7 @@
 import { forwardRef, useState } from 'react';
 import { IconButton, InputAdornment, TextField } from '@mui/material';
 import type { TextFieldProps } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
@@ -12,6 +13,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
  */
 const PasswordField = forwardRef<HTMLDivElement, TextFieldProps>(
   function PasswordField({ InputProps, ...rest }, ref) {
+    const { t } = useTranslation();
     const [show, setShow] = useState(false);
     return (
       <TextField
@@ -23,7 +25,7 @@ const PasswordField = forwardRef<HTMLDivElement, TextFieldProps>(
           endAdornment: (
             <InputAdornment position="end">
               <IconButton
-                aria-label={show ? 'Hide password' : 'Show password'}
+                aria-label={show ? t('common.hidePassword') : t('common.showPassword')}
                 onClick={() => setShow((s) => !s)}
                 edge="end"
                 size="small"

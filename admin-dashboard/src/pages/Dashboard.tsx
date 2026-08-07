@@ -16,6 +16,7 @@ import { dashboardApi } from '../api/endpoints';
 import StatCard from '../components/StatCard';
 import PageHeader from '../components/PageHeader';
 import { CHART_COLORS, ACCENT_TEAL } from '../theme/theme';
+import { useTranslation } from 'react-i18next';
 
 const PIE_COLORS = CHART_COLORS;
 
@@ -55,6 +56,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: o, isLoading } = useQuery({ queryKey: ['overview'], queryFn: dashboardApi.overview });
   const { data: charts } = useQuery({ queryKey: ['charts'], queryFn: dashboardApi.charts });
@@ -68,28 +70,28 @@ export default function Dashboard() {
 
   // Each tile: what it shows + where a click takes the admin.
   const metrics = [
-    { title: 'Total Customers', value: o.customers.total, icon: <PeopleIcon />, subtitle: `${o.customers.active} active · ${o.customers.inactive} inactive`, color: '#055152', to: '/customers' },
-    { title: 'Total Orders', value: o.orders.total, icon: <ShoppingCartIcon />, subtitle: `${o.orders.today} today`, color: '#0E8C84', to: '/orders' },
-    { title: 'Delivered', value: o.orders.delivered, icon: <LocalShippingIcon />, subtitle: `${o.orders.pending} pending`, color: '#179A33', to: '/orders' },
-    { title: 'Monthly Revenue', value: inr(o.revenue.monthly), icon: <CurrencyRupeeIcon />, subtitle: `Total ${inr(o.revenue.total)}`, color: '#DABD71', to: '/reports' },
+    { title: t('dashboard.totalCustomers'), value: o.customers.total, icon: <PeopleIcon />, subtitle: t('dashboard.activeInactive', { active: o.customers.active, inactive: o.customers.inactive }), color: '#055152', to: '/customers' },
+    { title: t('dashboard.totalOrders'), value: o.orders.total, icon: <ShoppingCartIcon />, subtitle: t('dashboard.todaySuffix', { count: o.orders.today }), color: '#0E8C84', to: '/orders' },
+    { title: t('dashboard.delivered'), value: o.orders.delivered, icon: <LocalShippingIcon />, subtitle: t('dashboard.pendingSuffix', { count: o.orders.pending }), color: '#179A33', to: '/orders' },
+    { title: t('dashboard.monthlyRevenue'), value: inr(o.revenue.monthly), icon: <CurrencyRupeeIcon />, subtitle: t('dashboard.totalPrefix', { amount: inr(o.revenue.total) }), color: '#DABD71', to: '/reports' },
   ];
 
   const payInv = [
-    { title: 'Pending Payments', value: inr(o.payments.pending), icon: <PaymentsIcon />, color: '#C68A3E', to: '/billing', span: 3 },
-    { title: 'Paid', value: inr(o.payments.paid), icon: <PaymentsIcon />, color: '#179A33', to: '/payments', span: 3 },
-    { title: 'Filled Campers', value: o.inventory.filled, icon: <WaterDropIcon />, subtitle: `${o.inventory.empty} empty`, color: '#055152', to: '/inventory', span: 3 },
-    { title: 'Total Campers', value: o.inventory.total, icon: <WaterDropIcon />, subtitle: `${o.orders.cancelled} cancelled orders`, color: '#0E8C84', to: '/inventory', span: 3 },
-    { title: 'Damaged', value: o.inventory.damaged, color: '#DABD71', to: '/inventory', span: 3, half: true },
-    { title: 'Lost', value: o.inventory.lost, color: '#D32F2F', to: '/inventory', span: 3, half: true },
-    { title: 'Returned', value: o.inventory.returned, color: '#0E8C84', to: '/inventory', span: 3, half: true },
-    { title: 'Cancelled', value: o.orders.cancelled, color: '#7C9A91', to: '/orders', span: 3, half: true },
+    { title: t('dashboard.pendingPayments'), value: inr(o.payments.pending), icon: <PaymentsIcon />, color: '#C68A3E', to: '/billing', span: 3 },
+    { title: t('dashboard.paid'), value: inr(o.payments.paid), icon: <PaymentsIcon />, color: '#179A33', to: '/payments', span: 3 },
+    { title: t('dashboard.filledCampers'), value: o.inventory.filled, icon: <WaterDropIcon />, subtitle: t('dashboard.emptySuffix', { count: o.inventory.empty }), color: '#055152', to: '/inventory', span: 3 },
+    { title: t('dashboard.totalCampers'), value: o.inventory.total, icon: <WaterDropIcon />, subtitle: t('dashboard.cancelledOrdersSuffix', { count: o.orders.cancelled }), color: '#0E8C84', to: '/inventory', span: 3 },
+    { title: t('dashboard.damaged'), value: o.inventory.damaged, color: '#DABD71', to: '/inventory', span: 3, half: true },
+    { title: t('dashboard.lost'), value: o.inventory.lost, color: '#D32F2F', to: '/inventory', span: 3, half: true },
+    { title: t('dashboard.returned'), value: o.inventory.returned, color: '#0E8C84', to: '/inventory', span: 3, half: true },
+    { title: t('dashboard.cancelled'), value: o.orders.cancelled, color: '#7C9A91', to: '/orders', span: 3, half: true },
   ];
 
   return (
     <Box>
-      <PageHeader title="Dashboard" subtitle="Overview of your water distribution business" />
+      <PageHeader title={t('nav.dashboard')} subtitle={t('dashboard.subtitle')} />
 
-      <SectionLabel>Key metrics</SectionLabel>
+      <SectionLabel>{t('dashboard.keyMetrics')}</SectionLabel>
       <Grid container spacing={2.5}>
         {metrics.map((m, i) => (
           <Grid item xs={12} sm={6} md={3} key={m.title}>
@@ -102,7 +104,7 @@ export default function Dashboard() {
         ))}
       </Grid>
 
-      <SectionLabel>Payments &amp; inventory</SectionLabel>
+      <SectionLabel>{t('dashboard.paymentsInventory')}</SectionLabel>
       <Grid container spacing={2.5}>
         {payInv.map((m, i) => (
           <Grid item xs={m.half ? 6 : 12} sm={m.half ? 3 : 6} md={3} key={m.title}>
@@ -115,10 +117,10 @@ export default function Dashboard() {
         ))}
       </Grid>
 
-      <SectionLabel>Analytics</SectionLabel>
+      <SectionLabel>{t('dashboard.analytics')}</SectionLabel>
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={8}>
-          <ChartCard title="Revenue" subtitle="Last 6 months" accent="#055152">
+          <ChartCard title={t('dashboard.revenueChart')} subtitle={t('dashboard.last6Months')} accent="#055152">
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={charts?.revenue ?? []}>
                 <defs>
@@ -137,7 +139,7 @@ export default function Dashboard() {
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={4}>
-          <ChartCard title="Inventory" subtitle="Current camper status" accent="#DABD71">
+          <ChartCard title={t('dashboard.inventoryChart')} subtitle={t('dashboard.currentCamperStatus')} accent="#DABD71">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie data={charts?.inventory ?? []} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={3} cornerRadius={6}>
@@ -150,7 +152,7 @@ export default function Dashboard() {
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={7}>
-          <ChartCard title="Orders" subtitle="Last 14 days" accent="#179A33">
+          <ChartCard title={t('dashboard.ordersChart')} subtitle={t('dashboard.last14Days')} accent="#179A33">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={charts?.orders ?? []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
@@ -166,7 +168,7 @@ export default function Dashboard() {
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={5}>
-          <ChartCard title="Customer Growth" subtitle="Cumulative by month" accent="#C68A3E">
+          <ChartCard title={t('dashboard.customerGrowthChart')} subtitle={t('dashboard.cumulativeByMonth')} accent="#C68A3E">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={charts?.customerGrowth ?? []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />

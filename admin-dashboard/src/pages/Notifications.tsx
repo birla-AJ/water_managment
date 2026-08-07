@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 import { ReactNode } from 'react';
 import { notificationApi } from '../api/endpoints';
 import PageHeader from '../components/PageHeader';
+import { useTranslation } from 'react-i18next';
 
 // Map a notification type to an icon + accent colour (best-effort by keyword).
 function visualFor(type: string): { icon: ReactNode; color: string } {
@@ -26,6 +27,7 @@ function visualFor(type: string): { icon: ReactNode; color: string } {
 }
 
 export default function Notifications() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ['notifications'], queryFn: () => notificationApi.list({ limit: 100 }) });
 
@@ -46,9 +48,9 @@ export default function Notifications() {
   return (
     <Box>
       <PageHeader
-        title="Notifications"
-        subtitle={unreadCount ? `${unreadCount} unread` : 'You are all caught up'}
-        action={<Button variant="outlined" disabled={!unreadCount} onClick={() => markAll.mutate()}>Mark all read</Button>}
+        title={t('nav.notifications')}
+        subtitle={unreadCount ? t('notificationsPage.unreadCount', { count: unreadCount }) : t('notificationsPage.allCaughtUp')}
+        action={<Button variant="outlined" disabled={!unreadCount} onClick={() => markAll.mutate()}>{t('notificationsPage.markAllRead')}</Button>}
       />
       <Card>
         <List disablePadding>
@@ -60,7 +62,7 @@ export default function Notifications() {
                 divider={i < items.length - 1}
                 secondaryAction={
                   !n.isRead && (
-                    <Button size="small" onClick={() => markOne.mutate(n.id)}>Mark read</Button>
+                    <Button size="small" onClick={() => markOne.mutate(n.id)}>{t('notificationsPage.markRead')}</Button>
                   )
                 }
                 sx={{
@@ -112,8 +114,8 @@ export default function Notifications() {
           {!items.length && (
             <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
               <NotificationsOffIcon sx={{ fontSize: 56, opacity: 0.4 }} />
-              <Typography sx={{ mt: 1 }} fontWeight={600}>You're all caught up</Typography>
-              <Typography variant="body2">No unread notifications. New activity will show up here.</Typography>
+              <Typography sx={{ mt: 1 }} fontWeight={600}>{t('notificationsPage.emptyTitle')}</Typography>
+              <Typography variant="body2">{t('notificationsPage.emptySubtitle')}</Typography>
             </Box>
           )}
         </List>

@@ -8,10 +8,12 @@ import { inventoryApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
+import { useTranslation } from 'react-i18next';
 
 const ACTIONS = ['STOCK_IN', 'FILLED', 'EMPTIED', 'ALLOCATED', 'RETURNED', 'DAMAGED', 'LOST', 'ADJUSTMENT'];
 
 export default function Inventory() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [action, setAction] = useState('STOCK_IN');
@@ -24,7 +26,7 @@ export default function Inventory() {
   const adjust = useMutation({
     mutationFn: () => inventoryApi.adjust(action, Number(quantity), remarks),
     onSuccess: (data) => {
-      enqueueSnackbar('Inventory updated', { variant: 'success' });
+      enqueueSnackbar(t('inventory.updatedToast'), { variant: 'success' });
       // Instantly reflect the new counts from the API response (no refetch lag).
       if (data) qc.setQueryData(['inventory'], data);
       qc.invalidateQueries({ queryKey: ['inventory'] });
@@ -38,43 +40,43 @@ export default function Inventory() {
   });
 
   const columns: GridColDef[] = [
-    { field: 'createdAt', headerName: 'Date', width: 170, valueFormatter: (v) => dayjs(v).format('DD MMM YYYY HH:mm') },
-    { field: 'action', headerName: 'Action', width: 130 },
-    { field: 'quantity', headerName: 'Qty', width: 80 },
-    { field: 'admin', headerName: 'By', width: 140, valueGetter: (_v, row) => row.admin?.name ?? 'System' },
-    { field: 'remarks', headerName: 'Remarks', flex: 1, minWidth: 150 },
+    { field: 'createdAt', headerName: t('inventory.colDate'), width: 170, valueFormatter: (v) => dayjs(v).format('DD MMM YYYY HH:mm') },
+    { field: 'action', headerName: t('inventory.colAction'), width: 130 },
+    { field: 'quantity', headerName: t('inventory.colQty'), width: 80 },
+    { field: 'admin', headerName: t('inventory.colBy'), width: 140, valueGetter: (_v, row) => row.admin?.name ?? t('inventory.system') },
+    { field: 'remarks', headerName: t('inventory.colRemarks'), flex: 1, minWidth: 150 },
   ];
 
   return (
     <Box>
-      <PageHeader title="Inventory" subtitle="Track campers across their lifecycle" />
+      <PageHeader title={t('nav.inventory')} subtitle={t('inventory.subtitle')} />
       <Grid container spacing={2} mb={2}>
-        <Grid item xs={6} md={3}><StatCard title="Total" value={inv?.totalCampers ?? 0} /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Filled" value={inv?.filledCampers ?? 0} color="#055152" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Empty" value={inv?.emptyCampers ?? 0} color="#0E8C84" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Allocated" value={inv?.allocatedCampers ?? 0} color="#C68A3E" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Returned" value={inv?.returnedCampers ?? 0} color="#179A33" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Damaged" value={inv?.damagedCampers ?? 0} color="#DABD71" /></Grid>
-        <Grid item xs={6} md={3}><StatCard title="Lost" value={inv?.lostCampers ?? 0} color="#D32F2F" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.total')} value={inv?.totalCampers ?? 0} /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.filled')} value={inv?.filledCampers ?? 0} color="#055152" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.empty')} value={inv?.emptyCampers ?? 0} color="#0E8C84" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.allocated')} value={inv?.allocatedCampers ?? 0} color="#C68A3E" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.returned')} value={inv?.returnedCampers ?? 0} color="#179A33" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.damaged')} value={inv?.damagedCampers ?? 0} color="#DABD71" /></Grid>
+        <Grid item xs={6} md={3}><StatCard title={t('inventory.lost')} value={inv?.lostCampers ?? 0} color="#D32F2F" /></Grid>
       </Grid>
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="h6" mb={2}>Record Stock Movement</Typography>
+          <Typography variant="h6" mb={2}>{t('inventory.recordMovement')}</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-            <TextField select label="Action" value={action} onChange={(e) => setAction(e.target.value)} sx={{ minWidth: 180 }}>
+            <TextField select label={t('inventory.action')} value={action} onChange={(e) => setAction(e.target.value)} sx={{ minWidth: 180 }}>
               {ACTIONS.map((a) => <MenuItem key={a} value={a}>{a.replace('_', ' ')}</MenuItem>)}
             </TextField>
-            <TextField label="Quantity" type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} sx={{ width: 140 }} />
-            <TextField label="Remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} fullWidth />
-            <Button variant="contained" onClick={() => adjust.mutate()} disabled={adjust.isPending}>Apply</Button>
+            <TextField label={t('inventory.quantity')} type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} sx={{ width: 140 }} />
+            <TextField label={t('inventory.remarks')} value={remarks} onChange={(e) => setRemarks(e.target.value)} fullWidth />
+            <Button variant="contained" onClick={() => adjust.mutate()} disabled={adjust.isPending}>{t('inventory.apply')}</Button>
           </Stack>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent>
-          <Typography variant="h6" mb={2}>Inventory Logs</Typography>
+          <Typography variant="h6" mb={2}>{t('inventory.logsTitle')}</Typography>
           <DataGrid autoHeight rows={logs?.data ?? []} columns={columns} disableRowSelectionOnClick pageSizeOptions={[10, 25, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} />
         </CardContent>
       </Card>

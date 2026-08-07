@@ -33,17 +33,17 @@ export default function Profile() {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [confirmLogout, setConfirmLogout] = useState(false);
-  const role = user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Administrator';
+  const role = user?.role === 'SUPER_ADMIN' ? t('profile.superAdmin') : t('profile.administrator');
 
   return (
     <Box>
-      <PageHeader title={t('profile.title')} subtitle="Account and workspace settings" />
+      <PageHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
       <Stack spacing={1.5} sx={{ maxWidth: 620, mx: 'auto', pb: 4 }}>
         <Stack alignItems="center" spacing={0.8} sx={{ pt: 1.5, pb: 1 }}>
           <Box sx={{ width: 82, height: 82, borderRadius: '50%', display: 'grid', placeItems: 'center', background: BRAND_GRADIENT, color: '#fff', boxShadow: '0 14px 30px -16px rgba(5,81,82,.8)' }}>
             <AccountCircleOutlinedIcon sx={{ fontSize: 50 }} />
           </Box>
-          <Typography variant="h5" textAlign="center">{user?.name ?? 'Administrator'}</Typography>
+          <Typography variant="h5" textAlign="center">{user?.name ?? t('profile.administrator')}</Typography>
           <Typography variant="body2" color="text.secondary">{user?.email}</Typography>
           <Chip icon={<AdminPanelSettingsOutlinedIcon />} label={role} size="small" sx={{ fontWeight: 800, color: 'primary.main', bgcolor: BRAND_GRADIENT_SOFT }} />
         </Stack>
@@ -51,24 +51,24 @@ export default function Profile() {
         <Card sx={{ borderLeft: '3px solid', borderLeftColor: 'primary.main' }}>
           <CardContent sx={{ p: 0 }}>
             <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="subtitle2" fontWeight={800}>ABOUT YOU</Typography>
+              <Typography variant="subtitle2" fontWeight={800}>{t('profile.aboutYou')}</Typography>
             </Box>
             <Box sx={{ px: 2.5 }}>
-              <InfoRow icon={<AccountCircleOutlinedIcon fontSize="small" />} label="Name" value={user?.name ?? '—'} />
+              <InfoRow icon={<AccountCircleOutlinedIcon fontSize="small" />} label={t('profile.name')} value={user?.name ?? '—'} />
               <Divider />
-              <InfoRow icon={<EmailOutlinedIcon fontSize="small" />} label="Email" value={user?.email ?? '—'} />
+              <InfoRow icon={<EmailOutlinedIcon fontSize="small" />} label={t('profile.email')} value={user?.email ?? '—'} />
               <Divider />
-              <InfoRow icon={<PhoneOutlinedIcon fontSize="small" />} label="Mobile number" value={user?.mobile ?? user?.phone ?? 'Not added'} />
+              <InfoRow icon={<PhoneOutlinedIcon fontSize="small" />} label={t('profile.mobileNumber')} value={user?.mobile ?? user?.phone ?? t('profile.notAdded')} />
             </Box>
           </CardContent>
         </Card>
 
         <Card sx={{ borderLeft: '3px solid', borderLeftColor: 'primary.main' }}>
           <CardContent sx={{ p: 2.5 }}>
-            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>WORKSPACE</Typography>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>{t('profile.workspace')}</Typography>
             <Stack spacing={1}>
-              <Button fullWidth variant="outlined" startIcon={<AssessmentOutlinedIcon />} onClick={() => navigate('/reports')} sx={{ justifyContent: 'flex-start', py: 1.15 }}>Reports</Button>
-              <Button fullWidth variant="outlined" startIcon={<SettingsOutlinedIcon />} onClick={() => navigate('/settings')} sx={{ justifyContent: 'flex-start', py: 1.15 }}>Settings</Button>
+              <Button fullWidth variant="outlined" startIcon={<AssessmentOutlinedIcon />} onClick={() => navigate('/reports')} sx={{ justifyContent: 'flex-start', py: 1.15 }}>{t('profile.reports')}</Button>
+              <Button fullWidth variant="outlined" startIcon={<SettingsOutlinedIcon />} onClick={() => navigate('/settings')} sx={{ justifyContent: 'flex-start', py: 1.15 }}>{t('profile.settings')}</Button>
             </Stack>
           </CardContent>
         </Card>
@@ -83,12 +83,12 @@ export default function Profile() {
           <Box sx={{ width: 58, height: 58, mx: 'auto', mb: 1.75, display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: 'rgba(211,47,47,.1)', color: 'error.main' }}>
             <WarningAmberRoundedIcon fontSize="large" />
           </Box>
-          <Typography variant="h6" fontWeight={800}>Log out of WaterFlow?</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>You will need to sign in again to access your dashboard.</Typography>
+          <Typography variant="h6" fontWeight={800}>{t('profile.logoutTitle')}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{t('profile.logoutBody')}</Typography>
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2.5, gap: 1 }}>
-          <Button fullWidth variant="outlined" onClick={() => setConfirmLogout(false)}>Cancel</Button>
-          <Button fullWidth variant="contained" color="error" onClick={() => dispatch(logout())}>Log out</Button>
+          <Button fullWidth variant="outlined" onClick={() => setConfirmLogout(false)}>{t('common.cancel')}</Button>
+          <Button fullWidth variant="contained" color="error" onClick={() => dispatch(logout())}>{t('profile.logout')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

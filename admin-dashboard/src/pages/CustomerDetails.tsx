@@ -10,10 +10,12 @@ import { customerApi } from '../api/endpoints';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 import type { CustomerSchedule, Weekday } from '../types';
+import { useTranslation } from 'react-i18next';
 
 const DAYS: Weekday[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 
 export default function CustomerDetails() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -37,19 +39,19 @@ export default function CustomerDetails() {
 
   const saveSchedule = useMutation({
     mutationFn: () => customerApi.updateSchedules(id!, schedules.map((s) => ({ weekday: s.weekday, enabled: s.enabled, quantity: s.quantity ?? 1 }))),
-    onSuccess: () => { enqueueSnackbar('Schedule saved', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['customer', id] }); },
+    onSuccess: () => { enqueueSnackbar(t('customerDetails.scheduleSavedToast'), { variant: 'success' }); qc.invalidateQueries({ queryKey: ['customer', id] }); },
   });
 
   const togglePause = useMutation({
     mutationFn: () => (customer?.isPaused ? customerApi.resume(id!) : customerApi.pause(id!)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer', id] }); enqueueSnackbar('Updated', { variant: 'success' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer', id] }); enqueueSnackbar(t('customerDetails.updatedToast'), { variant: 'success' }); },
   });
 
   const saveWaterDays = useMutation({
     mutationFn: () => customerApi.setDeliveryDates(id!, waterDays),
     onSuccess: (data) => {
       setWaterDays(data);
-      enqueueSnackbar('Water days saved — customer and driver notified', { variant: 'success' });
+      enqueueSnackbar(t('customerDetails.waterDaysSavedToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['customer-water-days', id] });
     },
   });
@@ -58,11 +60,11 @@ export default function CustomerDetails() {
   const removeCustomer = useMutation({
     mutationFn: () => customerApi.remove(id!),
     onSuccess: () => {
-      enqueueSnackbar('Customer removed', { variant: 'success' });
+      enqueueSnackbar(t('customerDetails.removedToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['customers'] });
       navigate('/customers');
     },
-    onError: () => enqueueSnackbar('Could not remove customer', { variant: 'error' }),
+    onError: () => enqueueSnackbar(t('customerDetails.removeFailedToast'), { variant: 'error' }),
   });
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -89,53 +91,51 @@ export default function CustomerDetails() {
         subtitle={customer.mobile}
         action={
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" onClick={() => navigate(`/customers/${id}/edit`)}>Edit</Button>
+            <Button variant="outlined" onClick={() => navigate(`/customers/${id}/edit`)}>{t('customerDetails.edit')}</Button>
             <Button variant="contained" color={customer.isPaused ? 'success' : 'warning'} onClick={() => togglePause.mutate()}>
-              {customer.isPaused ? 'Resume Deliveries' : 'Pause Deliveries'}
+              {customer.isPaused ? t('customerDetails.resumeDeliveries') : t('customerDetails.pauseDeliveries')}
             </Button>
-            <Button variant="outlined" color="error" onClick={() => setConfirmRemove(true)}>Remove</Button>
+            <Button variant="outlined" color="error" onClick={() => setConfirmRemove(true)}>{t('customerDetails.remove')}</Button>
           </Stack>
         }
       />
 
       <Dialog open={confirmRemove} onClose={() => setConfirmRemove(false)}>
-        <DialogTitle>Remove customer?</DialogTitle>
+        <DialogTitle>{t('customerDetails.removeTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {customer.name} will be removed and will no longer be able to log in. Their billing
-            history is preserved and they can be restored later. Continue?
+            {t('customerDetails.removeBody', { name: customer.name })}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmRemove(false)}>Cancel</Button>
+          <Button onClick={() => setConfirmRemove(false)}>{t('common.cancel')}</Button>
           <Button color="error" variant="contained" onClick={() => removeCustomer.mutate()} disabled={removeCustomer.isPending}>
-            Remove
+            {t('customerDetails.remove')}
           </Button>
         </DialogActions>
       </Dialog>
       <Grid container spacing={2}>
         <Grid item xs={12} md={5}>
           <Card><CardContent>
-            <Typography variant="h6" mb={2}>Profile</Typography>
+            <Typography variant="h6" mb={2}>{t('customerDetails.profile')}</Typography>
             <Stack spacing={1.2}>
-              <Row label="Status" value={<StatusChip status={customer.status} />} />
-              <Row label="Type" value={<Chip size="small" label={customer.customerType} />} />
-              <Row label="Area" value={customer.area ?? '—'} />
-              <Row label="Address" value={customer.address ?? '—'} />
-              <Row label="Landmark" value={customer.landmark ?? '—'} />
-              <Row label="Rate / Camper" value={`₹${customer.ratePerCamper}`} />
-              <Row label="Security Deposit" value={`₹${customer.securityDeposit}`} />
-              <Row label="Allocated Campers" value={String(customer.allocatedCampers)} />
-              <Row label="Paused" value={customer.isPaused ? 'Yes' : 'No'} />
+              <Row label={t('common.status')} value={<StatusChip status={customer.status} />} />
+              <Row label={t('customerDetails.rowType')} value={<Chip size="small" label={customer.customerType} />} />
+              <Row label={t('customerDetails.rowArea')} value={customer.area ?? '—'} />
+              <Row label={t('customerDetails.rowAddress')} value={customer.address ?? '—'} />
+              <Row label={t('customerDetails.rowLandmark')} value={customer.landmark ?? '—'} />
+              <Row label={t('customerDetails.rowRate')} value={`₹${customer.ratePerCamper}`} />
+              <Row label={t('customerDetails.rowDeposit')} value={`₹${customer.securityDeposit}`} />
+              <Row label={t('customerDetails.rowCampers')} value={String(customer.allocatedCampers)} />
+              <Row label={t('customerDetails.rowPaused')} value={customer.isPaused ? t('common.yes') : t('common.no')} />
             </Stack>
           </CardContent></Card>
         </Grid>
         <Grid item xs={12} md={7}>
           <Card><CardContent>
-            <Typography variant="h6" mb={1}>Weekday Quantity</Typography>
+            <Typography variant="h6" mb={1}>{t('customerDetails.weekdayQty')}</Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Default campers per weekday. Which days get a delivery is decided by the customer's
-              water days below, not by these toggles.
+              {t('customerDetails.weekdayQtyDesc')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack spacing={1.5}>
@@ -145,11 +145,11 @@ export default function CustomerDetails() {
                   <Stack key={d} direction="row" alignItems="center" justifyContent="space-between">
                     <FormControlLabel
                       control={<Switch checked={!!day.enabled} onChange={(e) => updateDay(d, { enabled: e.target.checked })} />}
-                      label={d.charAt(0) + d.slice(1).toLowerCase()}
+                      label={t(`common.weekdays.${d}`)}
                       sx={{ width: 160 }}
                     />
                     <TextField
-                      type="number" size="small" label="Qty" sx={{ width: 100 }}
+                      type="number" size="small" label={t('customerDetails.qty')} sx={{ width: 100 }}
                       value={day.quantity ?? 1} disabled={!day.enabled}
                       onChange={(e) => updateDay(d, { quantity: Number(e.target.value) })}
                     />
@@ -158,26 +158,25 @@ export default function CustomerDetails() {
               })}
             </Stack>
             <Button variant="contained" sx={{ mt: 3 }} onClick={() => saveSchedule.mutate()} disabled={saveSchedule.isPending}>
-              Save Schedule
+              {t('customerDetails.saveSchedule')}
             </Button>
           </CardContent></Card>
         </Grid>
 
         <Grid item xs={12}>
           <Card><CardContent>
-            <Typography variant="h6" mb={1}>Water Days (Requested)</Typography>
+            <Typography variant="h6" mb={1}>{t('customerDetails.waterDays')}</Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Dates the customer asked for water. Water is delivered only on these days — any date not
-              listed here means no delivery. Changes notify the customer's driver.
+              {t('customerDetails.waterDaysDesc')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack direction="row" spacing={1} alignItems="center" mb={2}>
               <TextField
-                type="date" size="small" label="Add date"
+                type="date" size="small" label={t('customerDetails.addDate')}
                 InputLabelProps={{ shrink: true }} inputProps={{ min: todayStr }}
                 value={newDate} onChange={(e) => setNewDate(e.target.value)}
               />
-              <Button variant="outlined" onClick={addWaterDay} disabled={!newDate}>Add</Button>
+              <Button variant="outlined" onClick={addWaterDay} disabled={!newDate}>{t('common.add')}</Button>
             </Stack>
             {waterDays.length ? (
               <Stack direction="row" flexWrap="wrap" gap={1}>
@@ -186,11 +185,11 @@ export default function CustomerDetails() {
                 ))}
               </Stack>
             ) : (
-              <Typography color="text.secondary">No upcoming water days selected — this customer receives nothing.</Typography>
+              <Typography color="text.secondary">{t('customerDetails.noWaterDays')}</Typography>
             )}
             <Box>
               <Button variant="contained" sx={{ mt: 3 }} onClick={() => saveWaterDays.mutate()} disabled={saveWaterDays.isPending}>
-                Save Water Days
+                {t('customerDetails.saveWaterDays')}
               </Button>
             </Box>
           </CardContent></Card>

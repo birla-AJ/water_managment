@@ -10,6 +10,7 @@ import { useAppSelector } from '../app/hooks';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 import { dataGridSx } from '../theme/dataGrid';
+import { useTranslation } from 'react-i18next';
 
 const TYPES = ['daily', 'weekly', 'monthly', 'yearly', 'revenue', 'customer', 'inventory', 'order', 'payment'];
 
@@ -19,6 +20,7 @@ const isTypeCol = (f: string) => /^type$/i.test(f);
 const isAmountCol = (f: string) => /(amount|revenue|total|paid|due|price)/i.test(f);
 
 export default function Reports() {
+  const { t } = useTranslation();
   const [type, setType] = useState('monthly');
   const [downloading, setDownloading] = useState('');
   const token = useAppSelector((s) => s.auth.accessToken);
@@ -69,13 +71,13 @@ export default function Reports() {
 
   return (
     <Box>
-      <PageHeader title="Reports" subtitle="Generate & export business reports" />
+      <PageHeader title={t('nav.reports')} subtitle={t('reports.subtitle')} />
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
-            <TextField select label="Report Type" value={type} onChange={(e) => setType(e.target.value)} size="small" sx={{ minWidth: 200 }}>
-              {TYPES.map((t) => <MenuItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</MenuItem>)}
+            <TextField select label={t('reports.reportType')} value={type} onChange={(e) => setType(e.target.value)} size="small" sx={{ minWidth: 200 }}>
+              {TYPES.map((rt) => <MenuItem key={rt} value={rt}>{t(`reports.types.${rt}`)}</MenuItem>)}
             </TextField>
             <Box sx={{ flexGrow: 1 }} />
             <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
@@ -84,20 +86,20 @@ export default function Reports() {
                 onClick={() => download('excel')}
                 sx={{ color: '#179A33', borderColor: 'rgba(23,154,51,0.4)', '&:hover': { borderColor: '#179A33', bgcolor: 'rgba(23,154,51,0.06)' } }}
               >
-                {downloading === 'excel' ? 'Exporting…' : 'Export Excel'}
+                {downloading === 'excel' ? t('reports.exporting') : t('reports.exportExcel')}
               </Button>
               <Button
                 variant="outlined" startIcon={<DescriptionOutlinedIcon />} disabled={!!downloading}
                 onClick={() => download('csv')}
               >
-                {downloading === 'csv' ? 'Exporting…' : 'Export CSV'}
+                {downloading === 'csv' ? t('reports.exporting') : t('reports.exportCsv')}
               </Button>
               <Button
                 variant="outlined" startIcon={<PictureAsPdfOutlinedIcon />} disabled={!!downloading}
                 onClick={() => download('pdf')}
                 sx={{ color: '#D32F2F', borderColor: 'rgba(211,47,47,0.4)', '&:hover': { borderColor: '#D32F2F', bgcolor: 'rgba(211,47,47,0.06)' } }}
               >
-                {downloading === 'pdf' ? 'Exporting…' : 'Export PDF'}
+                {downloading === 'pdf' ? t('reports.exporting') : t('reports.exportPdf')}
               </Button>
             </Stack>
           </Stack>
@@ -107,9 +109,9 @@ export default function Reports() {
       <Card>
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
-            <Typography variant="h6">{data?.title ?? 'Report'}</Typography>
+            <Typography variant="h6">{data?.title ?? t('reports.defaultTitle')}</Typography>
             <Chip
-              label={`${rows.length} row${rows.length === 1 ? '' : 's'}`}
+              label={t('reports.rowCount', { count: rows.length })}
               size="small"
               sx={{ fontWeight: 700, bgcolor: 'rgba(5,81,82,0.10)', color: 'primary.main' }}
             />

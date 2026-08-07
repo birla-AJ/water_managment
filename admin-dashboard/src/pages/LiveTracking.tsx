@@ -15,6 +15,7 @@ import { adminApi, trackingApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import { useAppSelector } from '../app/hooks';
 import type { Admin, LiveTrackingDriver, ServiceAreaPolygon } from '../types';
+import { useTranslation } from 'react-i18next';
 
 const DEFAULT_CENTER = { lat: 22.7196, lng: 75.8577 };
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? 'AIzaSyBqtNNRlrJDPr392gapSx7VPk3BkTVjDrM';
@@ -110,6 +111,7 @@ function emojiPinSvg(color: string, emoji: string) {
 }
 
 export default function LiveTracking() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const user = useAppSelector((s) => s.auth.user);
@@ -159,9 +161,9 @@ export default function LiveTracking() {
 
   const createPolygon = useMutation({
     mutationFn: () => {
-      if (draftPath.length < 3) throw new Error('Draw a polygon first');
-      if (!polygonName.trim()) throw new Error('Enter polygon name');
-      if (isSuperAdmin && !polygonAdminId) throw new Error('Select distributor');
+      if (draftPath.length < 3) throw new Error(t('liveTracking.drawFirst'));
+      if (!polygonName.trim()) throw new Error(t('liveTracking.enterName'));
+      if (isSuperAdmin && !polygonAdminId) throw new Error(t('liveTracking.selectDistributor'));
       const closed = [...draftPath, draftPath[0]];
       return trackingApi.createPolygon({
         adminId: isSuperAdmin ? polygonAdminId : undefined,
@@ -174,7 +176,7 @@ export default function LiveTracking() {
       });
     },
     onSuccess: () => {
-      enqueueSnackbar('Service area polygon saved', { variant: 'success' });
+      enqueueSnackbar(t('liveTracking.polygonSavedToast'), { variant: 'success' });
       setDraftPath([]);
       setDrawMode(false);
       setPolygonName('');
@@ -187,7 +189,7 @@ export default function LiveTracking() {
   const removePolygon = useMutation({
     mutationFn: (id: string) => trackingApi.removePolygon(id),
     onSuccess: () => {
-      enqueueSnackbar('Service polygon deleted', { variant: 'success' });
+      enqueueSnackbar(t('liveTracking.polygonDeletedToast'), { variant: 'success' });
       setDeleteTarget(null);
       qc.invalidateQueries({ queryKey: ['live-tracking'] });
     },
@@ -238,7 +240,7 @@ export default function LiveTracking() {
           return;
         }
         console.error('[LiveTracking] Google Maps load failed', error);
-        enqueueSnackbar('Could not load Google Maps. Check API key, domain restriction and Maps JavaScript API.', { variant: 'error' });
+        enqueueSnackbar(t('liveTracking.mapsLoadFailed'), { variant: 'error' });
       });
     return () => { mounted = false; };
   }, [enqueueSnackbar, polygonColor]);
@@ -339,7 +341,7 @@ export default function LiveTracking() {
       poly.addListener('click', (event: any) => {
         new google.maps.InfoWindow({
           position: event.latLng,
-          content: `<b>${polygon.name}</b><br/>${polygon.admin?.name ?? 'Distributor'}`,
+          content: `<b>${polygon.name}</b><br/>${polygon.admin?.name ?? t('liveTracking.distributorFallback')}`,
         }).open(mapRef.current);
       });
       overlaysRef.current.push(poly);
@@ -355,7 +357,7 @@ export default function LiveTracking() {
         title: customer.name,
         icon: { url: emojiPinSvg('#D32F2F', '📱'), scaledSize: new google.maps.Size(38, 45), anchor: new google.maps.Point(19, 45) },
       });
-      addInfo(marker, `<b>${customer.name}</b><br/>${customer.mobile}<br/>${customer.area ?? ''}<br/>Driver: ${customer.driver?.name ?? 'Not assigned'}`);
+      addInfo(marker, `<b>${customer.name}</b><br/>${customer.mobile}<br/>${customer.area ?? ''}<br/>${t('liveTracking.drivers')}: ${customer.driver?.name ?? t('liveTracking.notAssigned')}`);
       overlaysRef.current.push(marker);
       bounds.extend(position);
       hasBounds = true;
@@ -371,7 +373,7 @@ export default function LiveTracking() {
         icon: { url: emojiPinSvg('#2563EB', '🏭'), scaledSize: new google.maps.Size(42, 50), anchor: new google.maps.Point(21, 50) },
         zIndex: 800,
       });
-      addInfo(marker, `<b>${hub.name}</b><br/>Distributor hub / warehouse<br/>${hub.phone ?? hub.mobile ?? hub.email ?? ''}`);
+      addInfo(marker, `<b>${hub.name}</b><br/>${t('liveTracking.distributorHub')}<br/>${hub.phone ?? hub.mobile ?? hub.email ?? ''}`);
       overlaysRef.current.push(marker);
       bounds.extend(position);
       hasBounds = true;
@@ -388,7 +390,7 @@ export default function LiveTracking() {
         title: driver.name,
         icon: { url: vehicleMarkerSvg(color, driver.vehicle?.type?.toLowerCase().includes('bike') ? '🛵' : '🚚'), scaledSize: new google.maps.Size(42, 49), anchor: new google.maps.Point(21, 49) },
       });
-      addInfo(marker, `<b>${driver.name}</b><br/>${driver.vehicle?.number ?? 'No vehicle'}<br/>${driver.isOnDuty ? 'On duty' : 'Off duty'}<br/>Last ping: ${dayjs(loc.recordedAt).format('HH:mm:ss')}`);
+      addInfo(marker, `<b>${driver.name}</b><br/>${driver.vehicle?.number ?? t('liveTracking.noVehicle')}<br/>${driver.isOnDuty ? t('liveTracking.onDuty') : t('liveTracking.offDuty')}<br/>${t('liveTracking.lastPing', { time: dayjs(loc.recordedAt).format('HH:mm:ss') })}`);
       overlaysRef.current.push(marker);
       bounds.extend(position);
       hasBounds = true;
@@ -425,17 +427,17 @@ export default function LiveTracking() {
   return (
     <Box>
       <PageHeader
-        title="Live Tracking"
-        subtitle="Google Maps live driver, customer, delivery and polygon tracking"
+        title={t('nav.liveTracking')}
+        subtitle={t('liveTracking.subtitle')}
         action={
           <Stack direction="row" spacing={1}>
-            <Button startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isLoading}>Refresh</Button>
+            <Button startIcon={<RefreshIcon />} onClick={() => refetch()} disabled={isLoading}>{t('liveTracking.refresh')}</Button>
             <Button
               variant={drawMode ? 'outlined' : 'contained'}
               startIcon={<PolylineIcon />}
               onClick={() => setDrawMode((v) => !v)}
             >
-              {drawMode ? 'Cancel Drawing' : 'Draw Polygon'}
+              {drawMode ? t('liveTracking.cancelDrawing') : t('liveTracking.drawPolygon')}
             </Button>
           </Stack>
         }
@@ -451,36 +453,36 @@ export default function LiveTracking() {
         <Grid item xs={12} md={3.8}>
           <Stack spacing={2}>
             <Card sx={{ p: 2 }}>
-              <Typography variant="h6" fontWeight={800}>Today</Typography>
+              <Typography variant="h6" fontWeight={800}>{t('liveTracking.today')}</Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.5 }}>
-                <Chip label={`${onDuty} on duty`} color="success" />
-                <Chip label={`${fresh} live`} color="info" />
-                <Chip label={`${activeDeliveries} active deliveries`} />
-                <Chip label={`${customerPins} customer pins`} color="error" variant="outlined" />
-                <Chip label={`${hubPins} hub pins`} color="primary" variant="outlined" />
+                <Chip label={t('liveTracking.onDutyChip', { count: onDuty })} color="success" />
+                <Chip label={t('liveTracking.liveChip', { count: fresh })} color="info" />
+                <Chip label={t('liveTracking.activeDeliveriesChip', { count: activeDeliveries })} />
+                <Chip label={t('liveTracking.customerPinsChip', { count: customerPins })} color="error" variant="outlined" />
+                <Chip label={t('liveTracking.hubPinsChip', { count: hubPins })} color="primary" variant="outlined" />
               </Stack>
             </Card>
 
             {drawMode && (
               <Card sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={800}>New Service Polygon</Typography>
-                <Typography variant="caption" color="text.secondary">Click map boundary points in order. Click any numbered point below or on the map to delete it.</Typography>
+                <Typography variant="subtitle1" fontWeight={800}>{t('liveTracking.newPolygon')}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('liveTracking.drawHint')}</Typography>
                 <Stack spacing={1.25} sx={{ mt: 1.5 }}>
                   {isSuperAdmin && (
-                    <TextField select size="small" label="Distributor" value={polygonAdminId} onChange={(e) => setPolygonAdminId(e.target.value)}>
+                    <TextField select size="small" label={t('liveTracking.distributor')} value={polygonAdminId} onChange={(e) => setPolygonAdminId(e.target.value)}>
                       {admins.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
                     </TextField>
                   )}
-                  <TextField size="small" label="Polygon name" value={polygonName} onChange={(e) => setPolygonName(e.target.value)} />
-                  <TextField size="small" label="Color" value={polygonColor} onChange={(e) => setPolygonColor(e.target.value)} />
+                  <TextField size="small" label={t('liveTracking.polygonName')} value={polygonName} onChange={(e) => setPolygonName(e.target.value)} />
+                  <TextField size="small" label={t('liveTracking.color')} value={polygonColor} onChange={(e) => setPolygonColor(e.target.value)} />
                   <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" onClick={clearDraft}>Clear</Button>
-                    <Button variant="outlined" color="warning" onClick={() => setDraftPath((prev) => prev.slice(0, -1))} disabled={draftPath.length === 0}>Undo Last</Button>
+                    <Button variant="outlined" onClick={clearDraft}>{t('liveTracking.clear')}</Button>
+                    <Button variant="outlined" color="warning" onClick={() => setDraftPath((prev) => prev.slice(0, -1))} disabled={draftPath.length === 0}>{t('liveTracking.undoLast')}</Button>
                     <Button variant="contained" startIcon={<SaveIcon />} onClick={() => createPolygon.mutate()} disabled={createPolygon.isPending || draftPath.length < 3}>
-                      Save
+                      {t('liveTracking.save')}
                     </Button>
                   </Stack>
-                  <Typography variant="caption" color="text.secondary">{draftPath.length} point(s) selected</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('liveTracking.pointsSelected', { count: draftPath.length })}</Typography>
                   {draftPath.length > 0 && (
                     <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
                       {draftPath.map((point, idx) => (
@@ -489,7 +491,7 @@ export default function LiveTracking() {
                           size="small"
                           color="error"
                           variant="outlined"
-                          label={`Delete ${idx + 1}`}
+                          label={t('liveTracking.deletePointChip', { n: idx + 1 })}
                           onDelete={() => removeDraftPoint(idx)}
                           onClick={() => removeDraftPoint(idx)}
                         />
@@ -501,17 +503,17 @@ export default function LiveTracking() {
             )}
 
             <Card sx={{ p: 2 }}>
-              <Typography variant="subtitle1" fontWeight={800}>Drivers</Typography>
+              <Typography variant="subtitle1" fontWeight={800}>{t('liveTracking.drivers')}</Typography>
               <Stack spacing={1.25} sx={{ mt: 1.5, maxHeight: 260, overflow: 'auto', pr: 0.5 }}>
                 {(data?.drivers ?? []).map((driver) => (
                   <Box key={driver.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25, bgcolor: 'background.paper' }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
                       <Typography variant="body2" fontWeight={800}>{driver.name}</Typography>
-                      <Chip size="small" label={driver.isOnDuty ? 'On duty' : 'Off'} color={statusColor(driver) as any} />
+                      <Chip size="small" label={driver.isOnDuty ? t('liveTracking.onDuty') : t('liveTracking.off')} color={statusColor(driver) as any} />
                     </Stack>
-                    <Typography variant="caption" color="text.secondary">{driver.vehicle?.number ?? 'No vehicle'} - {driver.zone ?? 'No zone'}</Typography>
+                    <Typography variant="caption" color="text.secondary">{driver.vehicle?.number ?? t('liveTracking.noVehicle')} - {driver.zone ?? t('liveTracking.noZone')}</Typography>
                     <Typography variant="caption" display="block" color="text.secondary">
-                      {driver.latestLocation ? `Last ping ${dayjs(driver.latestLocation.recordedAt).format('HH:mm:ss')}` : 'No location yet'}
+                      {driver.latestLocation ? t('liveTracking.lastPing', { time: dayjs(driver.latestLocation.recordedAt).format('HH:mm:ss') }) : t('liveTracking.noLocationYet')}
                     </Typography>
                   </Box>
                 ))}
@@ -519,7 +521,7 @@ export default function LiveTracking() {
             </Card>
 
             <Card sx={{ p: 2 }}>
-              <Typography variant="subtitle1" fontWeight={800}>Service Polygons</Typography>
+              <Typography variant="subtitle1" fontWeight={800}>{t('liveTracking.servicePolygons')}</Typography>
               <Stack spacing={1} sx={{ mt: 1.25, maxHeight: 230, overflow: 'auto' }}>
                 {(data?.polygons ?? []).map((polygon) => (
                   <Stack key={polygon.id} direction="row" alignItems="center" justifyContent="space-between" gap={1}>
@@ -527,7 +529,7 @@ export default function LiveTracking() {
                       <Typography variant="body2" fontWeight={700}>{polygon.name}</Typography>
                       <Typography variant="caption" color="text.secondary">{polygon.admin?.name}</Typography>
                     </Box>
-                    <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => setDeleteTarget(polygon)}>Delete</Button>
+                    <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => setDeleteTarget(polygon)}>{t('liveTracking.delete')}</Button>
                   </Stack>
                 ))}
               </Stack>
@@ -537,19 +539,19 @@ export default function LiveTracking() {
       </Grid>
 
       <Alert severity="info" sx={{ mt: 2 }}>
-        Google Maps is active. Phone markers are customer locations, truck markers are drivers, and factory markers are distributor hubs.
+        {t('liveTracking.mapLegend')}
       </Alert>
 
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>Delete Service Polygon?</DialogTitle>
+        <DialogTitle>{t('liveTracking.deletePolygonTitle')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">This removes the boundary "{deleteTarget?.name}" from the live map.</Typography>
+          <Typography variant="body2">{t('liveTracking.deletePolygonBody', { name: deleteTarget?.name })}</Typography>
         </DialogContent>
         <Divider />
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
           <Button color="error" variant="contained" onClick={() => deleteTarget && removePolygon.mutate(deleteTarget.id)} disabled={removePolygon.isPending}>
-            Delete
+            {t('liveTracking.delete')}
           </Button>
         </DialogActions>
       </Dialog>

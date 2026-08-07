@@ -7,11 +7,13 @@ import { useSnackbar } from 'notistack';
 import { driverApi, vehicleApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
+import { useTranslation } from 'react-i18next';
 import type { Driver } from '../types';
 
 type FormValues = Partial<Driver>;
 
 export default function DriverForm() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ export default function DriverForm() {
       return isEdit ? driverApi.update(id!, payload) : driverApi.create(payload);
     },
     onSuccess: () => {
-      enqueueSnackbar(`Driver ${isEdit ? 'updated' : 'created'}`, { variant: 'success' });
+      enqueueSnackbar(isEdit ? t('driverForm.updatedToast') : t('driverForm.createdToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['drivers'] });
       navigate('/drivers');
     },
@@ -50,45 +52,45 @@ export default function DriverForm() {
 
   return (
     <Box>
-      <PageHeader title={isEdit ? 'Edit Driver' : 'Add Driver'} subtitle="Driver logs into the app with this mobile + OTP" />
+      <PageHeader title={isEdit ? t('driverForm.editTitle') : t('driverForm.addTitle')} subtitle={t('driverForm.subtitle')} />
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit((v) => mutation.mutate(v))}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField label="Name" fullWidth {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+                <TextField label={t('common.name')} fullWidth {...register('name', { required: t('driverForm.nameRequired'), minLength: { value: 2, message: t('driverForm.minLength2') } })}
                   error={!!errors.name} helperText={errors.name?.message} InputLabelProps={{ shrink: true }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Mobile (login number)" fullWidth disabled={isEdit}
-                  {...register('mobile', isEdit ? {} : { required: 'Mobile is required', pattern: { value: /^[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile' } })}
+                <TextField label={t('driverForm.mobileLogin')} fullWidth disabled={isEdit}
+                  {...register('mobile', isEdit ? {} : { required: t('driverForm.mobileRequired'), pattern: { value: /^[6-9]\d{9}$/, message: t('driverForm.invalidMobile') } })}
                   error={!!errors.mobile} helperText={errors.mobile?.message}
                   InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
                   inputProps={{ maxLength: 10, inputMode: 'numeric' }} InputLabelProps={{ shrink: true }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Email" fullWidth
-                  {...register('email', { pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email' } })}
+                <TextField label={t('common.email')} fullWidth
+                  {...register('email', { pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('driverForm.invalidEmail') } })}
                   error={!!errors.email} helperText={errors.email?.message} InputLabelProps={{ shrink: true }} />
               </Grid>
-              <Grid item xs={12} sm={6}><TextField label="License Number" fullWidth {...register('licenseNumber')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Zone" fullWidth placeholder="e.g. Kothrud" {...register('zone')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={8}><TextField label="Address" fullWidth {...register('address')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}><TextField label={t('driverForm.licenseNumber')} fullWidth {...register('licenseNumber')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}><TextField label={t('driverForm.zone')} fullWidth placeholder="e.g. Kothrud" {...register('zone')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={8}><TextField label={t('common.address')} fullWidth {...register('address')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={4}>
-                <TextField select label="Status" fullWidth defaultValue="ACTIVE" {...register('status')} InputLabelProps={{ shrink: true }}>
-                  <MenuItem value="ACTIVE">Active</MenuItem><MenuItem value="INACTIVE">Inactive</MenuItem>
+                <TextField select label={t('driverForm.statusField')} fullWidth defaultValue="ACTIVE" {...register('status')} InputLabelProps={{ shrink: true }}>
+                  <MenuItem value="ACTIVE">{t('common.active')}</MenuItem><MenuItem value="INACTIVE">{t('common.inactive')}</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Vehicle" fullWidth defaultValue="" {...register('vehicleId')} InputLabelProps={{ shrink: true }}>
-                  <MenuItem value="">— None —</MenuItem>
+                <TextField select label={t('driverForm.vehicle')} fullWidth defaultValue="" {...register('vehicleId')} InputLabelProps={{ shrink: true }}>
+                  <MenuItem value="">{t('driverForm.none')}</MenuItem>
                   {vehicleOptions.map((v) => <MenuItem key={v.id} value={v.id}>{v.number}</MenuItem>)}
                 </TextField>
               </Grid>
             </Grid>
             <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-              <Button type="submit" variant="contained" disabled={mutation.isPending}>{isEdit ? 'Update' : 'Create'}</Button>
-              <Button variant="outlined" onClick={() => navigate('/drivers')}>Cancel</Button>
+              <Button type="submit" variant="contained" disabled={mutation.isPending}>{isEdit ? t('common.update') : t('common.create')}</Button>
+              <Button variant="outlined" onClick={() => navigate('/drivers')}>{t('common.cancel')}</Button>
             </Stack>
           </form>
         </CardContent>

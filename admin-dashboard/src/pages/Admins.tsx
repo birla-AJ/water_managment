@@ -29,6 +29,7 @@ import PasswordField from '../components/PasswordField';
 import { dataGridSx } from '../theme/dataGrid';
 import { BRAND_GRADIENT, BRAND_GRADIENT_SOFT } from '../theme/theme';
 import type { Admin } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface FormValues {
   name: string;
@@ -50,6 +51,7 @@ const splitCsv = (s?: string): string[] =>
   (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
 export default function Admins() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
@@ -90,14 +92,14 @@ export default function Admins() {
   };
 
   const detectLocation = () => {
-    if (!navigator.geolocation) { enqueueSnackbar('Geolocation not supported', { variant: 'warning' }); return; }
+    if (!navigator.geolocation) { enqueueSnackbar(t('adminsPage.geoNotSupported'), { variant: 'warning' }); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setValue('latitude', pos.coords.latitude.toFixed(6));
         setValue('longitude', pos.coords.longitude.toFixed(6));
-        enqueueSnackbar('Location captured', { variant: 'success' });
+        enqueueSnackbar(t('adminsPage.locationCaptured'), { variant: 'success' });
       },
-      () => enqueueSnackbar('Could not get your location', { variant: 'error' }),
+      () => enqueueSnackbar(t('adminsPage.locationFailed'), { variant: 'error' }),
     );
   };
 
@@ -124,7 +126,7 @@ export default function Admins() {
       return adminApi.create({ ...base, email: v.email, password: v.password });
     },
     onSuccess: () => {
-      enqueueSnackbar(`Admin ${editId ? 'updated' : 'created'}`, { variant: 'success' });
+      enqueueSnackbar(editId ? t('adminsPage.updatedToast') : t('adminsPage.createdToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['admins'] });
       setOpen(false);
     },
@@ -133,28 +135,28 @@ export default function Admins() {
 
   const del = useMutation({
     mutationFn: (id: string) => adminApi.remove(id),
-    onSuccess: () => { enqueueSnackbar('Admin deleted', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['admins'] }); },
+    onSuccess: () => { enqueueSnackbar(t('adminsPage.deletedToast'), { variant: 'success' }); qc.invalidateQueries({ queryKey: ['admins'] }); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
   const columns: GridColDef[] = [
     {
-      field: 'name', headerName: 'Name', flex: 1, minWidth: 150,
+      field: 'name', headerName: t('common.name'), flex: 1, minWidth: 150,
       renderCell: (p) => (
         <Link component="button" underline="hover" onClick={() => navigate(`/admins/${p.row.id}`)} sx={{ fontWeight: 700 }}>
           {p.value}
         </Link>
       ),
     },
-    { field: 'email', headerName: 'Email', flex: 1, minWidth: 200 },
-    { field: 'mobile', headerName: 'Mobile', width: 130, valueFormatter: (v) => v ?? '—' },
+    { field: 'email', headerName: t('common.email'), flex: 1, minWidth: 200 },
+    { field: 'mobile', headerName: t('common.mobile'), width: 130, valueFormatter: (v) => v ?? '—' },
     {
-      field: 'role', headerName: 'Role', width: 150,
+      field: 'role', headerName: t('adminsPage.colRole'), width: 150,
       renderCell: (p) => {
         const sa = p.value === 'SUPER_ADMIN';
         return (
           <Chip
-            size="small" variant="outlined" label={sa ? 'Super Admin' : 'Admin'}
+            size="small" variant="outlined" label={sa ? t('adminsPage.superAdmin') : t('adminsPage.admin')}
             sx={{
               fontWeight: 700, fontSize: 11.5, height: 22,
               color: sa ? '#B6831A' : '#055152',
@@ -165,27 +167,27 @@ export default function Admins() {
         );
       },
     },
-    { field: 'isActive', headerName: 'Active', width: 110, renderCell: (p) => <StatusChip status={p.value === false ? 'INACTIVE' : 'ACTIVE'} /> },
+    { field: 'isActive', headerName: t('adminsPage.colActive'), width: 110, renderCell: (p) => <StatusChip status={p.value === false ? 'INACTIVE' : 'ACTIVE'} /> },
     {
-      field: 'customers', headerName: 'Customers', width: 120, sortable: false,
+      field: 'customers', headerName: t('adminsPage.colCustomers'), width: 120, sortable: false,
       renderCell: (p) => (
         <Link component="button" underline="hover" onClick={() => navigate(`/admins/${p.row.id}`)} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
           <PeopleIcon fontSize="small" /> {p.row._count?.customers ?? 0}
         </Link>
       ),
     },
-    { field: 'lastLoginAt', headerName: 'Last Login', width: 160, valueFormatter: (v) => (v ? dayjs(v).format('DD MMM YYYY HH:mm') : 'Never') },
+    { field: 'lastLoginAt', headerName: t('adminsPage.colLastLogin'), width: 160, valueFormatter: (v) => (v ? dayjs(v).format('DD MMM YYYY HH:mm') : t('adminsPage.never')) },
     {
-      field: 'actions', headerName: 'Actions', width: 140, sortable: false,
+      field: 'actions', headerName: t('adminsPage.colActions'), width: 140, sortable: false,
       renderCell: (p) => (
         <>
-          <Tooltip title="View details">
+          <Tooltip title={t('adminsPage.viewDetails')}>
             <IconButton size="small" onClick={() => navigate(`/admins/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton>
           </Tooltip>
-          <Tooltip title="Edit">
+          <Tooltip title={t('adminsPage.edit')}>
             <IconButton size="small" onClick={() => openEdit(p.row)}><EditIcon fontSize="small" /></IconButton>
           </Tooltip>
-          <Tooltip title={p.row.id === me?.id ? 'You cannot delete yourself' : 'Delete'}>
+          <Tooltip title={p.row.id === me?.id ? t('adminsPage.cannotDeleteSelf') : t('adminsPage.delete')}>
             <span>
               <IconButton
                 size="small" disabled={p.row.id === me?.id} onClick={() => del.mutate(p.row.id)}
@@ -203,9 +205,9 @@ export default function Admins() {
   return (
     <Box>
       <PageHeader
-        title="Admins"
-        subtitle="Manage admin & super-admin accounts"
-        action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Admin</Button>}
+        title={t('nav.admins')}
+        subtitle={t('adminsPage.subtitle')}
+        action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>{t('adminsPage.addAdmin')}</Button>}
       />
       <Card>
         <DataGrid
@@ -249,9 +251,9 @@ export default function Admins() {
             <AdminPanelSettingsIcon />
           </Box>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="h6" fontWeight={800} lineHeight={1.15}>{editId ? 'Edit Admin' : 'Add Admin'}</Typography>
+            <Typography variant="h6" fontWeight={800} lineHeight={1.15}>{editId ? t('adminsPage.editAdmin') : t('adminsPage.addAdminTitle')}</Typography>
             <Typography variant="caption" color="text.secondary">
-              {editId ? 'Update this admin account' : 'Create a new admin account'}
+              {editId ? t('adminsPage.updateAccount') : t('adminsPage.createAccount')}
             </Typography>
           </Box>
           <IconButton onClick={() => setOpen(false)} size="small"><CloseIcon fontSize="small" /></IconButton>
@@ -261,42 +263,42 @@ export default function Admins() {
             <Grid container spacing={2.25} sx={{ mt: 0 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Name" fullWidth {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+                  label={t('common.name')} fullWidth {...register('name', { required: t('adminsPage.nameRequired'), minLength: { value: 2, message: t('adminsPage.minLength2') } })}
                   error={!!errors.name} helperText={errors.name?.message} InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Email" type="email" fullWidth disabled={!!editId}
-                  {...register('email', editId ? {} : { required: 'Email is required', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email' } })}
+                  label={t('common.email')} type="email" fullWidth disabled={!!editId}
+                  {...register('email', editId ? {} : { required: t('adminsPage.emailRequired'), pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('adminsPage.invalidEmail') } })}
                   error={!!errors.email} helperText={errors.email?.message} InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <PasswordField
-                  label={editId ? 'New Password (optional)' : 'Password'} fullWidth
+                  label={editId ? t('adminsPage.newPasswordOptional') : t('adminsPage.password')} fullWidth
                   {...register('password', {
-                    ...(editId ? {} : { required: 'Password is required' }),
-                    validate: (v) => (!v || v.length >= 6 ? true : 'At least 6 characters'),
+                    ...(editId ? {} : { required: t('adminsPage.passwordRequired') }),
+                    validate: (v) => (!v || v.length >= 6 ? true : t('adminsPage.minLength6')),
                   })}
                   error={!!errors.password} helperText={errors.password?.message} InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Mobile (for OTP login)" fullWidth
-                  {...register('mobile', { pattern: { value: /^[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile' } })}
+                  label={t('adminsPage.mobileOtp')} fullWidth
+                  {...register('mobile', { pattern: { value: /^[6-9]\d{9}$/, message: t('adminsPage.invalidMobile') } })}
                   error={!!errors.mobile} helperText={errors.mobile?.message}
                   InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
                   inputProps={{ maxLength: 10, inputMode: 'numeric' }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}><TextField label="Phone" fullWidth {...register('phone')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}><TextField label={t('settings.phone')} fullWidth {...register('phone')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Active" fullWidth defaultValue="true" {...register('isActive')} InputLabelProps={{ shrink: true }}>
-                  <MenuItem value="true">Yes</MenuItem>
-                  <MenuItem value="false">No</MenuItem>
+                <TextField select label={t('adminsPage.active')} fullWidth defaultValue="true" {...register('isActive')} InputLabelProps={{ shrink: true }}>
+                  <MenuItem value="true">{t('common.yes')}</MenuItem>
+                  <MenuItem value="false">{t('common.no')}</MenuItem>
                 </TextField>
               </Grid>
 
@@ -305,50 +307,50 @@ export default function Admins() {
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.5 }}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'primary.main' }}>
                     <PlaceOutlinedIcon fontSize="small" />
-                    <Typography variant="subtitle2" fontWeight={800}>Distributor service area</Typography>
+                    <Typography variant="subtitle2" fontWeight={800}>{t('adminsPage.serviceAreaSection')}</Typography>
                   </Stack>
                   <Button size="small" startIcon={<MyLocationIcon fontSize="small" />} onClick={detectLocation}>
-                    Use my location
+                    {t('adminsPage.useMyLocation')}
                   </Button>
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  Used to match customers to this distributor by GPS radius, pincode, or area name.
+                  {t('adminsPage.serviceAreaHint')}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField label="Latitude" fullWidth {...register('latitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
+                <TextField label={t('adminsPage.latitude')} fullWidth {...register('latitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField label="Longitude" fullWidth {...register('longitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
+                <TextField label={t('adminsPage.longitude')} fullWidth {...register('longitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField label="Service radius" fullWidth {...register('serviceRadiusKm')} InputLabelProps={{ shrink: true }} InputProps={{ endAdornment: <InputAdornment position="end">km</InputAdornment> }} inputProps={{ inputMode: 'decimal' }} />
+                <TextField label={t('adminsPage.serviceRadius')} fullWidth {...register('serviceRadiusKm')} InputLabelProps={{ shrink: true }} InputProps={{ endAdornment: <InputAdornment position="end">km</InputAdornment> }} inputProps={{ inputMode: 'decimal' }} />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Pincodes served" fullWidth {...register('pincodes')} InputLabelProps={{ shrink: true }}
-                  placeholder="452001, 452010" helperText="Comma-separated 6-digit pincodes"
+                  label={t('adminsPage.pincodesServed')} fullWidth {...register('pincodes')} InputLabelProps={{ shrink: true }}
+                  placeholder="452001, 452010" helperText={t('adminsPage.pincodesHelper')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Service areas (free text)" fullWidth {...register('serviceAreas')} InputLabelProps={{ shrink: true }}
-                  placeholder="Limbodi, Bhawarkua" helperText="Comma-separated locality names"
+                  label={t('adminsPage.serviceAreasFreeText')} fullWidth {...register('serviceAreas')} InputLabelProps={{ shrink: true }}
+                  placeholder="Limbodi, Bhawarkua" helperText={t('adminsPage.serviceAreasHelper')}
                 />
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
-                  <InputLabel shrink id="areas-label">Service areas (from master list)</InputLabel>
+                  <InputLabel shrink id="areas-label">{t('adminsPage.serviceAreasMasterList')}</InputLabel>
                   <Select
                     labelId="areas-label"
                     multiple
                     displayEmpty
                     value={areaIds}
                     onChange={(e) => setAreaIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
-                    input={<OutlinedInput notched label="Service areas (from master list)" />}
+                    input={<OutlinedInput notched label={t('adminsPage.serviceAreasMasterList')} />}
                     renderValue={(selected) =>
                       (selected as string[]).length === 0 ? (
-                        <Typography variant="body2" color="text.secondary">None selected</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('adminsPage.noneSelected')}</Typography>
                       ) : (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {(selected as string[]).map((id) => (
@@ -365,7 +367,7 @@ export default function Admins() {
                       </MenuItem>
                     ))}
                     {(!masterAreas || masterAreas.length === 0) && (
-                      <MenuItem disabled value="">No master areas yet — add them on the Service Areas page</MenuItem>
+                      <MenuItem disabled value="">{t('adminsPage.noMasterAreas')}</MenuItem>
                     )}
                   </Select>
                 </FormControl>
@@ -373,12 +375,12 @@ export default function Admins() {
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.75, pt: 0 }}>
-            <Button onClick={() => setOpen(false)} color="inherit" sx={{ color: 'text.secondary' }}>Cancel</Button>
+            <Button onClick={() => setOpen(false)} color="inherit" sx={{ color: 'text.secondary' }}>{t('common.cancel')}</Button>
             <Button
               type="submit" variant="contained" disabled={save.isPending}
               startIcon={editId ? <CheckIcon /> : <AddIcon />}
             >
-              {save.isPending ? 'Saving…' : editId ? 'Update' : 'Create'}
+              {save.isPending ? t('common.saving') : editId ? t('common.update') : t('common.create')}
             </Button>
           </DialogActions>
         </form>

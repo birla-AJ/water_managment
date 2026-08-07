@@ -11,8 +11,10 @@ import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 import { useSnackbar } from 'notistack';
 import { apiErrorMessage } from '../api/client';
+import { useTranslation } from 'react-i18next';
 
 export default function Drivers() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -36,7 +38,7 @@ export default function Drivers() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['drivers'] });
       qc.invalidateQueries({ queryKey: ['vehicles'] });
-      enqueueSnackbar('Vehicle assignment updated', { variant: 'success' });
+      enqueueSnackbar(t('driversPage.vehicleAssignedToast'), { variant: 'success' });
     },
     onError: (error) => enqueueSnackbar(apiErrorMessage(error), { variant: 'error' }),
   });
@@ -49,7 +51,7 @@ export default function Drivers() {
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vehicles'] });
-      enqueueSnackbar('Vehicle added successfully', { variant: 'success' });
+      enqueueSnackbar(t('driversPage.vehicleAddedToast'), { variant: 'success' });
       setVehicleDialogOpen(false);
       setVehicleNumber(''); setVehicleType(''); setVehicleCapacity('');
     },
@@ -59,7 +61,7 @@ export default function Drivers() {
     mutationFn: ({ driverId, status }: { driverId: string; status: 'ACTIVE' | 'INACTIVE' }) => driverApi.update(driverId, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['drivers'] });
-      enqueueSnackbar('Driver account status updated', { variant: 'success' });
+      enqueueSnackbar(t('driversPage.statusUpdatedToast'), { variant: 'success' });
     },
     onError: (error) => enqueueSnackbar(apiErrorMessage(error), { variant: 'error' }),
   });
@@ -70,11 +72,11 @@ export default function Drivers() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 150 },
-    { field: 'mobile', headerName: 'Mobile', width: 130 },
-    { field: 'zone', headerName: 'Zone', width: 130, valueFormatter: (v) => v ?? '—' },
+    { field: 'name', headerName: t('common.name'), flex: 1, minWidth: 150 },
+    { field: 'mobile', headerName: t('common.mobile'), width: 130 },
+    { field: 'zone', headerName: t('driversPage.colZone'), width: 130, valueFormatter: (v) => v ?? '—' },
     {
-      field: 'vehicle', headerName: 'Vehicle assignment', width: 230, sortable: false,
+      field: 'vehicle', headerName: t('driversPage.colVehicleAssignment'), width: 230, sortable: false,
       renderCell: (p) => {
         const current = p.value as { id: string; number: string } | null;
         const changeVehicle = (event: SelectChangeEvent<string>) => {
@@ -91,22 +93,22 @@ export default function Drivers() {
             onClick={(event) => event.stopPropagation()}
             sx={{ minWidth: 190, bgcolor: 'background.paper' }}
           >
-            <MenuItem value=""><em>Unassigned</em></MenuItem>
+            <MenuItem value=""><em>{t('driversPage.unassigned')}</em></MenuItem>
             {vehicleOptions(current).map((vehicle) => <MenuItem key={vehicle.id} value={vehicle.id}>{vehicle.number}</MenuItem>)}
           </Select>
         );
       },
     },
     {
-      field: '_count', headerName: 'Customers', width: 110,
+      field: '_count', headerName: t('driversPage.colCustomers'), width: 110,
       renderCell: (p) => p.value?.customers ?? 0,
     },
     {
-      field: 'isOnDuty', headerName: 'Duty Status', width: 120,
-      renderCell: (p) => <Chip size="small" label={p.value ? 'ON DUTY' : 'OFF DUTY'} color={p.value ? 'success' : 'default'} variant={p.value ? 'filled' : 'outlined'} />,
+      field: 'isOnDuty', headerName: t('driversPage.colDutyStatus'), width: 120,
+      renderCell: (p) => <Chip size="small" label={p.value ? t('driversPage.onDuty') : t('driversPage.offDuty')} color={p.value ? 'success' : 'default'} variant={p.value ? 'filled' : 'outlined'} />,
     },
     {
-      field: 'status', headerName: 'Account Status', width: 165, sortable: false,
+      field: 'status', headerName: t('driversPage.colAccountStatus'), width: 165, sortable: false,
       renderCell: (p) => (
         <Select
           size="small"
@@ -125,7 +127,7 @@ export default function Drivers() {
       ),
     },
     {
-      field: 'actions', headerName: 'Actions', width: 110, sortable: false,
+      field: 'actions', headerName: t('driversPage.colActions'), width: 110, sortable: false,
       renderCell: (p) => (
         <>
           <IconButton size="small" onClick={() => navigate(`/drivers/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton>
@@ -138,22 +140,22 @@ export default function Drivers() {
   return (
     <Box>
       <PageHeader
-        title="Drivers & Vehicles"
-        subtitle="Assign a vehicle directly from each driver's row"
+        title={t('nav.driversVehicles')}
+        subtitle={t('driversPage.subtitle')}
         action={
           <Stack direction="row" spacing={1.25}>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setVehicleDialogOpen(true)}>Add Vehicle</Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/drivers/new')}>Add Driver</Button>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setVehicleDialogOpen(true)}>{t('driversPage.addVehicle')}</Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/drivers/new')}>{t('driversPage.addDriver')}</Button>
           </Stack>
         }
       />
       <Card sx={{ p: 2, mb: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Search name / mobile" value={search} onChange={(e) => setSearch(e.target.value)} size="small" sx={{ minWidth: 280 }} />
-          <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} size="small" sx={{ minWidth: 160 }}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="ACTIVE">Active</MenuItem>
-            <MenuItem value="INACTIVE">Inactive</MenuItem>
+          <TextField label={t('driversPage.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} size="small" sx={{ minWidth: 280 }} />
+          <TextField select label={t('common.status')} value={status} onChange={(e) => setStatus(e.target.value)} size="small" sx={{ minWidth: 160 }}>
+            <MenuItem value="">{t('common.all')}</MenuItem>
+            <MenuItem value="ACTIVE">{t('common.active')}</MenuItem>
+            <MenuItem value="INACTIVE">{t('common.inactive')}</MenuItem>
           </TextField>
         </Stack>
       </Card>
@@ -172,22 +174,22 @@ export default function Drivers() {
         />
       </Card>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.25, px: 0.5 }}>
-        Only unassigned vehicles are shown in the dropdown. Select “Unassigned” to remove a vehicle from a driver.
+        {t('driversPage.vehicleHint')}
       </Typography>
 
       <Dialog open={vehicleDialogOpen} onClose={() => !createVehicle.isPending && setVehicleDialogOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Add Vehicle</DialogTitle>
+        <DialogTitle>{t('driversPage.addVehicle')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            <TextField label="Vehicle Number" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} required autoFocus fullWidth />
-            <TextField label="Vehicle Type" placeholder="Tempo, Van…" value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} fullWidth />
-            <TextField label="Capacity (campers)" type="number" value={vehicleCapacity} onChange={(e) => setVehicleCapacity(e.target.value)} fullWidth />
+            <TextField label={t('driversPage.vehicleNumber')} value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} required autoFocus fullWidth />
+            <TextField label={t('driversPage.vehicleType')} placeholder="Tempo, Van…" value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} fullWidth />
+            <TextField label={t('driversPage.capacityCampers')} type="number" value={vehicleCapacity} onChange={(e) => setVehicleCapacity(e.target.value)} fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setVehicleDialogOpen(false)} disabled={createVehicle.isPending}>Cancel</Button>
+          <Button onClick={() => setVehicleDialogOpen(false)} disabled={createVehicle.isPending}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => createVehicle.mutate()} disabled={!vehicleNumber.trim() || createVehicle.isPending}>
-            Add Vehicle
+            {t('driversPage.addVehicle')}
           </Button>
         </DialogActions>
       </Dialog>

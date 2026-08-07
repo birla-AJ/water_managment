@@ -20,6 +20,7 @@ import PageHeader from '../components/PageHeader';
 import { dataGridSx } from '../theme/dataGrid';
 import { BRAND_GRADIENT, BRAND_GRADIENT_SOFT } from '../theme/theme';
 import type { ServiceArea } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface FormValues {
   name: string;
@@ -30,6 +31,7 @@ interface FormValues {
 }
 
 export default function ServiceAreas() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [open, setOpen] = useState(false);
@@ -54,14 +56,14 @@ export default function ServiceAreas() {
   };
 
   const detectLocation = () => {
-    if (!navigator.geolocation) { enqueueSnackbar('Geolocation not supported', { variant: 'warning' }); return; }
+    if (!navigator.geolocation) { enqueueSnackbar(t('serviceAreas.geoNotSupported'), { variant: 'warning' }); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setValue('latitude', pos.coords.latitude.toFixed(6));
         setValue('longitude', pos.coords.longitude.toFixed(6));
-        enqueueSnackbar('Location captured', { variant: 'success' });
+        enqueueSnackbar(t('serviceAreas.locationCaptured'), { variant: 'success' });
       },
-      () => enqueueSnackbar('Could not get your location', { variant: 'error' }),
+      () => enqueueSnackbar(t('serviceAreas.locationFailed'), { variant: 'error' }),
     );
   };
 
@@ -77,7 +79,7 @@ export default function ServiceAreas() {
       return editId ? serviceAreaApi.update(editId, body) : serviceAreaApi.create(body);
     },
     onSuccess: () => {
-      enqueueSnackbar(`Service area ${editId ? 'updated' : 'created'}`, { variant: 'success' });
+      enqueueSnackbar(editId ? t('serviceAreas.updatedToast') : t('serviceAreas.createdToast'), { variant: 'success' });
       qc.invalidateQueries({ queryKey: ['service-areas'] });
       setOpen(false);
     },
@@ -86,25 +88,25 @@ export default function ServiceAreas() {
 
   const del = useMutation({
     mutationFn: (id: string) => serviceAreaApi.remove(id),
-    onSuccess: () => { enqueueSnackbar('Service area deleted', { variant: 'success' }); qc.invalidateQueries({ queryKey: ['service-areas'] }); },
+    onSuccess: () => { enqueueSnackbar(t('serviceAreas.deletedToast'), { variant: 'success' }); qc.invalidateQueries({ queryKey: ['service-areas'] }); },
     onError: (e) => enqueueSnackbar(apiErrorMessage(e), { variant: 'error' }),
   });
 
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Area', flex: 1, minWidth: 160, renderCell: (p) => <Typography variant="body2" fontWeight={700}>{p.value}</Typography> },
-    { field: 'city', headerName: 'City', flex: 1, minWidth: 130, valueFormatter: (v) => v || '—' },
-    { field: 'pincode', headerName: 'Pincode', width: 110, valueFormatter: (v) => v || '—' },
+    { field: 'name', headerName: t('serviceAreas.colArea'), flex: 1, minWidth: 160, renderCell: (p) => <Typography variant="body2" fontWeight={700}>{p.value}</Typography> },
+    { field: 'city', headerName: t('serviceAreas.colCity'), flex: 1, minWidth: 130, valueFormatter: (v) => v || '—' },
+    { field: 'pincode', headerName: t('serviceAreas.colPincode'), width: 110, valueFormatter: (v) => v || '—' },
     {
-      field: 'gps', headerName: 'GPS', width: 110, sortable: false,
+      field: 'gps', headerName: t('serviceAreas.colGps'), width: 110, sortable: false,
       valueGetter: (_v, row) => (row.latitude != null && row.longitude != null ? '✓' : '—'),
     },
-    { field: '_count', headerName: 'Distributors', width: 130, valueGetter: (_v, row) => row._count?.admins ?? 0 },
+    { field: '_count', headerName: t('serviceAreas.colDistributors'), width: 130, valueGetter: (_v, row) => row._count?.admins ?? 0 },
     {
-      field: 'actions', headerName: 'Actions', width: 110, sortable: false,
+      field: 'actions', headerName: t('serviceAreas.colActions'), width: 110, sortable: false,
       renderCell: (p) => (
         <>
-          <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p.row)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Delete">
+          <Tooltip title={t('serviceAreas.edit')}><IconButton size="small" onClick={() => openEdit(p.row)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title={t('serviceAreas.delete')}>
             <IconButton size="small" onClick={() => del.mutate(p.row.id)} sx={{ '&:hover': { color: 'error.main', bgcolor: 'rgba(211,47,47,0.10)' } }}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -117,9 +119,9 @@ export default function ServiceAreas() {
   return (
     <Box>
       <PageHeader
-        title="Service Areas"
-        subtitle="Master list of localities distributors can serve"
-        action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Area</Button>}
+        title={t('nav.serviceAreas')}
+        subtitle={t('serviceAreas.subtitle')}
+        action={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>{t('serviceAreas.addArea')}</Button>}
       />
       <Card>
         <DataGrid
@@ -136,8 +138,8 @@ export default function ServiceAreas() {
             <PlaceOutlinedIcon />
           </Box>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="h6" fontWeight={800} lineHeight={1.15}>{editId ? 'Edit Service Area' : 'Add Service Area'}</Typography>
-            <Typography variant="caption" color="text.secondary">A locality distributors can be assigned to</Typography>
+            <Typography variant="h6" fontWeight={800} lineHeight={1.15}>{editId ? t('serviceAreas.editArea') : t('serviceAreas.addAreaTitle')}</Typography>
+            <Typography variant="caption" color="text.secondary">{t('serviceAreas.dialogSubtitle')}</Typography>
           </Box>
           <IconButton onClick={() => setOpen(false)} size="small"><CloseIcon fontSize="small" /></IconButton>
         </Box>
@@ -145,29 +147,29 @@ export default function ServiceAreas() {
           <DialogContent sx={{ p: 3 }}>
             <Grid container spacing={2.25} sx={{ mt: 0 }}>
               <Grid item xs={12} sm={6}>
-                <TextField label="Area name" fullWidth {...register('name', { required: 'Name is required' })} error={!!errors.name} helperText={errors.name?.message} InputLabelProps={{ shrink: true }} placeholder="Limbodi" />
+                <TextField label={t('serviceAreas.areaName')} fullWidth {...register('name', { required: t('serviceAreas.nameRequired') })} error={!!errors.name} helperText={errors.name?.message} InputLabelProps={{ shrink: true }} placeholder="Limbodi" />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="City" fullWidth {...register('city')} InputLabelProps={{ shrink: true }} placeholder="Indore" />
+                <TextField label={t('serviceAreas.city')} fullWidth {...register('city')} InputLabelProps={{ shrink: true }} placeholder="Indore" />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Pincode" fullWidth {...register('pincode', { pattern: { value: /^\d{6}$/, message: 'Enter a valid 6-digit pincode' } })} error={!!errors.pincode} helperText={errors.pincode?.message} InputLabelProps={{ shrink: true }} inputProps={{ maxLength: 6, inputMode: 'numeric' }} />
+                <TextField label={t('serviceAreas.pincode')} fullWidth {...register('pincode', { pattern: { value: /^\d{6}$/, message: t('serviceAreas.invalidPincode') } })} error={!!errors.pincode} helperText={errors.pincode?.message} InputLabelProps={{ shrink: true }} inputProps={{ maxLength: 6, inputMode: 'numeric' }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Button size="small" startIcon={<MyLocationIcon fontSize="small" />} onClick={detectLocation} sx={{ mt: 1 }}>Use my location</Button>
+                <Button size="small" startIcon={<MyLocationIcon fontSize="small" />} onClick={detectLocation} sx={{ mt: 1 }}>{t('serviceAreas.useMyLocation')}</Button>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Latitude" fullWidth {...register('latitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
+                <TextField label={t('serviceAreas.latitude')} fullWidth {...register('latitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Longitude" fullWidth {...register('longitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
+                <TextField label={t('serviceAreas.longitude')} fullWidth {...register('longitude')} InputLabelProps={{ shrink: true }} inputProps={{ inputMode: 'decimal' }} />
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.75, pt: 0 }}>
-            <Button onClick={() => setOpen(false)} color="inherit" sx={{ color: 'text.secondary' }}>Cancel</Button>
+            <Button onClick={() => setOpen(false)} color="inherit" sx={{ color: 'text.secondary' }}>{t('common.cancel')}</Button>
             <Button type="submit" variant="contained" disabled={save.isPending} startIcon={editId ? <CheckIcon /> : <AddIcon />}>
-              {save.isPending ? 'Saving…' : editId ? 'Update' : 'Create'}
+              {save.isPending ? t('common.saving') : editId ? t('common.update') : t('common.create')}
             </Button>
           </DialogActions>
         </form>

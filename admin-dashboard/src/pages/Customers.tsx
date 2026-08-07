@@ -9,8 +9,10 @@ import { useQuery } from '@tanstack/react-query';
 import { customerApi } from '../api/endpoints';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
+import { useTranslation } from 'react-i18next';
 
 export default function Customers() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -23,15 +25,15 @@ export default function Customers() {
   });
 
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 150 },
-    { field: 'mobile', headerName: 'Mobile', width: 130 },
-    { field: 'area', headerName: 'Area', width: 130 },
-    { field: 'customerType', headerName: 'Type', width: 110 },
-    { field: 'allocatedCampers', headerName: 'Campers', width: 90 },
-    { field: 'ratePerCamper', headerName: 'Rate', width: 90, valueFormatter: (v) => `₹${v ?? 0}` },
-    { field: 'status', headerName: 'Status', width: 110, renderCell: (p) => <StatusChip status={p.value} /> },
+    { field: 'name', headerName: t('common.name'), flex: 1, minWidth: 150 },
+    { field: 'mobile', headerName: t('common.mobile'), width: 130 },
+    { field: 'area', headerName: t('customersPage.colArea'), width: 130 },
+    { field: 'customerType', headerName: t('common.type'), width: 110 },
+    { field: 'allocatedCampers', headerName: t('customersPage.colCampers'), width: 90 },
+    { field: 'ratePerCamper', headerName: t('customersPage.colRate'), width: 90, valueFormatter: (v) => `₹${v ?? 0}` },
+    { field: 'status', headerName: t('common.status'), width: 110, renderCell: (p) => <StatusChip status={p.value} /> },
     {
-      field: 'actions', headerName: 'Actions', width: 110, sortable: false,
+      field: 'actions', headerName: t('common.actions'), width: 110, sortable: false,
       renderCell: (p) => (
         <>
           <IconButton size="small" onClick={() => navigate(`/customers/${p.row.id}`)}><VisibilityIcon fontSize="small" /></IconButton>
@@ -44,17 +46,17 @@ export default function Customers() {
   return (
     <Box>
       <PageHeader
-        title="Customers"
-        subtitle="Manage your customer base"
-        action={<Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/customers/new')}>Add Customer</Button>}
+        title={t('nav.customers')}
+        subtitle={t('customersPage.subtitle')}
+        action={<Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/customers/new')}>{t('customersPage.addCustomer')}</Button>}
       />
       <Card sx={{ p: 2, mb: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField label="Search name / mobile / area" value={search} onChange={(e) => setSearch(e.target.value)} size="small" sx={{ minWidth: 280 }} />
-          <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} size="small" sx={{ minWidth: 160 }}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="ACTIVE">Active</MenuItem>
-            <MenuItem value="INACTIVE">Inactive</MenuItem>
+          <TextField label={t('customersPage.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} size="small" sx={{ minWidth: 280 }} />
+          <TextField select label={t('common.status')} value={status} onChange={(e) => setStatus(e.target.value)} size="small" sx={{ minWidth: 160 }}>
+            <MenuItem value="">{t('common.all')}</MenuItem>
+            <MenuItem value="ACTIVE">{t('common.active')}</MenuItem>
+            <MenuItem value="INACTIVE">{t('common.inactive')}</MenuItem>
           </TextField>
         </Stack>
       </Card>
