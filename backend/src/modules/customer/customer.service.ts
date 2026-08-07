@@ -119,12 +119,22 @@ class CustomerService {
    */
   async remove(id: string) {
     await this.getById(id);
-    await prisma.customer.update({
-      where: { id },
-      data: { blockedAt: new Date(), status: 'INACTIVE' },
+    await prisma.customer.delete({
+      where: {
+        id,
+      },
     });
+    // await prisma.notification.deleteMany({
+    //   where: {
+    //     customerId: id,
+    //   },
+    // }),
+    // await prisma.customer.update({
+    //   where: { id },
+    //   data: { blockedAt: new Date(), status: 'INACTIVE',driverId: null },
+    // });
     // Kick any existing sessions so they can't keep using the app.
-    await prisma.refreshToken.updateMany({ where: { customerId: id }, data: { revoked: true } });
+    // await prisma.refreshToken.updateMany({ where: { customerId: id }, data: { revoked: true } });
     return { id };
   }
 

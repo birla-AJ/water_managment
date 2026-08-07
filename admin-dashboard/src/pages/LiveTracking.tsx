@@ -7,6 +7,8 @@ import PolylineIcon from '@mui/icons-material/Polyline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import dayjs from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
@@ -204,7 +206,9 @@ export default function LiveTracking() {
         mapRef.current = new google.maps.Map(mapEl.current, {
           center: DEFAULT_CENTER,
           zoom: 12,
+          mapTypeId: 'satellite',
           mapTypeControl: false,
+          zoomControl: true,
           streetViewControl: false,
           fullscreenControl: true,
           clickableIcons: false,
@@ -446,7 +450,13 @@ export default function LiveTracking() {
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={8.2}>
           <Card sx={{ p: 1.5 }}>
-            <Box ref={mapEl} sx={{ height: { xs: 460, md: 660 }, borderRadius: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box ref={mapEl} sx={{ height: { xs: 460, md: 660 }, borderRadius: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }} />
+              <Stack spacing={0.5} sx={{ position: 'absolute', top: 16, left: 16 }}>
+                <Button variant="contained" size="small" aria-label="Zoom in" onClick={() => mapRef.current?.setZoom(Math.min(20, (mapRef.current.getZoom() ?? 12) + 1))} sx={{ minWidth: 40, width: 40, height: 40, p: 0 }}><AddIcon /></Button>
+                <Button variant="contained" size="small" aria-label="Zoom out" onClick={() => mapRef.current?.setZoom(Math.max(3, (mapRef.current.getZoom() ?? 12) - 1))} sx={{ minWidth: 40, width: 40, height: 40, p: 0 }}><RemoveIcon /></Button>
+              </Stack>
+            </Box>
           </Card>
         </Grid>
 

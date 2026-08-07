@@ -6,7 +6,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { driverApi, vehicleApi } from '../api/endpoints';
+import { driverApi, trackingApi, vehicleApi } from '../api/endpoints';
 import PageHeader from '../components/PageHeader';
 import StatusChip from '../components/StatusChip';
 import { useSnackbar } from 'notistack';
@@ -32,6 +32,7 @@ export default function Drivers() {
     queryFn: () => driverApi.list({ search, status: status || undefined, page: page + 1, limit: pageSize }),
   });
   const { data: availableVehicles = [] } = useQuery({ queryKey: ['vehicles', 'available'], queryFn: vehicleApi.available });
+  const { data: tracking } = useQuery({ queryKey: ['live-tracking'], queryFn: trackingApi.live });
 
   const assignVehicle = useMutation({
     mutationFn: ({ driverId, vehicleId }: { driverId: string; vehicleId: string | null }) => driverApi.assignVehicle(driverId, vehicleId),
@@ -65,6 +66,14 @@ export default function Drivers() {
     },
     onError: (error) => enqueueSnackbar(apiErrorMessage(error), { variant: 'error' }),
   });
+  const assignZone = useMutation({
+    mutationFn: ({ driverId, zone }: { driverId: string; zone: string }) => driverApi.update(driverId, { zone }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['drivers'] });
+      enqueueSnackbar(t('driverForm.zone'), { variant: 'success' });
+    },
+    onError: (error) => enqueueSnackbar(apiErrorMessage(error), { variant: 'error' }),
+  });
 
   const vehicleOptions = (current?: { id: string; number: string } | null) => {
     const options = current ? [current, ...availableVehicles.filter((vehicle) => vehicle.id !== current.id)] : availableVehicles;
@@ -74,7 +83,33 @@ export default function Drivers() {
   const columns: GridColDef[] = [
     { field: 'name', headerName: t('common.name'), flex: 1, minWidth: 150 },
     { field: 'mobile', headerName: t('common.mobile'), width: 130 },
-    { field: 'zone', headerName: t('driversPage.colZone'), width: 130, valueFormatter: (v) => v ?? '—' },
+    {
+      field: 'zone', headerName: t('driversPage.colZone'), width: 220, sortable: false,
+      renderCell: (p) => {
+        const current = p.value as string | null;
+        const zones = [
+          ...(current && !(tracking?.polygons ?? []).some((polygon) => polygon.name === current) ? [{ id: `legacy-${current}`, name: current }] : []),
+          ...(tracking?.polygons ?? []),
+        ];
+        return (
+          <Select
+            size="small"
+            value={current ?? ''}
+            displayEmpty
+            onChange={(event: SelectChangeEvent<string>) => {
+              const zone = event.target.value;
+              if (zone !== (current ?? '')) assignZone.mutate({ driverId: p.row.id, zone });
+            }}
+            disabled={assignZone.isPending}
+            onClick={(event) => event.stopPropagation()}
+            sx={{ minWidth: 185, bgcolor: 'background.paper' }}
+          >
+            <MenuItem value=""><em>{t('driversPage.unassigned')}</em></MenuItem>
+            {zones.map((zone) => <MenuItem key={zone.id} value={zone.name}>{zone.name}{zone.admin?.name ? ` · ${zone.admin.name}` : ''}</MenuItem>)}
+          </Select>
+        );
+      },
+    },
     {
       field: 'vehicle', headerName: t('driversPage.colVehicleAssignment'), width: 230, sortable: false,
       renderCell: (p) => {

@@ -4,7 +4,7 @@ import { Box, Card, CardContent, Grid, TextField, MenuItem, Button, Stack, Input
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { driverApi, vehicleApi } from '../api/endpoints';
+import { driverApi, trackingApi, vehicleApi } from '../api/endpoints';
 import { apiErrorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,8 @@ export default function DriverForm() {
   const { data } = useQuery({ queryKey: ['driver', id], queryFn: () => driverApi.get(id!), enabled: isEdit });
   // Vehicles available for assignment (free ones + the driver's current one).
   const { data: vehicles } = useQuery({ queryKey: ['vehicles', 'available'], queryFn: () => vehicleApi.available() });
+  // A service zone is the named polygon created on the Live Tracking screen.
+  const { data: tracking } = useQuery({ queryKey: ['live-tracking'], queryFn: trackingApi.live });
 
   useEffect(() => {
     if (data) reset({ ...data, vehicleId: data.vehicle?.id ?? data.vehicleId ?? '' });
@@ -48,6 +50,12 @@ export default function DriverForm() {
   const vehicleOptions = [
     ...(data?.vehicle ? [{ id: data.vehicle.id, number: data.vehicle.number }] : []),
     ...(vehicles ?? []).filter((v) => v.id !== data?.vehicle?.id).map((v) => ({ id: v.id, number: v.number })),
+  ];
+  const zoneOptions = [
+    ...(data?.zone && !(tracking?.polygons ?? []).some((polygon) => polygon.name === data.zone)
+      ? [{ id: `legacy-${data.zone}`, name: data.zone }]
+      : []),
+    ...(tracking?.polygons ?? []),
   ];
 
   return (
@@ -74,7 +82,12 @@ export default function DriverForm() {
                   error={!!errors.email} helperText={errors.email?.message} InputLabelProps={{ shrink: true }} />
               </Grid>
               <Grid item xs={12} sm={6}><TextField label={t('driverForm.licenseNumber')} fullWidth {...register('licenseNumber')} InputLabelProps={{ shrink: true }} /></Grid>
-              <Grid item xs={12} sm={6}><TextField label={t('driverForm.zone')} fullWidth placeholder="e.g. Kothrud" {...register('zone')} InputLabelProps={{ shrink: true }} /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField select label={t('driverForm.zone')} fullWidth defaultValue="" {...register('zone')} InputLabelProps={{ shrink: true }}>
+                  <MenuItem value=""><em>{t('driverForm.none')}</em></MenuItem>
+                  {zoneOptions.map((zone) => <MenuItem key={zone.id} value={zone.name}>{zone.name}{zone.admin?.name ? ` · ${zone.admin.name}` : ''}</MenuItem>)}
+                </TextField>
+              </Grid>
               <Grid item xs={12} sm={8}><TextField label={t('common.address')} fullWidth {...register('address')} InputLabelProps={{ shrink: true }} /></Grid>
               <Grid item xs={12} sm={4}>
                 <TextField select label={t('driverForm.statusField')} fullWidth defaultValue="ACTIVE" {...register('status')} InputLabelProps={{ shrink: true }}>
