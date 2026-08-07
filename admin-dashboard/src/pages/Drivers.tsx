@@ -67,7 +67,7 @@ export default function Drivers() {
     onError: (error) => enqueueSnackbar(apiErrorMessage(error), { variant: 'error' }),
   });
   const assignZone = useMutation({
-    mutationFn: ({ driverId, zone }: { driverId: string; zone: string }) => driverApi.update(driverId, { zone }),
+    mutationFn: ({ driverId, zone }: { driverId: string; zone: string }) => driverApi.assignZone(driverId, zone),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['drivers'] });
       enqueueSnackbar(t('driverForm.zone'), { variant: 'success' });
