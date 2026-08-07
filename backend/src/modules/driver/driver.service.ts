@@ -137,6 +137,28 @@ class DriverService {
     return prisma.driver.update({ where: { id }, data: { vehicleId }, select: driverPublicSelect });
   }
 
+  /** Assign a driver to a named, active service polygon owned by their admin. */
+  async assignZone(id: string, zone: string, adminId?: string) {
+    await this.getById(id, adminId);
+    const requestedName = zone.trim();
+    let canonicalZone = '';
+
+    if (requestedName) {
+      const polygon = await prisma.serviceAreaPolygon.findFirst({
+        where: {
+          name: { equals: requestedName, mode: 'insensitive' },
+          isActive: true,
+          ...(adminId ? { adminId } : {}),
+        },
+        select: { name: true },
+      });
+      if (!polygon) throw ApiError.badRequest('The selected service zone does not exist or is not available to you');
+      canonicalZone = polygon.name;
+    }
+
+    return prisma.driver.update({ where: { id }, data: { zone: canonicalZone }, select: driverPublicSelect });
+  }
+
   /** Assign a set of customers to this driver (overwrites their previous driver). */
   async assignCustomers(id: string, customerIds: string[], adminId?: string) {
     const driver = await this.getById(id, adminId);

@@ -6,6 +6,7 @@ import {
   createDriverSchema,
   updateDriverSchema,
   assignVehicleSchema,
+  assignZoneSchema,
   assignCustomersSchema,
   notifyDriverSchema,
 } from './driver.dto';
@@ -36,6 +37,7 @@ router.post('/:id/restore', authenticate('admin'), authorize('SUPER_ADMIN', 'ADM
 
 // Assignment
 router.post('/:id/assign-vehicle', ...admin, validate(assignVehicleSchema), ctrl.assignVehicle);
+router.post('/:id/assign-zone', ...admin, validate(assignZoneSchema), ctrl.assignZone);
 router.post('/:id/assign-customers', ...admin, validate(assignCustomersSchema), ctrl.assignCustomers);
 router.delete('/:id/customers/:customerId', ...admin, ctrl.unassignCustomer);
 router.post('/:id/notify', ...admin, validate(notifyDriverSchema), ctrl.notifyDriver);

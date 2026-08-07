@@ -46,6 +46,10 @@ export const assignVehicle = asyncHandler(async (req: Request, res: Response) =>
   ok(res, await driverService.assignVehicle(req.params.id, req.body.vehicleId, scopedDistributorId(req.user)), 'Vehicle assigned');
 });
 
+export const assignZone = asyncHandler(async (req: Request, res: Response) => {
+  ok(res, await driverService.assignZone(req.params.id, req.body.zone, scopedDistributorId(req.user)), 'Service zone assigned');
+});
+
 export const assignCustomers = asyncHandler(async (req: Request, res: Response) => {
   ok(res, await driverService.assignCustomers(req.params.id, req.body.customerIds, scopedDistributorId(req.user)), 'Customers assigned');
 });

@@ -8,7 +8,8 @@ export const createDriverSchema = z.object({
   address: z.string().optional(),
   zone: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
-  vehicleId: z.string().uuid().optional(),
+  // Vehicle is optional when creating a driver; it can be assigned later.
+  vehicleId: z.string().uuid().nullable().optional(),
 });
 
 export const updateDriverSchema = createDriverSchema.partial().omit({ mobile: true });
@@ -16,6 +17,11 @@ export const updateDriverSchema = createDriverSchema.partial().omit({ mobile: tr
 export const assignVehicleSchema = z.object({
   // null clears the assignment
   vehicleId: z.string().uuid().nullable(),
+});
+
+export const assignZoneSchema = z.object({
+  // Empty string intentionally clears a driver's service-zone assignment.
+  zone: z.string().trim().max(120),
 });
 
 export const assignCustomersSchema = z.object({
