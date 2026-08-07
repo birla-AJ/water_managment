@@ -88,7 +88,7 @@ export default function Drivers() {
       renderCell: (p) => {
         const current = p.value as string | null;
         const zones = [
-          ...(current && !(tracking?.polygons ?? []).some((polygon) => polygon.name === current) ? [{ id: `legacy-${current}`, name: current }] : []),
+          ...(current && !(tracking?.polygons ?? []).some((polygon) => polygon.name === current) ? [{ id: `legacy-${current}`, name: current, admin: undefined }] : []),
           ...(tracking?.polygons ?? []),
         ];
         return (

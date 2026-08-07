@@ -53,7 +53,7 @@ export default function DriverForm() {
   ];
   const zoneOptions = [
     ...(data?.zone && !(tracking?.polygons ?? []).some((polygon) => polygon.name === data.zone)
-      ? [{ id: `legacy-${data.zone}`, name: data.zone }]
+      ? [{ id: `legacy-${data.zone}`, name: data.zone, admin: undefined }]
       : []),
     ...(tracking?.polygons ?? []),
   ];
